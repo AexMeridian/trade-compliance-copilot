@@ -1,0 +1,43 @@
+{
+  "name": "trade-compliance-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build:frontend && wrangler dev",
+    "build:frontend": "npm run build --workspace frontend",
+    "deploy": "npm run build:frontend && wrangler deploy",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:migrate:local": "wrangler d1 migrations apply trade-compliance-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply trade-compliance-db --remote",
+    "seed:hts": "tsx scripts/fetch-hts.ts",
+    "seed:schedule-b": "tsx scripts/build-schedule-b.ts",
+    "seed:xref": "tsx scripts/seed-schedule-b-xref.ts",
+    "seed:ofac": "tsx scripts/fetch-ofac-sdn.ts",
+    "seed:csl": "tsx scripts/fetch-csl.ts",
+    "seed:samples": "tsx scripts/seed-sample-cases.ts",
+    "seed:load-local": "tsx scripts/load-batches.ts --local",
+    "seed:load-remote": "tsx scripts/load-batches.ts --remote",
+    "test:golden": "tsx tests/run-golden-cases.ts"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260921.1",
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.136.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "fast-xml-parser": "^4.5.0",
+    "hono": "^4.6.9"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260921.1": true
+  }
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "direction": "import",
+    "product_description": "Men's knit cotton t-shirts, short-sleeved, crew neck, 100% cotton jersey knit fabric",
+    "expected_hts_prefix": "6109.10",
+    "source": "Common apparel classification; heading 6109 covers T-shirts, singlets and other vests, knitted or crocheted -- HTSUS heading text, cross-checked against CBP CROSS rulings for cotton knit t-shirts (e.g. NY N series rulings classifying 100% cotton knit crew-neck t-shirts under 6109.10)."
+  },
+  {
+    "direction": "import",
+    "product_description": "A stainless steel vacuum-insulated double-wall drinking bottle with a screw-on lid, household use",
+    "expected_hts_prefix": "9617.00",
+    "source": "Heading 9617 covers vacuum flasks and other vacuum vessels, complete, and parts thereof -- consistent with CBP CROSS rulings classifying stainless-steel vacuum-insulated bottles/tumblers under 9617.00 (e.g. NY N306XXX-series rulings on vacuum bottles)."
+  },
+  {
+    "direction": "import",
+    "product_description": "A laptop computer, a portable automatic data processing machine weighing under 10 kg with a keyboard and display in the same housing",
+    "expected_hts_prefix": "8471.30",
+    "source": "HTSUS heading 8471 covers automatic data processing machines; subheading 8471.30 specifically covers portable ADP machines weighing not more than 10 kg consisting of a CPU, keyboard, and display -- direct match to the HTSUS subheading text (laptops/notebooks)."
+  },
+  {
+    "direction": "import",
+    "product_description": "Fresh cut roses, in bud or bloom, for bouquets",
+    "expected_hts_prefix": "0603.11",
+    "source": "HTSUS heading 0603 covers cut flowers and flower buds; subheading 0603.11.00 is specifically 'Fresh, roses' -- direct HTSUS subheading text match."
+  },
+  {
+    "direction": "import",
+    "product_description": "A wooden dining chair with four legs, a back, and no upholstery, for household use",
+    "expected_hts_prefix": "9401.6",
+    "source": "HTSUS heading 9401 covers seats and parts thereof; subheadings under 9401.6X cover other seats with wooden frames -- consistent with CBP CROSS rulings on wooden household dining chairs."
+  },
+  {
+    "direction": "export",
+    "product_description": "Men's knit cotton t-shirts, short-sleeved, crew neck, 100% cotton jersey knit fabric",
+    "expected_schedule_b_prefix": "6109.10",
+    "source": "Schedule B mirrors the HS-6 of HTS for this heading (both derive from the same international Harmonized System nomenclature at the 6-digit level) -- same CBP/HTSUS basis as the import case above."
+  },
+  {
+    "direction": "export",
+    "product_description": "A laptop computer, a portable automatic data processing machine weighing under 10 kg with a keyboard and display in the same housing",
+    "expected_schedule_b_prefix": "8471.30",
+    "source": "Schedule B 8471.30 mirrors HTS 8471.30 at the HS-6 level -- Census Schedule B nomenclature for portable ADP machines."
+  },
+  {
+    "direction": "export",
+    "product_description": "Raw unroasted coffee beans, not decaffeinated, in bulk bags",
+    "expected_schedule_b_prefix": "0901.11",
+    "source": "Schedule B/HTS heading 0901 covers coffee; subheading 0901.11 is 'Coffee, not roasted, not decaffeinated' -- direct HS-6 nomenclature match, a very well-known/stable classification."
+  },
+  {
+    "direction": "export",
+    "product_description": "Soybeans, whether or not broken, for crushing or animal feed",
+    "expected_schedule_b_prefix": "1201.90",
+    "source": "HS heading 1201 covers soybeans; this is one of the most heavily-traded, best-documented U.S. export commodities and its classification is not contested -- direct HS-6 match."
+  },
+  {
+    "direction": "export",
+    "product_description": "A stainless steel vacuum-insulated double-wall drinking bottle with a screw-on lid, household use",
+    "expected_schedule_b_prefix": "9617.00",
+    "source": "Schedule B 9617.00 mirrors HTS 9617.00 at the HS-6 level, same basis as the import case above."
+  }
+]

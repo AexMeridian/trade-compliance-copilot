@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/*
+  Design language: the visual grammar of the primary sources this app cites --
+  statute typesetting, ledger tables, citation marks -- rather than SaaS
+  dashboard chrome. Color is reserved for verdicts (clear/review/stop); the
+  rest of the app is ink-on-paper monochrome plus one muted structural accent.
+  Monospace is used only for functional data (codes, rates, dates), never for
+  decorative labels.
+*/
+@theme {
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-paper: #eef0ec;
+  --color-paper-raised: #f7f8f5;
+  --color-ink: #16212b;
+  --color-ink-muted: #4a5560;
+  --color-ink-faint: #7c8790;
+  --color-hairline: #c9cdc2;
+  --color-hairline-strong: #a7ad9e;
+  --color-accent: #2b5d6b;
+  --color-accent-soft: #dde7e6;
+
+  --color-clear: #2f7d4f;
+  --color-clear-soft: #e1f0e5;
+  --color-review: #b9781a;
+  --color-review-soft: #f5e9d4;
+  --color-stop: #a23b2e;
+  --color-stop-soft: #f4e0dc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-paper: #14191c;
+    --color-paper-raised: #1b2226;
+    --color-ink: #e8e9e4;
+    --color-ink-muted: #aab0ac;
+    --color-ink-faint: #7c8790;
+    --color-hairline: #333c3a;
+    --color-hairline-strong: #4a5450;
+    --color-accent: #6fa8b5;
+    --color-accent-soft: #1e2f31;
+
+    --color-clear: #5cb582;
+    --color-clear-soft: #16281c;
+    --color-review: #d99c3f;
+    --color-review-soft: #2e2412;
+    --color-stop: #d9695a;
+    --color-stop-soft: #2e1a16;
+  }
+}
+:root[data-theme="dark"] {
+  --color-paper: #14191c;
+  --color-paper-raised: #1b2226;
+  --color-ink: #e8e9e4;
+  --color-ink-muted: #aab0ac;
+  --color-ink-faint: #7c8790;
+  --color-hairline: #333c3a;
+  --color-hairline-strong: #4a5450;
+  --color-accent: #6fa8b5;
+  --color-accent-soft: #1e2f31;
+
+  --color-clear: #5cb582;
+  --color-clear-soft: #16281c;
+  --color-review: #d99c3f;
+  --color-review-soft: #2e2412;
+  --color-stop: #d9695a;
+  --color-stop-soft: #2e1a16;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,4 @@
+# Copy this file to .dev.vars (gitignored) and fill in real values for local `wrangler dev`.
+# In production, set this as a Worker secret instead: wrangler secret put ANTHROPIC_API_KEY
+
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

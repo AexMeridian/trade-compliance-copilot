@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "trade-compliance-copilot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // NOTE: this is a placeholder database_id sufficient for local `wrangler dev --local`
+  // and `wrangler d1 migrations apply --local`. Before deploying remotely, run
+  // `wrangler login` then `wrangler d1 create trade-compliance-db` and replace both
+  // the database_id below with the real one it prints. See README.md.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "trade-compliance-db",
+      "database_id": "e83d35a0-48c9-4aa5-a6b5-2e8d9db2bdd0",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "assets": {
+    "directory": "frontend/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}
