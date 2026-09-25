@@ -5,15 +5,15 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // NOTE: this is a placeholder database_id sufficient for local `wrangler dev --local`
-  // and `wrangler d1 migrations apply --local`. Before deploying remotely, run
-  // `wrangler login` then `wrangler d1 create trade-compliance-db` and replace both
-  // the database_id below with the real one it prints. See README.md.
+  // Real remote database, created via `wrangler d1 create trade-compliance-db`
+  // on 2026-09-23. `wrangler dev` (no --remote flag) still simulates D1 locally
+  // regardless of this ID, using a local SQLite file under .wrangler/state --
+  // re-run the seed steps in README.md if you need local data again.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "trade-compliance-db",
-      "database_id": "e83d35a0-48c9-4aa5-a6b5-2e8d9db2bdd0",
+      "database_id": "b5d53fbc-0e74-4ab3-83dd-52a577f59a35",
       "migrations_dir": "migrations"
     }
   ],
@@ -43,5 +43,31 @@
 
   "observability": {
     "enabled": true
+  },
+
+  // Auto-refresh schedule (src/scheduled.ts). Exactly 5 entries -- Workers
+  // Free caps an account at 5 cron triggers total, so SDN and CSL share the
+  // "0 6 * * 1" slot (src/scheduled.ts dispatches both from one trigger)
+  // rather than this app needing a 6th slot or a plan upgrade just to add
+  // Trade Policy Pulse's daily sync. Pulse (live Federal Register feed,
+  // src/lib/pulse/sync.ts) is the only daily job -- it's a small incremental
+  // upsert, not a full-table reload, so it doesn't carry the D1 write-quota
+  // risk below. The bulk government reference tables (HTS, Schedule B,
+  // xref, SDN, CSL) are weekly, staggered Monday mornings so xref only
+  // rebuilds after both schedules it joins are current -- SDN/CSL were
+  // moved off a daily schedule after a D1 write-quota incident (see
+  // README's "Refreshing the data"): each of those jobs does a full
+  // DELETE + full re-INSERT, and D1's free-tier plan caps writes at
+  // 100,000 rows/day account-wide. Curated legal content (USMCA rules,
+  // tariff overlays, country chart, ECCN) is NOT on this schedule -- see
+  // the comment at the top of src/scheduled.ts for why.
+  "triggers": {
+    "crons": [
+      "0 5 * * *",
+      "0 6 * * 1",
+      "0 7 * * 1",
+      "30 7 * * 1",
+      "0 8 * * 1"
+    ]
   }
 }

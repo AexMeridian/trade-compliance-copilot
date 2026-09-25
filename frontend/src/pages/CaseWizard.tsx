@@ -12,24 +12,42 @@ export function CaseWizard() {
   const [caseFile, setCaseFile] = useState<CaseFile | null>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    getCase(id).then((r) => {
-      setCaseFile(r.case_file);
-      const step =
-        r.case_file.classification.status !== 'complete'
-          ? 0
-          : r.case_file.origin.status !== 'complete'
-            ? 1
-            : r.case_file.screening.status !== 'complete'
-              ? 2
-              : 3;
-      setActiveStep(step);
-    });
+    getCase(id)
+      .then((r) => {
+        setCaseFile(r.case_file);
+        const step =
+          r.case_file.classification.status !== 'complete'
+            ? 0
+            : r.case_file.origin.status !== 'complete'
+              ? 1
+              : r.case_file.screening.status !== 'complete'
+                ? 2
+                : 3;
+        setActiveStep(step);
+      })
+      .catch((e) => setLoadError((e as Error).message));
   }, [id]);
 
-  if (!id || !caseFile) return <div className="mx-auto max-w-4xl px-4 py-16 text-ink-muted">Loading case…</div>;
+  if (!id || loadError) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <p className="border border-stop bg-stop-soft px-3 py-2 font-sans text-sm text-stop">
+          {loadError ? `Couldn't load this case. (${loadError})` : 'No case selected.'}
+        </p>
+      </div>
+    );
+  }
+  if (!caseFile) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <p className="border border-hairline bg-paper py-6 text-center font-sans text-sm text-ink-faint">Loading case…</p>
+      </div>
+    );
+  }
 
   const stepDone = [
     caseFile.classification.status === 'complete',
@@ -39,28 +57,45 @@ export function CaseWizard() {
   ];
 
   return (
-    <div className="mx-auto grid max-w-4xl grid-cols-[10rem_1fr] gap-8 px-4 py-10">
+    <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 px-4 py-12 sm:grid-cols-[11rem_1fr] sm:gap-10">
       <nav className="pt-1">
-        <ol className="space-y-1">
-          {STEPS.map((label, i) => (
-            <li key={label}>
-              <button
-                type="button"
-                disabled={i > 0 && !stepDone[i - 1]}
-                onClick={() => setActiveStep(i)}
-                className={`w-full border-l-2 px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
-                  activeStep === i ? 'border-accent text-accent' : stepDone[i] ? 'border-clear text-ink' : 'border-hairline text-ink-muted'
-                }`}
-              >
-                <span className="font-mono text-xs">{i + 1}</span> {label}
-              </button>
-            </li>
-          ))}
+        <ol>
+          {STEPS.map((label, i) => {
+            const state = activeStep === i ? 'active' : stepDone[i] ? 'done' : 'pending';
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  disabled={i > 0 && !stepDone[i - 1]}
+                  onClick={() => setActiveStep(i)}
+                  className="flex w-full items-start gap-3 py-1.5 text-left font-sans disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className="flex flex-col items-center">
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center border font-mono text-xs ${
+                        state === 'active'
+                          ? 'border-accent text-accent'
+                          : state === 'done'
+                            ? 'border-clear bg-clear-soft text-clear'
+                            : 'border-hairline-strong text-ink-muted'
+                      }`}
+                    >
+                      {state === 'done' ? '✓' : i + 1}
+                    </span>
+                    {i < STEPS.length - 1 && <span className="my-0.5 h-7 w-px bg-hairline-strong" />}
+                  </span>
+                  <span className={`pt-0.5 text-sm ${state === 'active' ? 'font-medium text-accent' : state === 'done' ? 'text-ink' : 'text-ink-muted'}`}>
+                    {label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ol>
       </nav>
 
       <div>
-        {error && <p className="mb-4 border border-stop bg-stop-soft px-3 py-2 text-sm text-stop">{error}</p>}
+        {error && <p className="mb-4 border border-stop bg-stop-soft px-3 py-2 font-sans text-sm text-stop">{error}</p>}
         {activeStep === 0 && (
           <ClassificationStep
             caseFile={caseFile}
@@ -136,13 +171,13 @@ function ClassificationStep({ caseFile, onDone, onError }: { caseFile: CaseFile;
 
   return (
     <StepShell title="Classification">
-      <label className="block text-sm text-ink-muted">
+      <label className="block font-sans text-sm text-ink-muted">
         Describe the product in plain English
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="mt-1 w-full border border-hairline bg-paper-raised px-3 py-2 text-ink outline-none focus:border-accent"
+          className="mt-1.5 w-full border border-hairline bg-paper-raised px-3 py-2 font-sans text-sm text-ink outline-none focus:border-accent"
           placeholder="e.g. A rechargeable handheld cordless vacuum cleaner with a HEPA filter"
         />
       </label>
@@ -150,7 +185,7 @@ function ClassificationStep({ caseFile, onDone, onError }: { caseFile: CaseFile;
         type="button"
         onClick={submit}
         disabled={loading}
-        className="mt-3 border border-ink bg-ink px-4 py-2 text-sm text-paper hover:bg-ink/90 disabled:opacity-50"
+        className="mt-3 border border-accent bg-accent px-4 py-2 font-sans text-sm font-semibold text-paper hover:bg-accent/90 disabled:opacity-50"
       >
         {loading ? 'Classifying…' : 'Classify product'}
       </button>
@@ -160,7 +195,7 @@ function ClassificationStep({ caseFile, onDone, onError }: { caseFile: CaseFile;
           <div className="font-mono text-lg text-ink">{c.selected_code}</div>
           <div className="text-sm text-ink-muted">{c.reasoning?.summary}</div>
           {c.ambiguous && (
-            <p className="mt-2 border border-review bg-review-soft px-3 py-2 text-sm text-review">
+            <p className="mt-2 border border-review bg-review-soft px-3 py-2 font-sans text-sm text-review">
               Ambiguous with: {c.ambiguous_alternatives.join(', ')}
             </p>
           )}
@@ -210,7 +245,7 @@ function OriginStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDone:
               value={comp.description}
               onChange={(e) => updateComponent(i, { description: e.target.value })}
               placeholder="Component description"
-              className="border border-hairline bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"
+              className="border border-hairline bg-paper-raised px-2 py-1.5 font-sans text-sm outline-none focus:border-accent"
             />
             <input
               value={comp.origin_country}
@@ -231,19 +266,19 @@ function OriginStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDone:
         <button
           type="button"
           onClick={() => setComponents((prev) => [...prev, { description: '', origin_country: '', value_pct: null }])}
-          className="text-sm text-accent hover:underline"
+          className="font-sans text-sm text-accent hover:underline"
         >
           Add component
         </button>
       </div>
 
-      <label className="mt-4 block text-sm text-ink-muted">
+      <label className="mt-4 block font-sans text-sm text-ink-muted">
         Final assembly country (ISO code)
         <input
           value={assembly}
           onChange={(e) => setAssembly(e.target.value.toUpperCase())}
           maxLength={2}
-          className="mt-1 w-24 border border-hairline bg-paper-raised px-2 py-1.5 font-mono text-sm outline-none focus:border-accent"
+          className="mt-1.5 block w-24 border border-hairline bg-paper-raised px-2 py-1.5 font-mono text-sm outline-none focus:border-accent"
         />
       </label>
 
@@ -251,7 +286,7 @@ function OriginStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDone:
         type="button"
         onClick={submit}
         disabled={loading}
-        className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-paper hover:bg-ink/90 disabled:opacity-50"
+        className="mt-4 border border-accent bg-accent px-4 py-2 font-sans text-sm font-semibold text-paper hover:bg-accent/90 disabled:opacity-50"
       >
         {loading ? 'Assessing…' : 'Assess origin'}
       </button>
@@ -308,7 +343,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
             <select
               value={p.role}
               onChange={(e) => updateParty(i, { role: e.target.value as PartyRole })}
-              className="border border-hairline bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"
+              className="border border-hairline bg-paper-raised px-2 py-1.5 font-sans text-sm outline-none focus:border-accent"
             >
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
@@ -318,14 +353,14 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
               value={p.name}
               onChange={(e) => updateParty(i, { name: e.target.value })}
               placeholder="Party name"
-              className="border border-hairline bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"
+              className="border border-hairline bg-paper-raised px-2 py-1.5 font-sans text-sm outline-none focus:border-accent"
             />
           </div>
         ))}
         <button
           type="button"
           onClick={() => setParties((prev) => [...prev, { role: 'intermediary', name: '' }])}
-          className="text-sm text-accent hover:underline"
+          className="font-sans text-sm text-accent hover:underline"
         >
           Add party
         </button>
@@ -335,7 +370,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
         type="button"
         onClick={submit}
         disabled={loading}
-        className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-paper hover:bg-ink/90 disabled:opacity-50"
+        className="mt-4 border border-accent bg-accent px-4 py-2 font-sans text-sm font-semibold text-paper hover:bg-accent/90 disabled:opacity-50"
       >
         {loading ? 'Screening…' : 'Screen parties'}
       </button>
@@ -344,10 +379,10 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
         <div className="mt-6 space-y-4 border-t border-hairline pt-4">
           {s.parties.map((p, i) => (
             <div key={i}>
-              <div className="text-sm font-semibold text-ink">
+              <div className="font-sans text-sm font-semibold text-ink">
                 {p.role}: {p.input_name}
               </div>
-              {p.matches.length === 0 && <div className="text-sm text-ink-faint">No candidate matches above threshold.</div>}
+              {p.matches.length === 0 && <div className="font-sans text-sm text-ink-faint">No candidate matches above threshold.</div>}
               {p.matches.map((m, j) => (
                 <div key={j} className="mt-1 border-l-2 border-hairline-strong pl-3">
                   <div className="text-sm">
@@ -393,19 +428,19 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
 
   return (
     <StepShell title="Final determination">
-      <p className="text-sm text-ink-muted">
+      <p className="font-sans text-sm text-ink-muted">
         Combines classification, origin, and screening results into a{' '}
         {caseFile.direction === 'import' ? 'landed-cost estimate' : 'license determination'}.
       </p>
       {isExport && (
-        <label className="mt-3 block text-sm text-ink-muted">
+        <label className="mt-3 block font-sans text-sm text-ink-muted">
           Destination country (ISO code)
           <input
             value={destination}
             onChange={(e) => setDestination(e.target.value.toUpperCase())}
             maxLength={2}
             placeholder="e.g. DE"
-            className="mt-1 block w-24 border border-hairline bg-paper-raised px-2 py-1.5 font-mono text-sm outline-none focus:border-accent"
+            className="mt-1.5 block w-24 border border-hairline bg-paper-raised px-2 py-1.5 font-mono text-sm outline-none focus:border-accent"
           />
         </label>
       )}
@@ -413,7 +448,7 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
         type="button"
         onClick={submit}
         disabled={loading || (isExport && !destination.trim())}
-        className="mt-3 border border-ink bg-ink px-4 py-2 text-sm text-paper hover:bg-ink/90 disabled:opacity-50"
+        className="mt-3 border border-accent bg-accent px-4 py-2 font-sans text-sm font-semibold text-paper hover:bg-accent/90 disabled:opacity-50"
       >
         {loading ? 'Computing…' : 'Run determination and view report'}
       </button>

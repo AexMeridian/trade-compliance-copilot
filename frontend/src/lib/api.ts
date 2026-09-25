@@ -1,4 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
+import type { ActiveMeasure, PulseAction, PulseSummary, TempoPoint } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -57,4 +58,33 @@ export function submitDetermination(id: string, destinationCountry?: string) {
     method: 'POST',
     body: JSON.stringify({ destination_country: destinationCountry }),
   });
+}
+
+export function getPulseFeed(limit?: number, tag?: string, opts?: { search?: string; country?: string }) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (tag) params.set('tag', tag);
+  if (opts?.search) params.set('q', opts.search);
+  if (opts?.country) params.set('country', opts.country);
+  const qs = params.toString();
+  return request<{ actions: PulseAction[] }>(`/pulse/feed${qs ? `?${qs}` : ''}`);
+}
+
+export function getPulseTempo() {
+  return request<{ months: TempoPoint[] }>('/pulse/tempo');
+}
+
+export function getPulseSummary() {
+  return request<PulseSummary>('/pulse/summary');
+}
+
+export function getActiveMeasures() {
+  return request<{ overlays: ActiveMeasure[] }>('/pulse/active-measures');
+}
+
+export function syncPulse() {
+  // request() already throws with the server's `error` message on a non-2xx
+  // response (429 cooldown, 502 Federal Register failure) -- a resolved call
+  // always means the sync actually ran.
+  return request<{ ok: true; rows: number }>('/pulse/sync', { method: 'POST' });
 }

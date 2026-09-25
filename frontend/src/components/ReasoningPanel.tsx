@@ -10,7 +10,7 @@ export function ReasoningPanel({ reasoning }: { reasoning: ReasoningTrace }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-ink-muted hover:text-ink"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left font-sans text-sm text-ink-muted hover:text-ink"
         aria-expanded={open}
       >
         <span>{open ? 'Hide analyst reasoning' : 'Show analyst reasoning'}</span>

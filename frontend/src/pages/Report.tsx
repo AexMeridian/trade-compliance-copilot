@@ -10,13 +10,31 @@ import { ReasoningPanel } from '../components/ReasoningPanel';
 export function Report() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{ case_file: CaseFile; verdict: Verdict; generated_at: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    getReport(id).then(setData);
+    getReport(id)
+      .then(setData)
+      .catch((e) => setLoadError((e as Error).message));
   }, [id]);
 
-  if (!id || !data) return <div className="mx-auto max-w-3xl px-4 py-16 text-ink-muted">Loading report…</div>;
+  if (!id || loadError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <p className="border border-stop bg-stop-soft px-3 py-2 font-sans text-sm text-stop">
+          {loadError ? `Couldn't load this report. (${loadError})` : 'No report selected.'}
+        </p>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <p className="border border-hairline bg-paper py-6 text-center font-sans text-sm text-ink-faint">Loading report…</p>
+      </div>
+    );
+  }
 
   const { case_file: cf, verdict, generated_at } = data;
 
@@ -42,13 +60,13 @@ export function Report() {
 
       <section className="mt-8 border-t border-hairline pt-6">
         <h2 className="font-serif text-lg font-semibold text-ink">3. Screening</h2>
-        <p className="mt-1 text-sm capitalize">{cf.screening.highest_severity.replace('_', ' ')}</p>
+        <p className="mt-1 font-sans text-sm capitalize">{cf.screening.highest_severity.replace('_', ' ')}</p>
         {cf.screening.parties.map((p, i) => (
           <div key={i} className="mt-3">
-            <div className="text-sm font-semibold text-ink">
+            <div className="font-sans text-sm font-semibold text-ink">
               {p.role}: {p.input_name}
             </div>
-            {p.matches.length === 0 && <div className="text-sm text-ink-faint">No candidate matches above threshold.</div>}
+            {p.matches.length === 0 && <div className="font-sans text-sm text-ink-faint">No candidate matches above threshold.</div>}
             {p.matches.map((m, j) => (
               <div key={j} className="mt-1 border-l-2 border-hairline-strong pl-3">
                 <div className="text-sm">
@@ -91,12 +109,11 @@ export function Report() {
         </section>
       )}
 
-      <footer className="mt-12 border-t border-hairline pt-4 text-xs text-ink-faint">
-        This report is a portfolio demonstration and is not legal advice. Trade
-        compliance determinations depend on facts not captured here; consult a
-        licensed customs broker or trade attorney before relying on this for an
-        actual transaction.
-      </footer>
+      <p className="mt-12 border-t border-hairline pt-4 font-sans text-xs text-ink-faint">
+        Trade compliance determinations depend on facts not captured here.
+        Consult a licensed customs broker or trade attorney before relying on
+        this for an actual transaction.
+      </p>
     </div>
   );
 }

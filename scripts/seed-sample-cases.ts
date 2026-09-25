@@ -9,11 +9,14 @@
 // being asserted without checking.
 //
 // Requires `wrangler dev` running on http://127.0.0.1:8787 (or set BASE_URL).
+// Set REMOTE=1 to flag the seeded cases in the deployed remote D1 database
+// instead of local (BASE_URL must then point at the deployed Worker too).
 
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
+const D1_MODE = process.env.REMOTE === '1' ? '--remote' : '--local';
 
 async function api<T>(path: string, method: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}/api${path}`, {
@@ -102,7 +105,7 @@ async function runScenario(s: Scenario) {
   mkdirSync('scripts/seed-sql/_tmp', { recursive: true });
   const sqlFile = `scripts/seed-sql/_tmp/flag-${s.sampleKey}.sql`;
   writeFileSync(sqlFile, `UPDATE cases SET is_sample = 1, sample_key = '${s.sampleKey}' WHERE id = '${id}';\n`);
-  execFileSync('npx', ['wrangler', 'd1', 'execute', 'trade-compliance-db', '--local', `--file=${sqlFile}`], {
+  execFileSync('npx', ['wrangler', 'd1', 'execute', 'trade-compliance-db', D1_MODE, `--file=${sqlFile}`], {
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });

@@ -4,8 +4,11 @@ A portfolio web app that walks a product and a proposed cross-border
 transaction (import or export) through four connected trade-compliance
 modules — classification, USMCA origin, denied-party screening, and final
 determination — the way a trade compliance analyst would, and produces one
-coherent compliance report. Built as a resume piece for an International
-Business student heading toward trade law.
+coherent compliance report. A separate live dashboard, **Trade Policy
+Pulse** (`/pulse`), turns the same real-data-only philosophy into a
+continuously-updated feed of actual U.S. trade-policy actions rather than a
+static essay — see [Refreshing the data](#refreshing-the-data). Built as a
+resume piece for an International Business student heading toward trade law.
 
 **Not legal advice.** Every report ends with that disclaimer, and it's meant
 literally — this is a demonstration of how an LLM can be *grounded* in real
@@ -169,11 +172,13 @@ migrations/              D1 schema + small curated seed data (country chart subs
 scripts/                 Bulk data loaders (HTS, Schedule B, OFAC SDN, CSL) +
                           scripts/refresh_data.md (how to re-run each one later)
 src/
-  routes/                One Hono route file per module + cases.ts (create/report/samples)
+  routes/                One Hono route file per module + cases.ts (create/report/samples) + pulse.ts
   lib/                    D1 query helpers, fuzzy matcher, duty-stack math, Anthropic wrapper
+  lib/pulse/              Federal Register client, keyword tagging, incremental sync (see "Refreshing the data")
+  lib/refresh/            Cron-triggered bulk reference-table refresh jobs (HTS, SDN, CSL, ...)
   prompts/                System prompts + tool schemas, one file per module
   types/case.ts           The shared CaseFile type every module reads/writes
-frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report)
+frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse)
 tests/                    golden-cases.json + the accuracy-test runner
 ```
 
@@ -266,6 +271,83 @@ worse for a compliance tool than disclosing them. All of the following are
 
 ## Refreshing the data
 
-See `scripts/refresh_data.md` for a runbook on re-running each loader when
-the underlying source data changes (new HTS revision, updated SDN list,
-new tariff proclamation, etc).
+The four bulk government tables (HTS, Schedule B, OFAC SDN, BIS/State CSL)
+refresh **automatically** once deployed, via Cloudflare Cron Triggers defined
+in `wrangler.jsonc` and dispatched from `src/scheduled.ts`:
+
+| Schedule | Source | Job |
+|---|---|---|
+| Daily, 05:00 UTC | Trade Policy Pulse (Federal Register) | `src/lib/pulse/sync.ts` |
+| Weekly, Mon 06:00 UTC | OFAC SDN, then BIS/State CSL | `src/lib/refresh/sdn.ts`, `src/lib/refresh/csl.ts` (same trigger, run in sequence — see below) |
+| Weekly, Mon 07:00 UTC | HTS | `src/lib/refresh/hts.ts` |
+| Weekly, Mon 07:30 UTC | Schedule B | `src/lib/refresh/scheduleB.ts` |
+| Weekly, Mon 08:00 UTC | HTS↔Schedule B cross-reference | `src/lib/refresh/xref.ts` (rebuilt from the two above via a plain SQL join, staggered to run after both) |
+
+That's exactly 5 cron triggers — Workers Free caps an account at 5 total,
+and adding Pulse's daily sync meant something had to give: SDN and CSL
+(previously 15 minutes apart) now share one trigger, with
+`src/scheduled.ts` running both in sequence and logging each to
+`data_refresh_log` separately, rather than this app needing a 6th slot or a
+plan upgrade. SDN/CSL were originally daily — a stale sanctions or
+entity-list hit is a real compliance risk, not just a freshness nicety —
+but each job does a full `DELETE` + full re-`INSERT` of its table (see the
+safety-design note below), and D1's free-tier plan caps writes at 100,000
+rows/day account-wide. Full daily reloads of SDN (entries + aliases) and CSL
+combined routinely exceed that on their own, independent of any other
+traffic, and block **all** D1 writes app-wide until the quota resets. Weekly
+keeps this app on the free tier; **if you need daily sanctions-list
+freshness, move `src/scheduled.ts`'s SDN/CSL entries to their own daily cron
+and upgrade to the Workers Paid plan** ($5/mo minimum, includes 50M rows
+written/month and 1,000 cron triggers — trivial headroom for this workload).
+
+**Safety design.** Each job fetches and fully builds its new dataset in
+memory first, then applies it in one atomic `env.DB.batch()` call (a DELETE
+plus every INSERT chunk). If the fetch or parse fails partway through, the
+batch is never sent and the live table is untouched — a failed refresh cannot
+leave a table half-deleted. Every run (success or failure, with an error
+message when applicable) is written to the `data_refresh_log` table, so "is
+the refresh mechanism actually working" is a query away, separate from the
+per-row `last_updated` provenance already shown in the UI.
+
+**CPU-time caveat.** Cloudflare's Cron Trigger CPU-time budget is
+plan-dependent (as low as 10ms on the Workers Free plan, up to 30s on a paid
+Standard usage plan; wall-clock is capped at 15 minutes regardless). The SDN
+job's XML parsing is the most CPU-intensive step in this suite — if it's
+failing in `data_refresh_log` with a timeout rather than a fetch/parse error,
+the account is very likely on a tier whose CPU budget doesn't fit that job;
+there's no in-Worker fix for that beyond upgrading the plan or falling back
+to the manual script below.
+
+**What's deliberately NOT auto-refreshed:** the curated legal content —
+`usmca_rules`, `tariff_overlays` (Section 232/301/338), `country_chart`, and
+`eccn_entries`. Every row in those tables was hand-verified against a primary
+source (a Federal Register notice, a CBP fact sheet, etc.) before being
+encoded — that verification step is exactly what makes this app's "grounded,
+not fabricated" claim credible. Auto-applying an update to a duty rate or a
+license determination from an unverified feed would quietly undermine that
+guarantee, so these stay manually curated. Extending automation to this tier
+should mean detecting new relevant Federal Register / USTR / BIS notices and
+flagging them for human review, never auto-applying a change — see `## Known
+limitations` above; that piece isn't built in this pass.
+
+**Manual fallback.** `scripts/refresh_data.md` documents the original,
+Node-script-based manual refresh (`npm run seed:hts`, etc.) — useful for
+local dev, for a data source that isn't on the automatic schedule, or as a
+fallback if a Cron Trigger is failing on CPU-time limits.
+
+**Trade Policy Pulse** (`/pulse`) is a different kind of table from the rest
+of this section, worth calling out explicitly: `trade_policy_actions` is a
+**live, never-curated** feed of Federal Register documents (10 keyword terms
+across USTR/BIS/OFAC/CBP, tagged Tariff/Sanctions/Export Control/Trade
+Agreement/Other by a deterministic keyword/agency rule in
+`src/lib/pulse/tag.ts` — no LLM in this path, same as every other refresh
+job), synced daily at 05:00 UTC (`src/lib/pulse/sync.ts`) and incrementally
+upserted rather than fully reloaded, so it doesn't carry the D1 write-quota
+risk the weekly jobs above were built around. It's explicitly *not*
+held to the same "hand-verified against a primary source" bar as
+`usmca_rules`/`tariff_overlays` — it's raw signal from the Federal Register,
+shown as such, not a curated legal determination. A demo can also trigger
+`POST /api/pulse/sync` directly (60-second cooldown, enforced by an atomic
+D1 compare-and-swap on `pulse_sync_state`) rather than waiting on the cron.
+The page's "Active measures" panel reads `tariff_overlays` directly — no
+separate table for that data.

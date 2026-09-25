@@ -4,6 +4,11 @@ This app's bulk reference tables (HTS, Schedule B, OFAC SDN, BIS/State CSL)
 are loaded from live government sources via the scripts in this directory,
 not hand-curated. They will go stale — here's how to refresh each one.
 
+**Once deployed, this happens automatically** on a Cron Trigger schedule --
+see the README's "Refreshing the data" section and `src/scheduled.ts`. This
+runbook is the manual path: for local dev, for a source or a plan tier where
+the automatic job doesn't fit, or as a fallback if a scheduled run is failing.
+
 ## HTS (`npm run seed:hts`)
 
 Source: `https://hts.usitc.gov/reststop/exportList`, chapter by chapter.

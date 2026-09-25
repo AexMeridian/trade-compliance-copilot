@@ -35,7 +35,7 @@ export function VerdictBanner({ verdict, caseId, generatedAt }: { verdict: Verdi
           {generatedAt ? `, generated ${new Date(generatedAt).toLocaleString()}` : ''}
         </span>
       </div>
-      <p className="mt-1 text-sm text-ink-muted">{cfg.note}</p>
+      <p className="mt-1 font-sans text-sm text-ink-muted">{cfg.note}</p>
     </div>
   );
 }

@@ -1,72 +1,36 @@
 @import "tailwindcss";
 
 /*
-  Design language: the visual grammar of the primary sources this app cites --
-  statute typesetting, ledger tables, citation marks -- rather than SaaS
-  dashboard chrome. Color is reserved for verdicts (clear/review/stop); the
-  rest of the app is ink-on-paper monochrome plus one muted structural accent.
-  Monospace is used only for functional data (codes, rates, dates), never for
-  decorative labels.
+  Design language: a black-and-white instrument -- statute typesetting,
+  ledger tables, citation marks -- with exactly one accent color (a stamped-
+  ink amber) used in exactly two places: the primary action and the globe's
+  trade lanes. Everywhere else stays true greyscale. Verdict color
+  (clear/review/stop) is the only other color language and always means
+  severity, never decoration. Headlines and the globe carry a mild specular
+  sheen (a soft highlight, like light on a physical object) -- not a glow
+  effect, and never on more than those two things.
 */
 @theme {
   --font-serif: "Source Serif 4", Georgia, serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --color-paper: #eef0ec;
-  --color-paper-raised: #f7f8f5;
-  --color-ink: #16212b;
-  --color-ink-muted: #4a5560;
-  --color-ink-faint: #7c8790;
-  --color-hairline: #c9cdc2;
-  --color-hairline-strong: #a7ad9e;
-  --color-accent: #2b5d6b;
-  --color-accent-soft: #dde7e6;
+  --color-paper: #0b0b0a;
+  --color-paper-raised: #161615;
+  --color-ink: #f0eee8;
+  --color-ink-muted: #9a978e;
+  --color-ink-faint: #656258;
+  --color-hairline: #232320;
+  --color-hairline-strong: #3a3934;
+  --color-accent: #c9862f;
+  --color-accent-soft: #241d12;
 
-  --color-clear: #2f7d4f;
-  --color-clear-soft: #e1f0e5;
-  --color-review: #b9781a;
-  --color-review-soft: #f5e9d4;
-  --color-stop: #a23b2e;
-  --color-stop-soft: #f4e0dc;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-paper: #14191c;
-    --color-paper-raised: #1b2226;
-    --color-ink: #e8e9e4;
-    --color-ink-muted: #aab0ac;
-    --color-ink-faint: #7c8790;
-    --color-hairline: #333c3a;
-    --color-hairline-strong: #4a5450;
-    --color-accent: #6fa8b5;
-    --color-accent-soft: #1e2f31;
-
-    --color-clear: #5cb582;
-    --color-clear-soft: #16281c;
-    --color-review: #d99c3f;
-    --color-review-soft: #2e2412;
-    --color-stop: #d9695a;
-    --color-stop-soft: #2e1a16;
-  }
-}
-:root[data-theme="dark"] {
-  --color-paper: #14191c;
-  --color-paper-raised: #1b2226;
-  --color-ink: #e8e9e4;
-  --color-ink-muted: #aab0ac;
-  --color-ink-faint: #7c8790;
-  --color-hairline: #333c3a;
-  --color-hairline-strong: #4a5450;
-  --color-accent: #6fa8b5;
-  --color-accent-soft: #1e2f31;
-
-  --color-clear: #5cb582;
-  --color-clear-soft: #16281c;
+  --color-clear: #6bb583;
+  --color-clear-soft: #16211a;
   --color-review: #d99c3f;
-  --color-review-soft: #2e2412;
-  --color-stop: #d9695a;
-  --color-stop-soft: #2e1a16;
+  --color-review-soft: #241d12;
+  --color-stop: #c9695a;
+  --color-stop-soft: #231613;
 }
 
 body {
@@ -82,4 +46,41 @@ body {
 *:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* Mild sheen for the hero headline only -- a subtle two-stop luminosity
+   gradient, not a rainbow/holographic effect. */
+.text-sheen {
+  background: linear-gradient(105deg, var(--color-ink) 35%, #ffffff 50%, var(--color-ink) 65%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Pulse ticker (PulseTicker.tsx) -- a CSS-only marquee, not a JS interval,
+   so it runs on the compositor thread with no per-tick re-render. The track
+   is rendered twice in the component (second copy aria-hidden) and this
+   slides exactly half its own width, so the loop point is seamless. Pauses
+   on hover/focus so it's actually readable and clickable, and stops
+   entirely under reduced motion -- this is genuinely non-essential motion. */
+@keyframes pulse-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.pulse-ticker-track {
+  animation: pulse-ticker-scroll 110s linear infinite;
+}
+.pulse-ticker-viewport:hover .pulse-ticker-track,
+.pulse-ticker-viewport:focus-within .pulse-ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ticker-track {
+    animation: none;
+  }
 }

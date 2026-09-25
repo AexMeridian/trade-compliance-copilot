@@ -5,6 +5,8 @@ import { classificationRoute } from './routes/classification.js';
 import { originRoute } from './routes/origin.js';
 import { screeningRoute } from './routes/screening.js';
 import { determinationRoute } from './routes/determination.js';
+import { pulseRoute } from './routes/pulse.js';
+import { scheduled } from './scheduled.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,7 +33,11 @@ app.route('/api/cases', classificationRoute);
 app.route('/api/cases', originRoute);
 app.route('/api/cases', screeningRoute);
 app.route('/api/cases', determinationRoute);
+app.route('/api/pulse', pulseRoute);
 
 app.get('/api/health', (c) => c.json({ ok: true }));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  scheduled,
+};
