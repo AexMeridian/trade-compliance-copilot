@@ -17,6 +17,8 @@ import { refreshXref } from './lib/refresh/xref.js';
 import { refreshSdn } from './lib/refresh/sdn.js';
 import { refreshCsl } from './lib/refresh/csl.js';
 import { runPulseSync } from './lib/pulse/sync.js';
+import { refreshFx, refreshQuotes } from './lib/pulse/markets.js';
+import { refreshNews } from './lib/pulse/news.js';
 import { logRefresh } from './lib/refresh/log.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
@@ -43,7 +45,15 @@ interface RefreshJob {
 // (50M rows/month, 1,000 cron triggers) for daily SDN/CSL freshness and
 // separate trigger slots -- see README's "Refreshing the data" section.
 const CRON_JOBS: Record<string, RefreshJob[]> = {
-  '0 5 * * *': [{ source: 'pulse', run: runPulseSync }], // daily, clear of the Monday block below
+  // Daily backstop for Pulse. Markets/news also refresh on request when stale
+  // (lib/pulse/refreshLazy.ts) -- this slot just guarantees a refresh even on a
+  // day nobody opens the page.
+  '0 5 * * *': [
+    { source: 'pulse', run: runPulseSync },
+    { source: 'pulse_fx', run: refreshFx },
+    { source: 'pulse_quotes', run: refreshQuotes },
+    { source: 'pulse_news', run: refreshNews },
+  ],
   '0 6 * * 1': [
     { source: 'sdn', run: refreshSdn },
     { source: 'csl', run: refreshCsl },

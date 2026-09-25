@@ -1,5 +1,5 @@
 export interface RefreshResult {
-  source: 'hts' | 'schedule_b' | 'xref' | 'sdn' | 'csl' | 'pulse';
+  source: 'hts' | 'schedule_b' | 'xref' | 'sdn' | 'csl' | 'pulse' | 'pulse_fx' | 'pulse_quotes' | 'pulse_news';
   rows: number;
   // Set only by pulse sync -- keyword terms that hit the per-term pagination
   // cap with real results still beyond it, so a caller can surface "this

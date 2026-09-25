@@ -30,3 +30,38 @@ export const TAG_HINTS: Record<string, string> = {
 };
 
 export const CITATION_HINT = 'Federal Register citation -- volume and page number, the official way to cite this document.';
+
+// Plain-language gloss for the market/news panels (tooltips on hover).
+export const MARKET_HINTS: Record<string, string> = {
+  '^GSPC': 'The S&P 500: a benchmark of 500 large U.S. companies. A rough read on how investors feel about the U.S. economy.',
+  '^IXIC': 'The Nasdaq Composite: thousands of stocks, heavy on technology companies.',
+  '^DJI': 'The Dow Jones Industrial Average: 30 large, established U.S. companies.',
+  '^VIX': 'Often called the fear gauge. It rises when investors expect big swings in the U.S. stock market.',
+  '^N225': "Japan's main stock index, the Nikkei 225. Japan is a major exporter, so it reacts to trade news.",
+  '^GDAXI': "Germany's main stock index, the DAX. A read on Europe's biggest exporting economy.",
+  '^FTSE': "The FTSE 100: the largest companies listed in London.",
+  '^HSI': 'The Hang Seng: the main stock index in Hong Kong, a gateway for trade with China.',
+  '000001.SS': "The Shanghai Composite: China's main stock index.",
+  FDX: 'FedEx: a global shipping company. Its results often signal how much is moving around the world.',
+  UPS: 'UPS: a global package and freight carrier, and another read on trade volumes.',
+  ZIM: 'ZIM: a container shipping line. Ocean freight companies move with trade volumes and shipping rates.',
+  CAT: 'Caterpillar: sells heavy equipment worldwide, so its stock tracks global construction and trade.',
+  BA: 'Boeing: one of the largest U.S. exporters, so tariffs and trade disputes hit it directly.',
+  AAPL: 'Apple: builds most of its products abroad, so it is sensitive to tariffs and supply-chain shifts.',
+  WMT: 'Walmart: one of the largest U.S. importers, so import costs and tariffs matter to it.',
+  TSM: "TSMC (Taiwan Semiconductor): makes a large share of the world's advanced chips.",
+  'CL=F': 'The price of a barrel of West Texas Intermediate crude oil, the U.S. benchmark. Oil prices ripple through shipping costs and trade balances.',
+  'BZ=F': 'Brent crude, the global oil benchmark. Prices here set fuel and freight costs worldwide.',
+  'NG=F': 'U.S. natural gas futures, a key input for industry and a growing export.',
+  'GC=F': 'Gold, a traditional safe haven that tends to rise when investors are nervous.',
+  'HG=F': 'Copper, used in nearly everything from wiring to cars. Its price is a popular read on global manufacturing.',
+  '^TNX': "What the U.S. government pays to borrow for 10 years. It sets the tone for borrowing costs worldwide and pulls currency values with it.",
+  'DX-Y.NYB': "How strong the U.S. dollar is against a basket of major currencies. Higher means U.S. imports get cheaper and U.S. exports get pricier abroad.",
+};
+
+export const NEWS_CATEGORY_HINTS: Record<string, string> = {
+  'Trade & Supply Chain': 'Shipping, ports, exports and imports, sanctions, critical materials, and trade deals in the news.',
+  'Markets & Currency': 'Stock markets, currencies, central banks, interest rates, inflation, and oil prices.',
+  'Elections & Politics': "Headlines about elections in countries we can identify. Pulled from news headlines, not an election calendar, so upcoming elections won't appear until they're reported.",
+  Official: 'Direct releases from the European Central Bank.',
+};

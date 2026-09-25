@@ -31,6 +31,15 @@
   --color-review-soft: #241d12;
   --color-stop: #c9695a;
   --color-stop-soft: #231613;
+
+  /* Categorical data-viz palette (Pulse only): muted hues that hold up on
+     the black paper. Deliberately not red or green -- those stay reserved
+     for up/down and severity -- so a category never reads as good or bad. */
+  --color-cat-amber: #e0a340;
+  --color-cat-blue: #6fa3e0;
+  --color-cat-violet: #b08ad6;
+  --color-cat-teal: #56b8ad;
+  --color-cat-gray: #8a877e;
 }
 
 body {

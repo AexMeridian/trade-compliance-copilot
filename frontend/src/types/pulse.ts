@@ -57,3 +57,53 @@ export interface ActiveMeasure {
   source_url: string;
   data_as_of: string;
 }
+
+export interface MarketTile {
+  id: string;
+  label: string;
+  group: 'U.S. stocks' | 'World stocks' | 'Trade bellwethers' | 'Commodities' | 'Rates & dollar';
+  unit: string;
+  source: string;
+  sourceUrl: string;
+  value: number;
+  asOf: string;
+  change: number | null;
+  changePct: number | null; // only for level-type series (index, price); null for rates/balances
+  changeMode: 'percent' | 'absolute';
+  points: [string, number][]; // [ISO date, close], oldest first, ~3 months of daily closes
+}
+
+export interface CurrencyRow {
+  quote: string;
+  label: string; // e.g. "USD/EUR"
+  rate: number; // units of the quote currency per 1 USD
+  asOf: string;
+  change30dPct: number | null;
+  spark: number[]; // oldest to newest, up to 30 points
+}
+
+export interface PulseMarkets {
+  tiles: MarketTile[];
+  currencies: CurrencyRow[];
+}
+
+export type NewsCategory = 'Trade & Supply Chain' | 'Markets & Currency' | 'Elections & Politics' | 'Official';
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  summary: string | null;
+  url: string;
+  source: string;
+  category: NewsCategory;
+  countries: string | null; // JSON array of country codes
+  published_at: string;
+  image_url: string | null; // lead image from the publisher's own feed/CDN, if it supplies one
+}
+
+export interface PulseNewsResponse {
+  items: NewsItem[];
+  counts: Partial<Record<NewsCategory, number>>;
+  lastSuccessAt: string | null;
+  note: string | null;
+}

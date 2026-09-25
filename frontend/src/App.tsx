@@ -91,7 +91,8 @@ export default function App() {
               to="/calculator"
               className={`font-sans text-sm no-underline hover:text-accent ${isCalculator ? 'text-accent' : 'text-ink-muted'}`}
             >
-              Compliance calculator
+              <span className="sm:hidden">Calculator</span>
+              <span className="hidden sm:inline">Compliance calculator</span>
             </Link>
             {isCalculator ? (
               <>

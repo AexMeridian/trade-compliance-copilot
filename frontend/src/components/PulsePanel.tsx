@@ -10,11 +10,14 @@ export function PulsePanel({
   title,
   subtitle,
   className = '',
+  accent,
   children,
 }: {
   title: string;
   subtitle?: string;
   className?: string;
+  // A bg-* class for a thin colored top edge that ties a tile to its group.
+  accent?: string;
   children: ReactNode;
 }) {
   // min-w-0 on both the root and the body is load-bearing, not decorative:
@@ -25,6 +28,7 @@ export function PulsePanel({
   // page overflow at 1280px) before adding these.
   return (
     <div className={`flex h-full min-w-0 flex-col bg-paper ${className}`}>
+      {accent && <div className={`h-0.5 ${accent}`} aria-hidden="true" />}
       <div className="border-b border-hairline-strong bg-paper-raised px-3 py-1.5">
         <h2 className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">{title}</h2>
         {subtitle && <p className="mt-0.5 font-sans text-[11px] leading-snug text-ink-faint">{subtitle}</p>}

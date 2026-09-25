@@ -1,27 +1,29 @@
 import type { PulseAction } from '../types/pulse';
 import { groupByTitle, docTypeWeight } from '../lib/pulseGrouping';
 import { PulseActionDetails } from './PulseActionDetails';
-import { DOC_TYPE_HINTS, TAG_HINTS } from '../lib/pulseGlossary';
+import { DOC_TYPE_HINTS } from '../lib/pulseGlossary';
+import { PulseTagChip } from './PulseTagChip';
 
 // Ranking, not filtering by relevance in any semantic sense: standalone
 // actions (not part of a routine batch -- see PulseFeedList's grouping)
 // ordered by document type (a Presidential proclamation or final Rule
 // outranks a routine administrative Notice) and then recency. Plain
 // TypeScript sort, no model call -- see lib/pulseGrouping.ts.
-function rankSignals(actions: PulseAction[]): PulseAction[] {
+export function rankSignals(actions: PulseAction[], limit = 5): PulseAction[] {
   const standalone = groupByTitle(actions)
     .filter((g) => g.items.length === 1)
     .map((g) => g.items[0]);
   return standalone
     .sort((a, b) => docTypeWeight(b.doc_type) - docTypeWeight(a.doc_type) || b.publication_date.localeCompare(a.publication_date))
-    .slice(0, 5);
+    .slice(0, limit);
 }
 
-export function PulseTopSignals({ actions }: { actions: PulseAction[] }) {
-  const ranked = rankSignals(actions);
+export function PulseTopSignals({ actions, limit = 5, skip, emptyText }: { actions: PulseAction[]; limit?: number; skip?: string; emptyText?: string }) {
+  // skip: an item already shown elsewhere on the page (the hero card).
+  const ranked = rankSignals(actions, limit + (skip ? 1 : 0)).filter((a) => a.document_number !== skip).slice(0, limit);
 
   if (ranked.length === 0) {
-    return <p className="font-sans text-sm text-ink-faint">Nothing distinct enough to rank yet -- try refreshing.</p>;
+    return <p className="font-sans text-sm text-ink-faint">{emptyText ?? 'Nothing distinct enough to rank yet -- try refreshing.'}</p>;
   }
 
   return (
@@ -35,9 +37,7 @@ export function PulseTopSignals({ actions }: { actions: PulseAction[] }) {
               <span className="text-ink-muted" title={DOC_TYPE_HINTS[a.doc_type]}>
                 {a.doc_type}
               </span>
-              <span className="border border-hairline-strong px-1.5 py-0.5 font-sans text-[11px] text-ink-muted" title={TAG_HINTS[a.tag]}>
-                {a.tag}
-              </span>
+              <PulseTagChip tag={a.tag} />
             </div>
             <a
               href={a.html_url}

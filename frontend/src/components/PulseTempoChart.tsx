@@ -34,7 +34,7 @@ export function PulseTempoChart({ months, trendPct }: { months: TempoPoint[]; tr
               {m.count}
             </span>
             <div
-              className="w-full bg-ink-muted transition-colors group-hover:bg-ink"
+              className="w-full bg-cat-amber/70 transition-colors group-hover:bg-cat-amber"
               style={{ height: `${Math.max((m.count / max) * 100, 3)}%` }}
             />
           </div>

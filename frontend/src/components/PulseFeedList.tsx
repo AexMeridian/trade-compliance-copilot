@@ -1,7 +1,8 @@
 import type { PulseAction } from '../types/pulse';
 import { groupByTitle } from '../lib/pulseGrouping';
 import { PulseActionDetails } from './PulseActionDetails';
-import { DOC_TYPE_HINTS, TAG_HINTS } from '../lib/pulseGlossary';
+import { DOC_TYPE_HINTS } from '../lib/pulseGlossary';
+import { PulseTagChip } from './PulseTagChip';
 
 function GroupMeta({ a }: { a: PulseAction }) {
   return (
@@ -11,9 +12,7 @@ function GroupMeta({ a }: { a: PulseAction }) {
         {a.doc_type}
       </span>
       <span className="text-ink-muted">{a.agency}</span>
-      <span className="border border-hairline-strong px-1.5 py-0.5 font-sans text-[11px] text-ink-muted" title={TAG_HINTS[a.tag]}>
-        {a.tag}
-      </span>
+      <PulseTagChip tag={a.tag} />
     </div>
   );
 }
@@ -58,12 +57,7 @@ export function PulseFeedList({ actions }: { actions: PulseAction[] }) {
                     {oldest.publication_date === newest.publication_date ? newest.publication_date : `${oldest.publication_date} – ${newest.publication_date}`}
                   </span>
                   <span className="text-ink-muted">{g.agency}</span>
-                  <span
-                    className="border border-hairline-strong px-1.5 py-0.5 font-sans text-[11px] text-ink-muted"
-                    title={TAG_HINTS[g.tag]}
-                  >
-                    {g.tag}
-                  </span>
+                  <PulseTagChip tag={g.tag} />
                 </div>
                 <span className="mt-1.5 block font-serif text-base leading-snug text-ink hover:text-accent">
                   {g.title} <span className="font-sans text-sm text-ink-faint">&times;{g.items.length}</span>

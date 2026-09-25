@@ -36,7 +36,7 @@ export function PulseCountryBreakdown({
               </span>
               <span className="h-3 flex-1 bg-hairline">
                 <span
-                  className={`block h-full ${active ? 'bg-accent' : 'bg-ink-muted'}`}
+                  className={`block h-full ${active ? 'bg-accent' : 'bg-cat-teal'}`}
                   style={{ width: `${Math.max((b.count / max) * 100, 4)}%` }}
                 />
               </span>

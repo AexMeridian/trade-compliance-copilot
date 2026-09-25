@@ -1,5 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
-import type { ActiveMeasure, PulseAction, PulseSummary, TempoPoint } from '../types/pulse';
+import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -87,4 +87,14 @@ export function syncPulse() {
   // response (429 cooldown, 502 Federal Register failure) -- a resolved call
   // always means the sync actually ran.
   return request<{ ok: true; rows: number }>('/pulse/sync', { method: 'POST' });
+}
+
+export function getPulseMarkets() {
+  return request<PulseMarkets>('/pulse/markets');
+}
+
+export function getPulseNews(category?: string, limit = 30) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (category) params.set('category', category);
+  return request<PulseNewsResponse>(`/pulse/news?${params}`);
 }
