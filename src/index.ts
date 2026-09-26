@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { secureHeaders } from 'hono/secure-headers';
 import type { Env } from './types/env.js';
 import { casesRoute } from './routes/cases.js';
 import { classificationRoute } from './routes/classification.js';
@@ -9,6 +10,23 @@ import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Baseline hardening headers on every API response (static pages get theirs
+// from frontend/public/_headers). API responses are JSON/XML, never framed.
+app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: 'same-site', xFrameOptions: 'DENY', referrerPolicy: 'no-referrer' }));
+
+// The Pulse read API is public and unauthenticated. Per-IP cap so one client
+// can't run the site out of its Workers request quota or hammer D1; a real
+// reader makes a handful of calls per visit, far under this.
+app.use('/api/pulse/*', async (c, next) => {
+  const key = c.req.header('cf-connecting-ip') ?? 'unknown';
+  const { success } = await c.env.PULSE_RATE_LIMITER.limit({ key });
+  if (!success) {
+    c.header('Retry-After', '30');
+    return c.json({ error: 'Too many requests. Please wait a moment and try again.' }, 429);
+  }
+  return next();
+});
 
 const CLAUDE_CALLING_SUFFIXES = ['/classification', '/origin', '/screening', '/determination'];
 

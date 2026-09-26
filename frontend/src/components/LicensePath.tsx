@@ -19,18 +19,16 @@ export function LicensePath({ determination }: { determination: DeterminationRes
       {steps.map((step, i) => (
         <div key={step.label} className="flex items-start gap-3">
           <div className="flex flex-col items-center">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center border border-hairline-strong font-mono text-xs text-ink-muted">
-              {i + 1}
-            </div>
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center border border-hairline-strong tabular-nums text-xs text-ink-muted">{i + 1}</div>
             {i < steps.length - 1 && <div className="my-0.5 h-6 w-px bg-hairline-strong" />}
           </div>
           <div className="pb-4">
-            <div className="font-sans text-xs text-ink-muted">{step.label}</div>
+            <div className="text-xs text-ink-muted">{step.label}</div>
             <div
               className={
                 step.label === 'License requirement'
-                  ? `mt-0.5 inline-block border px-2 py-0.5 font-mono text-sm ${REQUIREMENT_STYLE[step.value] ?? 'border-hairline text-ink'}`
-                  : 'mt-0.5 font-mono text-sm'
+                  ? `mt-0.5 inline-block border px-2 py-0.5 tabular-nums text-sm ${REQUIREMENT_STYLE[step.value] ?? 'border-hairline text-ink'}`
+                  : 'mt-0.5 tabular-nums text-sm'
               }
             >
               {step.value}

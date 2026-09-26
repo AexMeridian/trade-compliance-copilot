@@ -1,16 +1,8 @@
+import { useState } from 'react';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { GROUP_HUE, NEWS_HUE, TAG_HUE } from '../lib/pulseColors';
 import { TAG_HINTS, NEWS_CATEGORY_HINTS } from '../lib/pulseGlossary';
-import {
-  DEFAULT_PREFS,
-  MARKET_TOPICS,
-  NEWS_TOPICS,
-  POLICY_TOPICS,
-  PRESETS,
-  isDefaultPrefs,
-  samePrefs,
-  type PulsePrefs,
-} from '../lib/pulsePrefs';
+import { DEFAULT_PREFS, MARKET_TOPICS, NEWS_TOPICS, POLICY_TOPICS, PRESETS, isDefaultPrefs, prefsToQuery, samePrefs, type PulsePrefs } from '../lib/pulsePrefs';
 
 const MARKET_HINTS_SHORT: Record<string, string> = {
   'U.S. stocks': 'S&P 500, Nasdaq, Dow and the VIX',
@@ -28,11 +20,11 @@ function Chip({ on, onClick, dot, title, children }: { on: boolean; onClick: () 
       onClick={onClick}
       aria-pressed={on}
       title={title}
-      className={`inline-flex items-center gap-1.5 border px-2.5 py-1.5 font-sans text-xs ${
-        on ? 'border-accent bg-accent-soft text-ink' : 'border-hairline-strong text-ink-muted hover:border-ink-faint hover:text-ink'
+      className={`inline-flex items-center gap-1.5 border px-3 py-1.5 text-[13px] font-semibold ${
+        on ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
       }`}
     >
-      {dot && <span className={`h-2 w-2 ${dot}`} aria-hidden="true" />}
+      {dot && <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden="true" />}
       {children}
     </button>
   );
@@ -41,8 +33,8 @@ function Chip({ on, onClick, dot, title, children }: { on: boolean; onClick: () 
 function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <fieldset className="min-w-0">
-      <legend className="font-sans text-sm font-semibold text-ink">{title}</legend>
-      {hint && <p className="mt-0.5 font-sans text-xs text-ink-faint">{hint}</p>}
+      <legend className="text-sm font-semibold text-ink">{title}</legend>
+      {hint && <p className="mt-0.5 text-xs text-ink-faint">{hint}</p>}
       <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
     </fieldset>
   );
@@ -57,9 +49,7 @@ export function CustomizeButton({ open, onClick, custom }: { open: boolean; onCl
       onClick={onClick}
       aria-expanded={open}
       aria-controls="pulse-customize"
-      className={`mb-1 ml-auto shrink-0 self-center whitespace-nowrap border px-3 py-1.5 font-sans text-xs ${
-        custom ? 'border-accent text-accent' : 'border-hairline-strong text-ink-muted hover:border-accent hover:text-accent'
-      }`}
+      className={`btn shrink-0 self-end whitespace-nowrap sm:mb-2 sm:ml-auto sm:self-center ${custom ? 'border-accent bg-accent-soft text-accent hover:text-white' : ''}`}
     >
       {custom ? 'My feed (custom)' : 'Customize feed'}
     </button>
@@ -77,7 +67,24 @@ export function CustomizePanel({
   onClose: () => void;
   topCountries: string[]; // most active first
 }) {
+  const [copied, setCopied] = useState(false);
   const set = (patch: Partial<PulsePrefs>) => onChange({ ...prefs, ...patch });
+  const shareUrl = `${window.location.origin}/${isDefaultPrefs(prefs) ? '' : `?${prefsToQuery(prefs)}`}`;
+  // The RSS feed can narrow by one topic and one country; with more than one
+  // chosen it stays broad rather than silently dropping choices.
+  const rss = new URLSearchParams();
+  if (prefs.tags.length === 1) rss.set('tag', prefs.tags[0]);
+  if (prefs.countries.length === 1) rss.set('country', prefs.countries[0]);
+  const rssHref = `/api/pulse/rss${rss.toString() ? `?${rss}` : ''}`;
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this link:', shareUrl);
+    }
+  }
   // Selected countries always show (so they can be removed), then the most
   // active others; everything else is in the dropdown.
   const shown = [...prefs.countries, ...topCountries.filter((c) => !prefs.countries.includes(c))].slice(0, Math.max(10, prefs.countries.length));
@@ -86,24 +93,20 @@ export function CustomizePanel({
     .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
 
   return (
-    <section id="pulse-customize" aria-label="Customize your feed" className="mt-5 border border-hairline-strong bg-paper-raised">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-hairline-strong px-4 py-3">
+    <section id="pulse-customize" aria-label="Customize your feed" className="card mt-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-hairline px-4 py-3">
         <div>
-          <h2 className="font-serif text-lg font-semibold text-ink">Choose what you follow</h2>
-          <p className="mt-0.5 font-sans text-xs text-ink-muted">
-            Your choices change the Overview, the hero cards and the ticker. They're saved in this browser only. Nothing selected in a list means everything.
+          <h2 className="text-lg font-semibold text-ink">Choose what you follow</h2>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            Your choices change the Overview and the highlights at the top of the page. They are saved in this browser only. If you select nothing in a list,
+            you see everything.
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange(DEFAULT_PREFS)}
-            disabled={isDefaultPrefs(prefs)}
-            className="border border-hairline-strong px-3 py-1.5 font-sans text-xs text-ink-muted hover:border-accent hover:text-accent disabled:opacity-40"
-          >
+          <button type="button" onClick={() => onChange(DEFAULT_PREFS)} disabled={isDefaultPrefs(prefs)} className="btn">
             Reset to default
           </button>
-          <button type="button" onClick={onClose} className="border border-accent px-3 py-1.5 font-sans text-xs text-accent hover:bg-accent-soft">
+          <button type="button" onClick={onClose} className="btn border-accent text-accent">
             Done
           </button>
         </div>
@@ -129,7 +132,13 @@ export function CustomizePanel({
 
           <Group title="News topics" hint="Which kinds of headlines you want to see.">
             {NEWS_TOPICS.map((t) => (
-              <Chip key={t} on={prefs.newsCats.includes(t)} onClick={() => set({ newsCats: toggle(prefs.newsCats, t) })} dot={NEWS_HUE[t]?.bg} title={NEWS_CATEGORY_HINTS[t]}>
+              <Chip
+                key={t}
+                on={prefs.newsCats.includes(t)}
+                onClick={() => set({ newsCats: toggle(prefs.newsCats, t) })}
+                dot={NEWS_HUE[t]?.bg}
+                title={NEWS_CATEGORY_HINTS[t]}
+              >
                 {t}
               </Chip>
             ))}
@@ -147,7 +156,7 @@ export function CustomizePanel({
               aria-label="Add another country"
               value=""
               onChange={(e) => e.target.value && set({ countries: [...prefs.countries, e.target.value] })}
-              className="border border-hairline-strong bg-paper px-2 py-1.5 font-sans text-xs text-ink-muted focus:border-accent focus:outline-none"
+              className="border border-hairline-strong bg-paper-raised px-2 py-1.5 text-[13px] text-ink-muted focus:border-accent focus:outline-none"
             >
               <option value="">More countries…</option>
               {rest.map((c) => (
@@ -161,10 +170,25 @@ export function CustomizePanel({
 
         <Group title="Markets" hint="Which market data you want to see.">
           {MARKET_TOPICS.map((t) => (
-            <Chip key={t} on={prefs.markets.includes(t)} onClick={() => set({ markets: toggle(prefs.markets, t) })} dot={GROUP_HUE[t]?.bg ?? 'bg-cat-blue'} title={MARKET_HINTS_SHORT[t]}>
+            <Chip
+              key={t}
+              on={prefs.markets.includes(t)}
+              onClick={() => set({ markets: toggle(prefs.markets, t) })}
+              dot={GROUP_HUE[t]?.bg ?? 'bg-hue-indigo'}
+              title={MARKET_HINTS_SHORT[t]}
+            >
               {t}
             </Chip>
           ))}
+        </Group>
+
+        <Group title="Share or follow" hint="Send your view to a colleague, or get new U.S. actions in a feed reader.">
+          <button type="button" onClick={copyLink} className="btn">
+            {copied ? 'Link copied' : 'Copy a link to this feed'}
+          </button>
+          <a href={rssHref} target="_blank" rel="noreferrer" className="btn">
+            RSS feed of new U.S. actions{prefs.tags.length === 1 || prefs.countries.length === 1 ? ' (narrowed)' : ''}
+          </a>
         </Group>
 
         <Group title="On my Overview" hint="Turn whole sections off. They stay one click away in their own tabs.">

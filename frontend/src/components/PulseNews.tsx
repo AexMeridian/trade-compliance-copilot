@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { NewsCategory, NewsItem, PulseNewsResponse } from '../types/pulse';
 import { COUNTRY_LABELS, parseCountries } from '../lib/pulseCountries';
-import { NEWS_CATEGORY_HINTS } from '../lib/pulseGlossary';
 import { NEWS_HUE } from '../lib/pulseColors';
+import { NEWS_CATEGORY_HINTS } from '../lib/pulseGlossary';
 
 const CATEGORIES: NewsCategory[] = ['Trade & Supply Chain', 'Markets & Currency', 'Elections & Politics', 'Official'];
 
@@ -21,7 +21,7 @@ export function NewsThumb({ src, className }: { src: string | null; className: s
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className={`shrink-0 bg-paper-raised object-cover ${className}`}
+      className={`shrink-0 bg-paper object-cover ${className}`}
     />
   );
 }
@@ -55,7 +55,7 @@ export function PulseNews({
   categories?: NewsCategory[];
 }) {
   const chip = (active: boolean) =>
-    `border px-2.5 py-1 text-xs ${active ? 'border-accent text-accent' : 'border-hairline-strong text-ink-muted hover:text-ink'}`;
+    `inline-flex items-center gap-1.5 border px-3 py-1 text-[13px] font-semibold ${active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'}`;
 
   return (
     <div>
@@ -72,17 +72,17 @@ export function PulseNews({
             title={NEWS_CATEGORY_HINTS[c]}
             className={chip(category === c)}
           >
-            <span className={`mr-1.5 inline-block h-2 w-2 ${NEWS_HUE[c].bg}`} aria-hidden="true" />
+            <span className={`h-2 w-2 shrink-0 rounded-full ${NEWS_HUE[c].bg}`} aria-hidden="true" />
             {c}
-            {data?.counts[c] ? <span className="ml-1.5 font-mono text-ink-faint">{data.counts[c]}</span> : null}
+            {data?.counts[c] ? <span className="ml-1.5 tabular-nums text-ink-faint">{data.counts[c]}</span> : null}
           </button>
         ))}
       </div>
 
       {loading && !data ? (
-        <p className="font-sans text-sm text-ink-faint">Loading…</p>
+        <p className="text-sm text-ink-faint">Loading…</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="font-sans text-sm text-ink-faint">Nothing here from the last two weeks. If you've customized your feed, try widening your topics or countries.</p>
+        <p className="text-sm text-ink-faint">Nothing here from the last two weeks. If you've customized your feed, try widening your topics or countries.</p>
       ) : (
         <ol className={compact ? '' : 'max-h-[30rem] overflow-y-auto pr-1'}>
           {(compact ? data.items.filter((n) => n.id !== excludeId).slice(0, 5) : data.items).map((n: NewsItem) => {
@@ -90,21 +90,19 @@ export function PulseNews({
             return (
               <li key={n.id} className="flex gap-3 border-b border-hairline py-3 first:pt-0 last:border-0">
                 <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-[11px] text-ink-faint">
-                  <span>{timeAgo(n.published_at)}</span>
-                  <span className="text-ink-muted">{n.source}</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className={`h-2 w-2 ${NEWS_HUE[n.category]?.bg ?? 'bg-cat-gray'}`} aria-hidden="true" />
-                    {n.category}
-                  </span>
-                </div>
-                <a href={n.url} target="_blank" rel="noreferrer" className="mt-1 block font-serif text-sm leading-snug text-ink no-underline hover:text-accent">
-                  {n.title}
-                </a>
-                {n.summary && !compact && <p className="mt-1 line-clamp-2 font-sans text-xs text-ink-muted">{n.summary}</p>}
-                {countries.length > 0 && (
-                  <p className="mt-1 font-sans text-[11px] text-ink-faint">{countries.map((c) => COUNTRY_LABELS[c] ?? c).join(', ')}</p>
-                )}
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 tabular-nums text-[11px] text-ink-faint">
+                    <span>{timeAgo(n.published_at)}</span>
+                    <span className="text-ink-muted">{n.source}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${NEWS_HUE[n.category]?.bg ?? 'bg-hue-gray'}`} aria-hidden="true" />
+                      {n.category}
+                    </span>
+                  </div>
+                  <a href={n.url} target="_blank" rel="noreferrer" className="mt-1 block text-sm leading-snug text-ink no-underline hover:text-accent">
+                    {n.title}
+                  </a>
+                  {n.summary && !compact && <p className="mt-1 line-clamp-2 text-xs text-ink-muted">{n.summary}</p>}
+                  {countries.length > 0 && <p className="mt-1 text-[11px] text-ink-faint">{countries.map((c) => COUNTRY_LABELS[c] ?? c).join(', ')}</p>}
                 </div>
                 <NewsThumb src={n.image_url} className="h-16 w-24 sm:h-[4.5rem] sm:w-32" />
               </li>

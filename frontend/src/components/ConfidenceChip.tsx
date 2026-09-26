@@ -7,9 +7,5 @@ const STYLES: Record<Confidence, string> = {
 };
 
 export function ConfidenceChip({ confidence }: { confidence: Confidence }) {
-  return (
-    <span className={`inline-block border px-2 py-0.5 font-sans text-xs ${STYLES[confidence]}`}>
-      {confidence} confidence
-    </span>
-  );
+  return <span className={`inline-block border px-2 py-0.5 text-xs ${STYLES[confidence]}`}>{confidence} confidence</span>;
 }

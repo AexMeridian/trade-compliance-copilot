@@ -75,13 +75,23 @@ export const PRESETS: Preset[] = [
     id: 'trader',
     label: 'Importer or exporter',
     blurb: 'Tariffs, trade deals, shipping news and the currencies and commodities that set your costs.',
-    prefs: { ...DEFAULT_PREFS, tags: ['Tariff', 'Trade Agreement'], newsCats: ['Trade & Supply Chain'], markets: ['Commodities', 'Rates & dollar', 'Currencies'] },
+    prefs: {
+      ...DEFAULT_PREFS,
+      tags: ['Tariff', 'Trade Agreement'],
+      newsCats: ['Trade & Supply Chain'],
+      markets: ['Commodities', 'Rates & dollar', 'Currencies'],
+    },
   },
   {
     id: 'investor',
     label: 'Investor',
     blurb: 'Markets first: stocks, commodities, rates and currencies, plus tariff news that moves them.',
-    prefs: { ...DEFAULT_PREFS, tags: ['Tariff'], newsCats: ['Markets & Currency', 'Trade & Supply Chain'], markets: ['U.S. stocks', 'World stocks', 'Trade bellwethers', 'Commodities', 'Currencies'] },
+    prefs: {
+      ...DEFAULT_PREFS,
+      tags: ['Tariff'],
+      newsCats: ['Markets & Currency', 'Trade & Supply Chain'],
+      markets: ['U.S. stocks', 'World stocks', 'Trade bellwethers', 'Commodities', 'Currencies'],
+    },
   },
   {
     id: 'compliance',
@@ -93,13 +103,25 @@ export const PRESETS: Preset[] = [
     id: 'policy',
     label: 'Policy watcher',
     blurb: 'Rule-making, trade agreements and elections, without the market numbers.',
-    prefs: { ...DEFAULT_PREFS, tags: ['Trade Agreement', 'Tariff', 'Export Control'], newsCats: ['Elections & Politics', 'Trade & Supply Chain', 'Official'], showMarkets: false },
+    prefs: {
+      ...DEFAULT_PREFS,
+      tags: ['Trade Agreement', 'Tariff', 'Export Control'],
+      newsCats: ['Elections & Politics', 'Trade & Supply Chain', 'Official'],
+      showMarkets: false,
+    },
   },
 ];
 
 export function samePrefs(a: PulsePrefs, b: PulsePrefs): boolean {
   const eq = (x: string[], y: string[]) => x.length === y.length && x.every((v) => y.includes(v));
-  return eq(a.tags, b.tags) && eq(a.newsCats, b.newsCats) && eq(a.countries, b.countries) && eq(a.markets, b.markets) && a.showNews === b.showNews && a.showMarkets === b.showMarkets;
+  return (
+    eq(a.tags, b.tags) &&
+    eq(a.newsCats, b.newsCats) &&
+    eq(a.countries, b.countries) &&
+    eq(a.markets, b.markets) &&
+    a.showNews === b.showNews &&
+    a.showMarkets === b.showMarkets
+  );
 }
 
 const overlaps = (wanted: string[], found: string[]) => wanted.length === 0 || found.some((c) => wanted.includes(c));
@@ -121,3 +143,40 @@ export function describePrefs(p: PulsePrefs, countryLabel: (code: string) => str
   const parts = [...p.tags, ...p.newsCats, ...p.countries.map(countryLabel), ...p.markets];
   return parts.length ? parts.join(', ') : 'everything';
 }
+
+// ---- Shareable feed links: the same choices, encoded in the address so a
+// colleague sees the same view. Nothing here is stored server-side.
+const csv = (v: string[]) => v.join(',');
+const fromCsv = (raw: string | null, known?: readonly string[]) =>
+  (raw ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => x && (!known || known.includes(x)));
+
+export function prefsToQuery(p: PulsePrefs): string {
+  const q = new URLSearchParams();
+  if (p.tags.length) q.set('topics', csv(p.tags));
+  if (p.newsCats.length) q.set('news', csv(p.newsCats));
+  if (p.countries.length) q.set('countries', csv(p.countries));
+  if (p.markets.length) q.set('markets', csv(p.markets));
+  const hide = [!p.showNews && 'news', !p.showMarkets && 'markets'].filter(Boolean).join(',');
+  if (hide) q.set('hide', hide);
+  return q.toString();
+}
+
+// Returns null when the address carries no feed choices at all.
+export function prefsFromQuery(q: URLSearchParams): PulsePrefs | null {
+  if (!['topics', 'news', 'countries', 'markets', 'hide'].some((k) => q.has(k))) return null;
+  const hide = fromCsv(q.get('hide'));
+  const prefs: PulsePrefs = {
+    tags: fromCsv(q.get('topics'), POLICY_TOPICS),
+    newsCats: fromCsv(q.get('news'), NEWS_TOPICS),
+    countries: fromCsv(q.get('countries')).filter((c) => /^[A-Z]{2}$/.test(c)),
+    markets: fromCsv(q.get('markets'), MARKET_TOPICS),
+    showNews: !hide.includes('news'),
+    showMarkets: !hide.includes('markets'),
+  };
+  return isDefaultPrefs(prefs) ? null : prefs;
+}
+
+export const FEED_QUERY_KEYS = ['topics', 'news', 'countries', 'markets', 'hide'];

@@ -1,8 +1,6 @@
 import type { MarketTile } from '../types/pulse';
-import { GROUP_HUE } from '../lib/pulseColors';
 import { MARKET_HINTS } from '../lib/pulseGlossary';
 import { PulseDelta } from './PulseDelta';
-import { PulsePanel } from './PulsePanel';
 import { PulseSpark } from './PulseCharts';
 
 const nf = (digits: number) => ({ minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -29,48 +27,52 @@ function windowChange(t: MarketTile): { change: number; text: string } | null {
   return { change, text: formatMagnitude(change, pct) };
 }
 
-const GRID_BY_COUNT: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-1 sm:grid-cols-3',
-  4: 'grid-cols-2 lg:grid-cols-4',
-  5: 'grid-cols-2 lg:grid-cols-5',
-  8: 'grid-cols-2 lg:grid-cols-4',
-};
-
 // Quotes come from Yahoo Finance's public chart data (roughly 15 minutes
-// delayed) -- each tile says which day it's for, so nothing reads as more
-// current than it is.
+// delayed). Each row says which day it is for, so nothing reads as more
+// current than it is. The plain-language explanation of each series is the
+// tooltip on its name. Laid out as a ruled board (one row per market) rather
+// than a wall of boxes, so a column of numbers can be scanned top to bottom.
 export function PulseMarketStrip({ tiles }: { tiles: MarketTile[] }) {
   if (tiles.length === 0) return null;
   return (
-    <div className={`grid gap-px bg-hairline ${GRID_BY_COUNT[tiles.length] ?? 'grid-cols-2 sm:grid-cols-3'}`}>
-      {tiles.map((t, i) => {
+    <ul className="card divide-y divide-hairline">
+      {tiles.map((t) => {
         const win = windowChange(t);
         return (
-          <PulsePanel
+          <li
             key={t.id}
-            title={t.label}
-            subtitle={`as of ${t.asOf}`}
-            accent={GROUP_HUE[t.group]?.bg}
-            className={tiles.length === 5 && i === 4 ? 'col-span-2 lg:col-span-1' : ''}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 border-l-4 border-transparent px-4 py-3 hover:border-accent sm:grid-cols-[minmax(0,1fr)_9rem_6.5rem_minmax(0,1.3fr)_8rem]"
           >
-            <div title={MARKET_HINTS[t.id]} className="font-mono text-xl font-semibold text-ink">
-              <a href={t.sourceUrl} target="_blank" rel="noreferrer" className="text-ink no-underline hover:text-accent">
+            <div className="min-w-0">
+              <h3
+                className="truncate font-sans text-[15px] font-semibold leading-snug tracking-normal"
+
+                title={MARKET_HINTS[t.id]}
+              >
+                {t.label}
+              </h3>
+              <p className="text-xs text-ink-faint">as of {t.asOf}</p>
+            </div>
+            <div className="text-right sm:text-left">
+              <a href={t.sourceUrl} target="_blank" rel="noreferrer" className="display block text-[28px] text-ink no-underline hover:text-accent">
                 {formatValue(t)}
               </a>
-              <PulseDelta change={t.change} text={formatMagnitude(t.change ?? 0, t.changePct)} className="block text-sm font-normal" />
+              <PulseDelta change={t.change} text={formatMagnitude(t.change ?? 0, t.changePct)} className="block text-[13px] sm:hidden" />
             </div>
-            <PulseSpark values={t.points.map((p) => p[1])} className="mt-3" />
-            {win && (
-              <p className="mt-1 flex items-center gap-1.5 font-sans text-[11px] text-ink-faint">
-                3 mo
-                <PulseDelta change={win.change} text={win.text} className="text-[11px]" />
-              </p>
-            )}
-          </PulsePanel>
+            <PulseDelta change={t.change} text={formatMagnitude(t.change ?? 0, t.changePct)} className="hidden text-[15px] font-semibold sm:block" />
+            <div className="hidden sm:block">
+              <PulseSpark values={t.points.map((p) => p[1])} />
+            </div>
+            <p className="hidden text-[13px] text-ink-faint sm:block">
+              {win ? (
+                <>
+                  3 months <PulseDelta change={win.change} text={win.text} className="font-semibold" />
+                </>
+              ) : null}
+            </p>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

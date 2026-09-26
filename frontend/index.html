@@ -4,42 +4,64 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="alternate" type="application/rss+xml" title="Trade Policy Pulse: new U.S. trade actions" href="/api/pulse/rss" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b0b0a" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="color-scheme" content="light" />
+    <title>Trade Policy Pulse: U.S. tariffs, sanctions, markets and trade news in plain English</title>
     <meta
       name="description"
-      content="Live U.S. trade policy signal from the Federal Register, plus a grounded import/export compliance calculator covering classification, USMCA origin, denied-party screening, and duty determination."
+      content="What's changing in world trade, in plain English. New U.S. tariff, sanctions and export-control actions from the Federal Register, plus stocks, currencies, commodities and trade news, all in one place. Free, no sign-up."
     />
+    <!-- When a custom domain is attached, replace the workers.dev host in the canonical and og:/twitter: URLs below and in public/sitemap.xml and public/robots.txt. -->
     <link rel="canonical" href="https://trade-compliance-copilot.ceo-ae4.workers.dev/" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Trade Compliance Copilot" />
-    <meta property="og:title" content="Trade Compliance Copilot" />
+    <meta property="og:site_name" content="Trade Policy Pulse" />
+    <meta property="og:title" content="Trade Policy Pulse: what's changing in world trade, in plain English" />
     <meta
       property="og:description"
-      content="Live U.S. trade policy signal and a grounded import/export compliance calculator, built on primary government data."
+      content="New U.S. tariff and sanctions actions, stocks, currencies and trade news in one place. Free, with a plain-English explanation of everything."
     />
     <meta property="og:url" content="https://trade-compliance-copilot.ceo-ae4.workers.dev/" />
     <meta property="og:image" content="https://trade-compliance-copilot.ceo-ae4.workers.dev/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Trade Compliance Copilot" />
+    <meta name="twitter:title" content="Trade Policy Pulse: what's changing in world trade, in plain English" />
     <meta
       name="twitter:description"
-      content="Live U.S. trade policy signal and a grounded import/export compliance calculator, built on primary government data."
+      content="New U.S. tariff and sanctions actions, stocks, currencies and trade news in one place. Free, with a plain-English explanation of everything."
     />
     <meta name="twitter:image" content="https://trade-compliance-copilot.ceo-ae4.workers.dev/og-image.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <title>Trade Compliance Copilot</title>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Trade Policy Pulse",
+        "description": "A free dashboard that explains new U.S. tariff, sanctions and export-control actions, market moves and trade news in plain English.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Any (web browser)",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@type": "Organization", "name": "Aex Meridian" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width: 40rem; margin: 3rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: #151a21; line-height: 1.6">
+        <h1>Trade Policy Pulse</h1>
+        <p>
+          What's changing in world trade, in plain English: new U.S. tariff, sanctions and export-control actions from the Federal Register,
+          plus stock, currency and commodity moves and trade headlines.
+        </p>
+        <p>This page needs JavaScript to show live data. You can still follow new U.S. trade actions with the <a href="/api/pulse/rss" style="color: #4338ca">RSS feed</a>.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

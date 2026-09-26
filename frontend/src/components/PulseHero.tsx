@@ -1,193 +1,135 @@
-import type { CurrencyRow, MarketTile, NewsItem, PulseAction, PulseSummary } from '../types/pulse';
+import { lazy, Suspense } from 'react';
+import type { NewsItem, PulseAction, PulseSummary } from '../types/pulse';
+import { PulseCountryCard } from './PulseCountryCard';
+import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { PulseDelta } from './PulseDelta';
-import { NewsThumb, timeAgo } from './PulseNews';
-import type { PulseTabId } from './PulseTabs';
-import { SECTION_HUE } from '../lib/pulseColors';
+// Loaded on its own so the map library and outlines don't slow the first paint.
+const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
 
-const DOC_TYPE_PLAIN: Record<string, string> = {
-  Rule: 'Final rule',
-  'Proposed Rule': 'Proposed rule',
-  Notice: 'Notice',
-  'Presidential Document': 'Presidential order',
-};
+const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-w-[440px] rounded-full border border-white/20" aria-hidden="true" />;
 
-const CURRENCY_NAMES: Record<string, string> = {
-  EUR: 'the euro',
-  CNY: 'the Chinese yuan',
-  JPY: 'the Japanese yen',
-  MXN: 'the Mexican peso',
-  CAD: 'the Canadian dollar',
-  GBP: 'the British pound',
-  INR: 'the Indian rupee',
-  KRW: 'the South Korean won',
-};
-
-// The pair that moved most over the past 30 days, by absolute change --
-// a plain max, so the card always shows the biggest swing, up or down.
-function biggestMover(rows: CurrencyRow[]): CurrencyRow | null {
-  return rows.reduce<CurrencyRow | null>((best, r) => {
-    if (r.change30dPct === null) return best;
-    return !best || Math.abs(r.change30dPct) > Math.abs(best.change30dPct ?? 0) ? r : best;
-  }, null);
-}
-
-function Card({ label, hue, children, onClick }: { label: string; hue: { bg: string; text: string }; children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <div className="flex min-w-0 flex-col bg-paper">
-      <div className={`h-0.5 ${hue.bg}`} aria-hidden="true" />
-      <div className="flex flex-1 flex-col p-4">
-      <h2 className={`font-sans text-xs font-medium ${hue.text}`}>{label}</h2>
-      <div className="mt-2 flex-1">{children}</div>
-      {onClick && (
-        <button type="button" onClick={onClick} className="mt-3 self-start font-sans text-xs text-accent hover:underline">
-          See more
-        </button>
-      )}
-      </div>
-    </div>
-  );
-}
-
-const Unavailable = ({ loading }: { loading: boolean }) => (
-  <p className="font-sans text-sm text-ink-faint">{loading ? 'Loading…' : 'Not available right now.'}</p>
-);
-
-// "What most people came here for," in one row: the single most important
-// item from each part of the page. Everything is a plain sort or max over
-// data the page already fetched -- same no-model rule as the rest of Pulse.
+// The top of the page: the one number most visitors want (how much the U.S. has
+// done on trade lately), what changed, and a globe of where. The globe is
+// pointer-driven, so the same choice is also offered as buttons and a list.
 export function PulseHero({
   summary,
-  topAction,
-  headline,
-  currencies,
-  loadingPanels,
-  loadingNews,
-  loadingMarkets,
-  onTab,
-  showNews,
-  showMarkets,
-  marketTiles,
-  useCurrencies,
+  activeCountry,
+  onCountry,
+  onClearCountry,
+  onSeeAll,
+  recent,
+  news,
+  onExplore,
+  updatedText,
+  syncing,
+  onRefresh,
 }: {
   summary: PulseSummary | null;
-  topAction: PulseAction | null;
-  headline: NewsItem | null;
-  currencies: CurrencyRow[];
-  loadingPanels: boolean;
-  loadingNews: boolean;
-  loadingMarkets: boolean;
-  onTab: (tab: PulseTabId) => void;
-  showNews: boolean;
-  showMarkets: boolean;
-  marketTiles: MarketTile[]; // the tiles the visitor follows
-  useCurrencies: boolean; // whether currencies are among what they follow
+  activeCountry: string | null;
+  onCountry: (code: string) => void;
+  onClearCountry: () => void;
+  onSeeAll: () => void;
+  recent: PulseAction[];
+  news: NewsItem[];
+  onExplore: () => void;
+  updatedText: string;
+  syncing: boolean;
+  onRefresh: () => void;
 }) {
-  const mover = biggestMover(currencies);
-  const moverName = mover ? CURRENCY_NAMES[mover.quote] ?? mover.quote : null;
-  const tileMover = marketTiles.reduce<MarketTile | null>(
-    (best, t) => (t.changePct === null ? best : !best || Math.abs(t.changePct) > Math.abs(best.changePct ?? 0) ? t : best),
-    null
-  );
-  const cards = 2 + (showNews ? 1 : 0) + (showMarkets ? 1 : 0);
+  const breakdown = summary?.countryBreakdown ?? [];
+  const top = breakdown.slice(0, 6);
+  const others = Object.keys(COUNTRY_LABELS)
+    .filter((c) => !top.some((t) => t.country === c))
+    .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
 
   return (
-    <div className={`grid grid-cols-1 gap-px border border-hairline bg-hairline sm:grid-cols-2 ${cards === 4 ? 'lg:grid-cols-4' : cards === 3 ? 'lg:grid-cols-3' : ''}`}>
-      <Card label="Biggest U.S. trade action lately" hue={SECTION_HUE.policy} onClick={topAction ? () => onTab('policy') : undefined}>
-        {topAction ? (
-          <>
-            <a
-              href={topAction.html_url}
-              target="_blank"
-              rel="noreferrer"
-              className="line-clamp-4 font-serif text-base font-semibold leading-snug text-ink no-underline hover:text-accent"
-            >
-              {topAction.title}
-            </a>
-            <p className="mt-2 font-sans text-xs text-ink-muted">
-              {DOC_TYPE_PLAIN[topAction.doc_type] ?? topAction.doc_type}, {topAction.publication_date}
+    <section className="bg-bar text-white">
+      <div className="mx-auto grid max-w-5xl gap-10 px-4 pb-24 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-12">
+        <div>
+          <h1 className="text-lg font-semibold leading-snug text-white">
+            New U.S. trade actions
+            <span className="block text-[15px] font-normal text-[#b4b4bc]">in the last 30 days, in plain English</span>
+          </h1>
+          <p className="display mt-3 text-[120px] text-white sm:text-[176px]" aria-label={summary ? `${summary.last30} actions` : 'Loading'}>
+            {summary ? summary.last30 : '...'}
+          </p>
+          {summary && (
+            <p className="mt-4 max-w-md text-lg leading-snug text-white">
+              {summary.trendPct !== null ? (
+                <>
+                  <PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} onDark className="font-semibold" /> from the 30 days before
+                </>
+              ) : (
+                'No earlier period to compare yet'
+              )}
+              {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
             </p>
-          </>
-        ) : (
-          <Unavailable loading={loadingPanels} />
-        )}
-      </Card>
+          )}
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={onExplore} className="btn-hero">
+              Explore U.S. policy
+            </button>
+            <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
+              {syncing ? 'Checking…' : 'Check for updates'}
+            </button>
+          </div>
+          <p className="mt-3 text-[13px] text-[#b4b4bc]">{updatedText}</p>
+        </div>
 
-      {showNews && (
-      <Card label="Top trade headline" hue={SECTION_HUE.news} onClick={headline ? () => onTab('news') : undefined}>
-        {headline ? (
-          <>
-            <NewsThumb src={headline.image_url} className="mb-3 h-24 w-full" />
-            <a
-              href={headline.url}
-              target="_blank"
-              rel="noreferrer"
-              className="line-clamp-4 font-serif text-base font-semibold leading-snug text-ink no-underline hover:text-accent"
-            >
-              {headline.title}
-            </a>
-            <p className="mt-2 font-sans text-xs text-ink-muted">
-              {headline.source}, {timeAgo(headline.published_at)}
-            </p>
-          </>
-        ) : (
-          <Unavailable loading={loadingNews} />
-        )}
-      </Card>
-      )}
-
-      {showMarkets &&
-        (useCurrencies && mover && moverName ? (
-          <Card label="The dollar this month" hue={SECTION_HUE.markets} onClick={() => onTab('markets')}>
-            <p className="font-serif text-base font-semibold leading-snug text-ink">
-              <PulseDelta change={mover.change30dPct} text={`${Math.abs(mover.change30dPct ?? 0).toFixed(1)}%`} className="mr-1.5 font-mono text-sm" />
-              against {moverName}
-            </p>
-            <p className="mt-2 font-sans text-xs text-ink-muted">The biggest move among 8 major trade partners. Green means the dollar buys more.</p>
-          </Card>
-        ) : tileMover ? (
-          <Card label="Biggest market move today" hue={SECTION_HUE.markets} onClick={() => onTab('markets')}>
-            <p className="font-serif text-base font-semibold leading-snug text-ink">
-              <PulseDelta change={tileMover.changePct} text={`${Math.abs(tileMover.changePct ?? 0).toFixed(1)}%`} className="mr-1.5 font-mono text-sm" />
-              {tileMover.label}
-            </p>
-            <p className="mt-2 font-sans text-xs text-ink-muted">The largest daily move among the markets you follow.</p>
-          </Card>
-        ) : (
-          <Card label="Markets" hue={SECTION_HUE.markets}>
-            <Unavailable loading={loadingMarkets} />
-          </Card>
-        ))}
-
-      <Card label="Open for public comment" hue={SECTION_HUE.comment} onClick={summary && summary.openForComment > 0 ? () => onTab('policy') : undefined}>
-        {summary ? (
-          <>
-            <p className="font-mono text-3xl font-semibold text-ink">{summary.openForComment}</p>
-            <p className="mt-2 font-sans text-xs text-ink-muted">
-              Proposed U.S. trade rules that anyone can still comment on before they become final.
-            </p>
-          </>
-        ) : (
-          <Unavailable loading={loadingPanels} />
-        )}
-      </Card>
-    </div>
-  );
-}
-
-// One plain sentence that summarises the month, built from the same SQL
-// summary the Policy tab uses -- reads as a lede, not a dashboard.
-export function PulseDigest({ summary }: { summary: PulseSummary | null }) {
-  if (!summary) return null;
-  return (
-    <p className="mt-2 max-w-2xl font-sans text-sm leading-relaxed text-ink-muted">
-      <span className="text-ink">{summary.last30} new U.S. trade actions</span> in the last 30 days
-      {summary.trendPct !== null && (
-        <>
-          {' '}
-          (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} /> from the 30 days before)
-        </>
-      )}
-      {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
-    </p>
+        <div className="min-w-0">
+          {summary ? (
+            <>
+              <Suspense fallback={<GlobePlaceholder />}>
+                <PulseGlobe breakdown={breakdown} activeCountry={activeCountry} onSelect={onCountry} />
+              </Suspense>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {top.map((b) => (
+                  <button
+                    key={b.country}
+                    type="button"
+                    onClick={() => onCountry(b.country)}
+                    aria-pressed={activeCountry === b.country}
+                    className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
+                      activeCountry === b.country ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
+                    }`}
+                  >
+                    {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
+                  </button>
+                ))}
+                <select
+                  aria-label="Choose another country"
+                  value=""
+                  onChange={(e) => e.target.value && onCountry(e.target.value)}
+                  className="border border-white/30 bg-bar px-2 py-1 text-[13px] font-semibold text-white"
+                >
+                  <option value="">More countries…</option>
+                  {others.map((c) => (
+                    <option key={c} value={c}>
+                      {COUNTRY_LABELS[c]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {activeCountry && (
+                <PulseCountryCard
+                  code={activeCountry}
+                  count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
+                  rank={(() => {
+                    const i = breakdown.findIndex((b) => b.country === activeCountry);
+                    return i >= 0 ? i + 1 : null;
+                  })()}
+                  actions={recent}
+                  news={news}
+                  onSeeAll={onSeeAll}
+                  onClose={onClearCountry}
+                />
+              )}
+            </>
+          ) : (
+            <GlobePlaceholder />
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

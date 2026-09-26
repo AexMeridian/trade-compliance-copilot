@@ -59,7 +59,7 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
   const usable = series
     .filter((s) => s.points.length > 1)
     .map((s) => ({ ...s, pts: s.points.map(([d, v]) => [Date.parse(d), (v / s.points[0][1]) * 100] as const) }));
-  if (usable.length === 0) return <p className="font-sans text-sm text-ink-faint">Chart data isn't available right now.</p>;
+  if (usable.length === 0) return <p className="text-sm text-ink-faint">Chart data isn't available right now.</p>;
 
   const H = 230;
   const pad = { l: 38, r: 10, t: 10, b: 22 };
@@ -87,7 +87,7 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
 
   return (
     <div>
-      <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1.5 font-sans text-xs">
+      <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
         {usable.map((s) => {
           const last = s.pts[s.pts.length - 1][1] - 100;
           return (
@@ -115,7 +115,7 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
           {yTicks.map((v) => (
             <g key={v}>
               <line x1={pad.l} x2={width - pad.r} y1={y(v)} y2={y(v)} stroke="var(--color-hairline)" />
-              <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--color-ink-faint)" fontFamily="var(--font-mono)">
+              <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--color-ink-faint)">
                 {v.toFixed(0)}
               </text>
             </g>
@@ -129,7 +129,6 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
               textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
               fontSize="10"
               fill="var(--color-ink-faint)"
-              fontFamily="var(--font-mono)"
             >
               {fmtDate(t)}
             </text>
@@ -151,7 +150,7 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
         </svg>
         {hoverT !== null && hoverRows.length > 0 && (
           <div
-            className="pointer-events-none absolute top-2 border border-hairline-strong bg-paper-raised px-2.5 py-1.5 font-mono text-[11px] text-ink"
+            className="pointer-events-none absolute top-2 border border-hairline-strong bg-paper-raised px-2.5 py-1.5 text-[11px] tabular-nums text-ink"
             style={{ left: hoverX! > width / 2 ? undefined : hoverX! + 12, right: hoverX! > width / 2 ? width - hoverX! + 12 : undefined }}
           >
             <div className="mb-1 text-ink-faint">{fmtDate(hoverT)}</div>
@@ -168,7 +167,7 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
           </div>
         )}
       </div>
-      <p className="mt-2 font-sans text-[11px] text-ink-faint">Each line is rebased to 100 at the start, so lines show relative performance, not price.</p>
+      <p className="mt-2 text-[11px] text-ink-faint">Each line is rebased to 100 at the start, so lines show relative performance, not price.</p>
     </div>
   );
 }
@@ -196,18 +195,18 @@ export interface Mover {
 // Same up/down convention as everywhere else on the page.
 export function PulseMoverBars({ movers, note }: { movers: Mover[]; note?: string }) {
   const sorted = [...movers].sort((a, b) => b.pct - a.pct);
-  if (sorted.length === 0) return <p className="font-sans text-sm text-ink-faint">Not enough history yet to compare.</p>;
+  if (sorted.length === 0) return <p className="text-sm text-ink-faint">Not enough history yet to compare.</p>;
   const max = Math.max(...sorted.map((m) => Math.abs(m.pct)), 0.01);
 
   return (
     <div>
       <ul className="flex flex-col gap-2">
         {sorted.map((m) => (
-          <li key={m.key} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-2 font-sans text-xs">
+          <li key={m.key} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-2 text-xs">
             <span className="truncate text-ink-muted" title={m.label}>
               {m.label}
             </span>
-            <div className="relative h-3.5 bg-hairline">
+            <div className="relative h-3 bg-paper">
               <span className="absolute inset-y-0 left-1/2 w-px bg-hairline-strong" />
               <span
                 className={`absolute inset-y-0 ${m.pct >= 0 ? 'left-1/2 bg-clear' : 'right-1/2 bg-stop'}`}
@@ -218,7 +217,7 @@ export function PulseMoverBars({ movers, note }: { movers: Mover[]; note?: strin
           </li>
         ))}
       </ul>
-      {note && <p className="mt-3 font-sans text-[11px] text-ink-faint">{note}</p>}
+      {note && <p className="mt-3 text-[11px] text-ink-faint">{note}</p>}
     </div>
   );
 }

@@ -38,8 +38,29 @@
         "limit": 20,
         "period": 60
       }
+    },
+    // Generous per-IP cap on the public Pulse read API (src/index.ts): a page
+    // load makes only a couple of calls, so this never touches a real reader
+    // but stops one client from hammering D1 and the Workers request quota.
+    {
+      "name": "PULSE_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
     }
   ],
+
+  // Switches for the two third-party inputs whose terms matter most if the
+  // site is ever run commercially. "off" turns the feature off without a
+  // code change: NEWS_IMAGES hides publishers' lead photos, MARKET_QUOTES
+  // stops fetching and showing the Yahoo Finance stock/commodity tiles
+  // (currencies from the ECB are unaffected). See README "Before you launch".
+  "vars": {
+    "NEWS_IMAGES": "on",
+    "MARKET_QUOTES": "on"
+  },
 
   "observability": {
     "enabled": true

@@ -1,46 +1,49 @@
-// One place for Pulse's category colors. Full class names are spelled out
-// (not built from strings) so Tailwind can see and generate them. Hues come
-// from the --color-cat-* tokens in index.css and are never red or green,
-// which stay reserved for up/down movement (PulseDelta).
+// Category colors. The page is black and white; these hues sort the content so a
+// glance tells you what kind of thing you are looking at (see the note at the top
+// of index.css). Red and green are not used here: they stay reserved for up/down
+// moves (PulseDelta) so a topic never reads as good or bad. Full class names are
+// spelled out so Tailwind can see and generate them.
 
 export interface Hue {
-  text: string;
-  bg: string;
+  text: string; // dark enough for text on white
+  bg: string; // bright, for fills and dots
   border: string;
   css: string; // for SVG strokes/fills
 }
 
-const AMBER: Hue = { text: 'text-cat-amber', bg: 'bg-cat-amber', border: 'border-cat-amber', css: 'var(--color-cat-amber)' };
-const BLUE: Hue = { text: 'text-cat-blue', bg: 'bg-cat-blue', border: 'border-cat-blue', css: 'var(--color-cat-blue)' };
-const VIOLET: Hue = { text: 'text-cat-violet', bg: 'bg-cat-violet', border: 'border-cat-violet', css: 'var(--color-cat-violet)' };
-const TEAL: Hue = { text: 'text-cat-teal', bg: 'bg-cat-teal', border: 'border-cat-teal', css: 'var(--color-cat-teal)' };
-const GRAY: Hue = { text: 'text-cat-gray', bg: 'bg-cat-gray', border: 'border-cat-gray', css: 'var(--color-cat-gray)' };
+const hue = (text: string, bg: string, border: string, css: string): Hue => ({ text, bg, border, css });
+
+const ORANGE = hue('text-hue-orange-ink', 'bg-hue-orange', 'border-hue-orange', 'var(--color-hue-orange)');
+const VIOLET = hue('text-hue-violet-ink', 'bg-hue-violet', 'border-hue-violet', 'var(--color-hue-violet)');
+const CYAN = hue('text-hue-cyan-ink', 'bg-hue-cyan', 'border-hue-cyan', 'var(--color-hue-cyan)');
+const PINK = hue('text-hue-pink-ink', 'bg-hue-pink', 'border-hue-pink', 'var(--color-hue-pink)');
+const INDIGO = hue('text-hue-indigo-ink', 'bg-hue-indigo', 'border-hue-indigo', 'var(--color-hue-indigo)');
+const GRAY = hue('text-hue-gray-ink', 'bg-hue-gray', 'border-hue-gray', 'var(--color-hue-gray)');
 
 export const TAG_HUE: Record<string, Hue> = {
-  Tariff: AMBER,
+  Tariff: ORANGE,
   Sanctions: VIOLET,
-  'Export Control': BLUE,
-  'Trade Agreement': TEAL,
+  'Export Control': CYAN,
+  'Trade Agreement': PINK,
   Other: GRAY,
 };
 
 export const NEWS_HUE: Record<string, Hue> = {
-  'Trade & Supply Chain': TEAL,
-  'Markets & Currency': BLUE,
-  'Elections & Politics': VIOLET,
-  Official: AMBER,
+  'Trade & Supply Chain': CYAN,
+  'Markets & Currency': INDIGO,
+  'Elections & Politics': PINK,
+  Official: ORANGE,
 };
 
 export const GROUP_HUE: Record<string, Hue> = {
-  'U.S. stocks': BLUE,
-  'World stocks': TEAL,
+  'U.S. stocks': INDIGO,
+  'World stocks': CYAN,
   'Trade bellwethers': VIOLET,
-  Commodities: AMBER,
+  Commodities: ORANGE,
   'Rates & dollar': GRAY,
 };
 
 // Series colors for multi-line charts, in legend order.
-export const SERIES_HUES: Hue[] = [BLUE, AMBER, VIOLET, TEAL];
+export const SERIES_HUES: Hue[] = [INDIGO, ORANGE, CYAN, PINK];
 
-// Whole-page sections (tab underline, hero card accent).
-export const SECTION_HUE = { policy: AMBER, markets: BLUE, news: TEAL, comment: VIOLET } as const;
+export const SECTION_HUE = { policy: ORANGE, markets: INDIGO, news: PINK, comment: VIOLET } as const;

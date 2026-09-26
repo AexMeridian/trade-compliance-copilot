@@ -1,14 +1,14 @@
 import type { ActiveMeasure } from '../types/pulse';
 
 const PROGRAM_LABEL: Record<string, string> = {
-  sec232_steel: 'Sec. 232 -- Steel',
-  sec232_aluminum: 'Sec. 232 -- Aluminum',
-  sec232_copper: 'Sec. 232 -- Copper',
-  sec232_autos: 'Sec. 232 -- Autos',
-  sec232_metals_country_cap: 'Sec. 232 -- Metals (country cap)',
-  sec301_china: 'Sec. 301 -- China',
-  sec301_forced_labor: 'Sec. 301 -- Forced labor',
-  sec338_canada: 'Sec. 338 -- Canada',
+  sec232_steel: 'Section 232: Steel',
+  sec232_aluminum: 'Section 232: Aluminum',
+  sec232_copper: 'Section 232: Copper',
+  sec232_autos: 'Section 232: Autos',
+  sec232_metals_country_cap: 'Section 232: Metals (country cap)',
+  sec301_china: 'Section 301: China',
+  sec301_forced_labor: 'Section 301: Forced labor',
+  sec338_canada: 'Section 338: Canada',
 };
 
 // One-line plain-language gloss on the legal authority behind a measure,
@@ -51,13 +51,13 @@ function isRecent(effectiveDate: string): boolean {
 
 export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] }) {
   if (overlays.length === 0) {
-    return <p className="font-sans text-sm text-ink-faint">No measures currently in force.</p>;
+    return <p className="text-sm text-ink-faint">No measures currently in force.</p>;
   }
   return (
     <div className="min-w-0 overflow-x-auto">
       <table className="w-full min-w-[26rem] border-collapse text-sm">
         <thead>
-          <tr className="border-b border-hairline-strong text-left font-sans text-ink-muted">
+          <tr className="border-b border-hairline-strong text-left text-ink-muted">
             <th className="py-1.5 pr-3 font-normal">Measure</th>
             <th className="py-1.5 pr-3 font-normal">Scope</th>
             <th className="py-1.5 pr-3 font-normal">Rate</th>
@@ -68,23 +68,17 @@ export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] })
           {overlays.map((m) => (
             <tr key={`${m.program}-${m.legal_basis}`} className="border-b border-hairline">
               <td className="py-2 pr-3 align-top">
-                <a
-                  href={m.source_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-ink no-underline hover:text-accent"
-                  title={sectionHint(m.program)}
-                >
+                <a href={m.source_url} target="_blank" rel="noreferrer" className="text-ink no-underline hover:text-accent" title={sectionHint(m.program)}>
                   {PROGRAM_LABEL[m.program] ?? m.program}
                 </a>
                 {isRecent(m.effective_date) && (
-                  <span className="ml-2 border border-accent px-1 py-0.5 align-middle font-sans text-[10px] text-accent">New</span>
+                  <span className="ml-2 border border-accent/40 bg-accent-soft px-1 py-0.5 align-middle text-[10px] font-medium text-accent">New</span>
                 )}
-                <div className="mt-0.5 font-mono text-xs text-ink-faint">{htsLabel(m)}</div>
+                <div className="mt-0.5 tabular-nums text-xs text-ink-faint">{htsLabel(m)}</div>
               </td>
-              <td className="py-2 pr-3 align-top font-mono whitespace-nowrap">{scopeLabel(m)}</td>
-              <td className="py-2 pr-3 align-top font-mono whitespace-nowrap">{rateLabel(m)}</td>
-              <td className="py-2 align-top font-mono whitespace-nowrap">{m.effective_date}</td>
+              <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{scopeLabel(m)}</td>
+              <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{rateLabel(m)}</td>
+              <td className="py-2 align-top tabular-nums whitespace-nowrap">{m.effective_date}</td>
             </tr>
           ))}
         </tbody>

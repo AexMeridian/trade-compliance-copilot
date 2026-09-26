@@ -51,7 +51,7 @@ const CRON_JOBS: Record<string, RefreshJob[]> = {
   '0 5 * * *': [
     { source: 'pulse', run: runPulseSync },
     { source: 'pulse_fx', run: refreshFx },
-    { source: 'pulse_quotes', run: refreshQuotes },
+    { source: 'pulse_quotes', run: (env) => (env.MARKET_QUOTES === 'off' ? Promise.resolve({ source: 'pulse_quotes', rows: 0 }) : refreshQuotes(env)) },
     { source: 'pulse_news', run: refreshNews },
   ],
   '0 6 * * 1': [

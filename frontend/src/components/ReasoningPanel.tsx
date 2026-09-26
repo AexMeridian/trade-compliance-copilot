@@ -6,15 +6,17 @@ import { ProvenanceBadge } from './ProvenanceBadge';
 export function ReasoningPanel({ reasoning }: { reasoning: ReasoningTrace }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-3 border border-hairline">
+    <div className="mt-3 border border-hairline bg-paper-raised">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left font-sans text-sm text-ink-muted hover:text-ink"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-ink-muted hover:text-ink"
         aria-expanded={open}
       >
         <span>{open ? 'Hide analyst reasoning' : 'Show analyst reasoning'}</span>
-        <span aria-hidden="true" className="font-mono">{open ? '−' : '+'}</span>
+        <span aria-hidden="true" className="tabular-nums">
+          {open ? '−' : '+'}
+        </span>
       </button>
       {open && (
         <div className="border-t border-hairline px-3 py-3">

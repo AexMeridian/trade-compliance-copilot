@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getActiveMeasures, getPulseFeed, getPulseMarkets, getPulseNews, getPulseSummary, getPulseTempo, syncPulse } from '../lib/api';
+import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryBreakdown } from '../components/PulseCountryBreakdown';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
-import { PulseDigest, PulseHero } from '../components/PulseHero';
-import { PulseBanner } from '../components/PulseBanner';
-import { PHOTOS } from '../lib/pulsePhotos';
+import { PulseHero } from '../components/PulseHero';
+import { PulseHighlights } from '../components/PulseHighlights';
+import { PulseGuide } from '../components/PulseGuide';
+import { PulseWelcome, markWelcomed, wasWelcomed } from '../components/PulseWelcome';
 import { PulseTabs, PULSE_TABS, type PulseTabId } from '../components/PulseTabs';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars } from '../components/PulseCharts';
@@ -17,9 +18,9 @@ import { PulseNews } from '../components/PulseNews';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseSignalStrip } from '../components/PulseSignalStrip';
 import { PulseTempoChart } from '../components/PulseTempoChart';
-import { PulseTicker } from '../components/PulseTicker';
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { agoText } from '../lib/pulsePlain';
 import { CustomizeButton, CustomizePanel } from '../components/PulseCustomize';
 import {
   NEWS_TOPICS,
@@ -27,13 +28,15 @@ import {
   describePrefs,
   groupVisible,
   isDefaultPrefs,
+  FEED_QUERY_KEYS,
   loadPrefs,
+  prefsFromQuery,
   newsMatches,
   savePrefs,
   type PulsePrefs,
 } from '../lib/pulsePrefs';
 import { GROUP_HUE, SERIES_HUES, TAG_HUE } from '../lib/pulseColors';
-import type { ActiveMeasure, NewsCategory, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, PulseTag, TempoPoint } from '../types/pulse';
+import type { PulseHome, ActiveMeasure, NewsCategory, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, PulseTag, TempoPoint } from '../types/pulse';
 
 // Market/news data is cached server-side and refreshed on demand when stale
 // (routes/pulse.ts), so re-reading it every few minutes keeps a tab that's
@@ -48,12 +51,12 @@ const MARKET_GROUPS = [
   { group: 'Rates & dollar', blurb: 'The cost of borrowing and the strength of the dollar.' },
 ] as const;
 
-const TAGS: PulseTag[] = ['Tariff', 'Sanctions', 'Export Control', 'Trade Agreement', 'Other'];
+// Filter-button styling for the activity list.
+const CHIP = 'border px-3 py-1 text-[13px] font-semibold';
+const CHIP_ON = 'border-ink bg-ink text-white';
+const CHIP_OFF = 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink';
 
-// Ranking/ticker material -- a wider, unfiltered sample than the browsable
-// feed's default page, fetched once and independent of the tag filter below
-// (both the ticker and the top-signals panel need the full category mix).
-const SIGNAL_SAMPLE_SIZE = 100; // the feed endpoint's cap; wider so a narrowed feed still has material
+const TAGS: PulseTag[] = ['Tariff', 'Sanctions', 'Export Control', 'Trade Agreement', 'Other'];
 
 export function Pulse() {
   const [actions, setActions] = useState<PulseAction[]>([]);
@@ -75,8 +78,12 @@ export function Pulse() {
   const [newsCategory, setNewsCategory] = useState<NewsCategory | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
   const [loadingNews, setLoadingNews] = useState(true);
-  const [prefs, setPrefsState] = useState<PulsePrefs>(loadPrefs);
+  const [status, setStatus] = useState<PulseHome['status'] | null>(null);
+  const sharedPrefs = useMemo(() => prefsFromQuery(new URLSearchParams(window.location.search)), []);
+  const [sharedBanner, setSharedBanner] = useState(sharedPrefs !== null);
+  const [prefs, setPrefsState] = useState<PulsePrefs>(() => sharedPrefs ?? loadPrefs());
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [welcomed, setWelcomed] = useState(wasWelcomed);
   const setPrefs = (p: PulsePrefs) => {
     setPrefsState(p);
     savePrefs(p);
@@ -84,9 +91,21 @@ export function Pulse() {
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
   const tab: PulseTabId = PULSE_TABS.some((t) => t.id === tabParam) ? (tabParam as PulseTabId) : 'overview';
-  const setTab = (id: PulseTabId) => {
-    setParams(id === 'overview' ? {} : { tab: id }, { replace: true });
-    window.scrollTo({ top: 0 });
+  const clearFeedParams = () => {
+    const next = new URLSearchParams(params);
+    FEED_QUERY_KEYS.forEach((k) => next.delete(k));
+    setParams(next, { replace: true });
+  };
+  // Clicking a tab leaves the page where it is: the tab bar is already on
+  // screen, so the person keeps their place. Links elsewhere on the page
+  // (hero cards, "See all") pass reveal so the new tab's content comes into view.
+  const setTab = (id: PulseTabId, reveal = false) => {
+    // Keep any shared-feed choices in the address when moving between tabs.
+    const next = new URLSearchParams(params);
+    if (id === 'overview') next.delete('tab');
+    else next.set('tab', id);
+    setParams(next, { replace: true });
+    if (reveal) requestAnimationFrame(() => document.getElementById('pulse-tabs')?.scrollIntoView({ block: 'start' }));
   };
 
   // Independent of the regulatory panels above: a market or news source
@@ -99,7 +118,8 @@ export function Pulse() {
           setMarketsFailed(false);
         })
         .catch(() => setMarketsFailed(true));
-    load();
+    // First load comes with the single /home call below; this only keeps a
+    // tab that stays open current.
     const t = setInterval(load, MARKET_POLL_MS);
     return () => clearInterval(t);
   }, []);
@@ -115,7 +135,6 @@ export function Pulse() {
         })
         .catch(() => setNewsFailed(true))
         .finally(() => setLoadingNews(false));
-    load();
     const t = setInterval(load, MARKET_POLL_MS);
     return () => clearInterval(t);
   }, []);
@@ -136,16 +155,27 @@ export function Pulse() {
   // lib/pulseGrouping.ts) over data already fetched here -- no Anthropic
   // call, no extra request per stat.
   const loadPanels = useCallback(async () => {
-    const [tempo, overlaysRes, summaryRes, recentRes] = await Promise.all([
-      getPulseTempo(),
-      getActiveMeasures(),
-      getPulseSummary(),
-      getPulseFeed(SIGNAL_SAMPLE_SIZE),
-    ]);
-    setMonths(tempo.months);
-    setOverlays(overlaysRes.overlays);
-    setSummary(summaryRes);
-    setRecentAll(recentRes.actions);
+    const home = await getPulseHome();
+    if (home.tempo) setMonths(home.tempo.months);
+    if (home.overlays) setOverlays(home.overlays.overlays);
+    if (home.summary) setSummary(home.summary);
+    if (home.recent) setRecentAll(home.recent.actions);
+    if (home.markets) {
+      setMarkets(home.markets);
+      setMarketsFailed(false);
+    } else {
+      setMarketsFailed(true);
+    }
+    if (home.news) {
+      setNews(home.news);
+      setNewsFailed(false);
+    } else {
+      setNewsFailed(true);
+    }
+    setLoadingNews(false);
+    setStatus(home.status);
+    // Only complain if the core policy data itself didn't arrive.
+    if (!home.summary && !home.recent) throw new Error('The latest data could not be loaded.');
   }, []);
 
   // Tempo/active-measures/summary/signal-sample aren't affected by the tag
@@ -193,17 +223,7 @@ export function Pulse() {
   // data's already here. Quotes/commas in title or abstract text are escaped
   // per RFC 4180 (double the quotes, wrap the field), not stripped.
   function exportCsv() {
-    const cols: (keyof PulseAction)[] = [
-      'publication_date',
-      'title',
-      'doc_type',
-      'tag',
-      'agency',
-      'citation',
-      'effective_on',
-      'comments_close_on',
-      'html_url',
-    ];
+    const cols: (keyof PulseAction)[] = ['publication_date', 'title', 'doc_type', 'tag', 'agency', 'citation', 'effective_on', 'comments_close_on', 'html_url'];
     const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [cols.join(','), ...actions.map((a) => cols.map((c) => escape(a[c])).join(','))].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -223,7 +243,7 @@ export function Pulse() {
         type="button"
         onClick={() => setActiveTag(null)}
         aria-pressed={activeTag === null}
-        className={`border px-2.5 py-1 text-xs ${activeTag === null ? 'border-accent text-accent' : 'border-hairline-strong text-ink-muted hover:text-ink'}`}
+        className={`${CHIP} ${activeTag === null ? CHIP_ON : CHIP_OFF}`}
       >
         All
       </button>
@@ -233,18 +253,14 @@ export function Pulse() {
           type="button"
           onClick={() => setActiveTag(tag)}
           aria-pressed={activeTag === tag}
-          className={`border px-2.5 py-1 text-xs ${activeTag === tag ? 'border-accent text-accent' : 'border-hairline-strong text-ink-muted hover:text-ink'}`}
+          className={`${CHIP} inline-flex items-center gap-1.5 ${activeTag === tag ? CHIP_ON : CHIP_OFF}`}
         >
-          <span className={`mr-1.5 inline-block h-2 w-2 ${TAG_HUE[tag].bg}`} aria-hidden="true" />
+          <span className={`h-2 w-2 shrink-0 rounded-full ${TAG_HUE[tag].bg}`} aria-hidden="true" />
           {tag}
         </button>
       ))}
       {activeCountry && (
-        <button
-          type="button"
-          onClick={() => setActiveCountry(null)}
-          className="border border-accent px-2.5 py-1 text-xs text-accent"
-        >
+        <button type="button" onClick={() => setActiveCountry(null)} className={`${CHIP} ${CHIP_ON}`}>
           {COUNTRY_LABELS[activeCountry] ?? activeCountry} &times;
         </button>
       )}
@@ -253,14 +269,9 @@ export function Pulse() {
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
         placeholder="Search title or abstract"
-        className="ml-auto w-48 border border-hairline-strong bg-paper px-2.5 py-1 font-sans text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+        className="ml-auto w-48 border border-hairline-strong bg-paper-raised px-2.5 py-1 text-[13px] text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
       />
-      <button
-        type="button"
-        onClick={exportCsv}
-        disabled={actions.length === 0}
-        className="border border-hairline-strong px-2.5 py-1 font-mono text-xs text-ink-muted hover:border-accent hover:text-accent disabled:opacity-50"
-      >
+      <button type="button" onClick={exportCsv} disabled={actions.length === 0} className="btn">
         Export CSV
       </button>
     </div>
@@ -296,22 +307,27 @@ export function Pulse() {
       const t = tileById(id);
       return t ? [{ id, label: names[id], css: SERIES_HUES[i].css, swatch: SERIES_HUES[i].bg, points: t.points }] : [];
     });
-  const worldSeries = seriesFor(['^GSPC', '^GDAXI', '^N225', '^HSI'], { '^GSPC': 'S&P 500 (U.S.)', '^GDAXI': 'DAX (Germany)', '^N225': 'Nikkei 225 (Japan)', '^HSI': 'Hang Seng (Hong Kong)' });
+  const worldSeries = seriesFor(['^GSPC', '^GDAXI', '^N225', '^HSI'], {
+    '^GSPC': 'S&P 500 (U.S.)',
+    '^GDAXI': 'DAX (Germany)',
+    '^N225': 'Nikkei 225 (Japan)',
+    '^HSI': 'Hang Seng (Hong Kong)',
+  });
   const commoditySeries = seriesFor(['CL=F', 'NG=F', 'GC=F', 'HG=F'], { 'CL=F': 'Oil (WTI)', 'NG=F': 'Natural gas', 'GC=F': 'Gold', 'HG=F': 'Copper' });
   const bellwetherMovers = tilesIn('Trade bellwethers').flatMap((t) => {
     const first = t.points[0]?.[1];
     return first ? [{ key: t.id, label: t.label, pct: ((t.points[t.points.length - 1][1] - first) / first) * 100 }] : [];
   });
-  const loadingBlock = <p className="font-sans text-sm text-ink-faint">Loading…</p>;
+  const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
   const seeAll = (label: string, to: PulseTabId) => (
-    <button type="button" onClick={() => setTab(to)} className="mt-3 font-sans text-xs text-accent hover:underline">
+    <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
       {label}
     </button>
   );
 
   const newsPanel = (compact: boolean) =>
     newsFailed && !news ? (
-      <p className="font-sans text-sm text-ink-faint">Couldn't load news right now.</p>
+      <p className="text-sm text-ink-faint">Couldn't load news right now.</p>
     ) : (
       <PulseNews
         data={compact ? myNews : shownNews}
@@ -327,65 +343,53 @@ export function Pulse() {
   const currencySubtitle = `U.S. dollar against trade partners, last 30 days${markets?.currencies[0] ? `, ECB rate for ${markets.currencies[0].asOf}` : ''}. Green up means the dollar buys more.`;
   const currenciesPanel = (rows: number) =>
     marketsFailed && !markets ? (
-      <p className="font-sans text-sm text-ink-faint">Couldn't load currency rates right now.</p>
+      <p className="text-sm text-ink-faint">Couldn't load currency rates right now.</p>
     ) : (
       <PulseCurrencies rows={(markets?.currencies ?? []).slice(0, rows)} />
     );
 
   return (
     <div>
-      <PulseTicker actions={custom && myActions.length > 0 ? myActions : recentAll} lastSynced={lastSynced} />
+      <PulseHero
+        summary={summary}
+        activeCountry={activeCountry}
+        onCountry={setActiveCountry}
+        onClearCountry={() => setActiveCountry(null)}
+        onSeeAll={() => setTab('policy', true)}
+        recent={recentAll}
+        news={news?.items ?? []}
+        onExplore={() => setTab('policy', true)}
+        updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
+        syncing={syncing}
+        onRefresh={handleRefresh}
+      />
 
-      <section className="relative isolate overflow-hidden border-b border-hairline">
-        <img
-          src={PHOTOS.hero.src}
-          alt=""
-          decoding="async"
-          fetchPriority="high"
-          width={1400}
-          height={925}
-          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-80"
-          style={{ objectPosition: PHOTOS.hero.position }}
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-paper via-paper/75 to-transparent" />
-        <div className="absolute inset-0 -z-10 bg-paper/50 sm:hidden" />
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-10 bg-gradient-to-t from-paper to-transparent" />
-        <div className="mx-auto flex max-w-5xl flex-wrap items-end justify-between gap-x-6 gap-y-3 px-4 pb-12 pt-10 font-sans sm:pb-16 sm:pt-16">
-          <div>
-            <h1 className="font-serif text-3xl font-semibold text-ink sm:text-4xl">Trade Policy Pulse</h1>
-            <p className="mt-1.5 max-w-xl text-sm text-ink-muted">What's changing in world trade, in plain English.</p>
-            <PulseDigest summary={summary} />
-          </div>
-          <div className="flex items-center gap-3 font-mono text-xs text-ink-faint">
-            <span>{lastSynced ? `Updated ${new Date(lastSynced).toLocaleString()}` : 'Not yet synced'}</span>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={syncing}
-              className="border border-hairline-strong px-3 py-1.5 font-sans text-xs text-ink hover:border-accent hover:text-accent disabled:opacity-50"
-            >
-              {syncing ? 'Refreshing…' : 'Refresh now'}
-            </button>
-          </div>
-        </div>
-        <a
-          href={PHOTOS.hero.href}
-          target="_blank"
-          rel="noreferrer"
-          className="absolute bottom-1.5 right-3 max-w-[85%] truncate font-sans text-[10px] text-ink-faint no-underline hover:text-ink-muted"
-        >
-          Photo: {PHOTOS.hero.credit}
-        </a>
-      </section>
-
-      <div className="mx-auto max-w-5xl px-4 pb-6 pt-6 font-sans">
+      <div className="relative mx-auto -mt-10 max-w-5xl px-4 pb-8">
+        {!welcomed && !custom && (
+          <PulseWelcome
+            onPick={(p) => {
+              setPrefs(p.prefs);
+              markWelcomed();
+              setWelcomed(true);
+            }}
+            onGuide={() => {
+              markWelcomed();
+              setWelcomed(true);
+              setTab('guide', true);
+            }}
+            onSkip={() => {
+              markWelcomed();
+              setWelcomed(true);
+            }}
+          />
+        )}
         {error && (
-          <p className="mb-4 border border-stop bg-stop-soft px-3 py-2 font-sans text-sm text-stop">
-            Couldn't refresh -- showing last-synced data. ({error})
+          <p className="mb-4 border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">
+            We couldn't check for updates just now, so you're seeing the most recent saved information. ({error})
           </p>
         )}
 
-        <PulseHero
+        <PulseHighlights
           summary={summary}
           topAction={topAction}
           headline={headline}
@@ -393,16 +397,44 @@ export function Pulse() {
           loadingPanels={loadingPanels}
           loadingNews={loadingNews}
           loadingMarkets={!markets && !marketsFailed}
-          onTab={setTab}
+          onTab={(id) => setTab(id, true)}
           showNews={prefs.showNews}
           showMarkets={prefs.showMarkets}
           marketTiles={followedTiles}
           useCurrencies={followsCurrencies}
         />
 
-        <PulseTabs active={tab} onChange={setTab}>
+        <PulseTabs active={tab} onChange={(id) => setTab(id)}>
           <CustomizeButton open={customizeOpen} onClick={() => setCustomizeOpen((o) => !o)} custom={custom} />
         </PulseTabs>
+
+        {sharedBanner && (
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border border-hairline bg-paper-raised px-4 py-2.5 text-[13px] text-ink-muted">
+            You're viewing a feed someone shared with you: <span className="text-ink">{feedLabel}.</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (sharedPrefs) setPrefs(sharedPrefs);
+                setSharedBanner(false);
+                clearFeedParams();
+              }}
+              className="text-accent hover:underline"
+            >
+              Keep as my feed
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPrefsState(loadPrefs());
+                setSharedBanner(false);
+                clearFeedParams();
+              }}
+              className="text-accent hover:underline"
+            >
+              Go back to my own
+            </button>
+          </p>
+        )}
 
         {customizeOpen && (
           <CustomizePanel
@@ -413,11 +445,11 @@ export function Pulse() {
           />
         )}
 
-        <div role="tabpanel" id="pulse-tabpanel" aria-labelledby={`pulse-tab-${tab}`} className="pt-5">
+        <div role="tabpanel" id="pulse-tabpanel" aria-labelledby={`pulse-tab-${tab}`} className="pt-6">
           {tab === 'overview' && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               {custom && (
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-sans text-xs text-ink-muted">
+                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-ink-muted">
                   Showing your feed: <span className="text-ink">{feedLabel}.</span>
                   <button type="button" onClick={() => setCustomizeOpen(true)} className="text-accent hover:underline">
                     Change
@@ -433,26 +465,28 @@ export function Pulse() {
               )}
               {prefs.showMarkets && overviewTiles.length > 0 && (
                 <section>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <h2 className="font-sans text-sm font-semibold text-ink">Markets at a glance</h2>
-                    <button type="button" onClick={() => setTab('markets')} className="font-sans text-xs text-accent hover:underline">
-                      See all markets
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <h2 className="display text-3xl text-ink">Markets</h2>
+                    <button type="button" onClick={() => setTab('markets', true)} className="text-[13px] text-accent hover:underline">
+                      All markets
                     </button>
                   </div>
                   <PulseMarketStrip tiles={overviewTiles} />
                 </section>
               )}
               {overviewCurrencies && (
-                <div className="grid grid-cols-1 gap-px bg-hairline">
-                  <PulsePanel title="Currencies" subtitle={currencySubtitle} accent="bg-cat-blue">
-                    {currenciesPanel(5)}
-                    {seeAll('See all markets', 'markets')}
-                  </PulsePanel>
-                </div>
+                <PulsePanel title="Currencies" subtitle={currencySubtitle}>
+                  {currenciesPanel(5)}
+                  {seeAll('All markets', 'markets')}
+                </PulsePanel>
               )}
-              <div className="grid grid-cols-1 gap-px bg-hairline lg:grid-cols-12">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
                 <div className={`min-w-0 ${prefs.showNews ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-                  <PulsePanel title="Top U.S. trade actions" subtitle="The most significant recent tariff, sanctions and export-control actions.">
+                  <PulsePanel
+                    title="Top U.S. trade actions"
+                    help="The newest government announcements about tariffs (taxes on imports), sanctions and export limits that stand on their own. Routine batches of near-identical notices are left out so the important ones show."
+                    subtitle="The most significant recent tariff, sanctions and export-control actions."
+                  >
                     {loadingPanels ? (
                       loadingBlock
                     ) : (
@@ -463,16 +497,20 @@ export function Pulse() {
                         emptyText={custom ? 'No recent actions match your topics. Change your feed to widen it.' : undefined}
                       />
                     )}
-                    {seeAll('See all U.S. policy', 'policy')}
+                    {seeAll('All U.S. policy', 'policy')}
                   </PulsePanel>
                 </div>
                 {prefs.showNews && (
-                <div className="min-w-0 lg:col-span-5">
-                  <PulsePanel title="Latest headlines" subtitle="Trade, markets and elections, from BBC, The Guardian, NPR, the ECB and the Fed.">
-                    {newsPanel(true)}
-                    {seeAll('See all news', 'news')}
-                  </PulsePanel>
-                </div>
+                  <div className="min-w-0 lg:col-span-5">
+                    <PulsePanel
+                      title="Latest headlines"
+                      help="Recent news from major outlets that mentions trade, markets or elections. Click a headline to read the full story on the publisher's own site."
+                      subtitle="Trade, markets and elections, from BBC, The Guardian, NPR, the ECB and the Fed."
+                    >
+                      {newsPanel(true)}
+                      {seeAll('All news', 'news')}
+                    </PulsePanel>
+                  </div>
                 )}
               </div>
               <PulseGlossary />
@@ -480,67 +518,106 @@ export function Pulse() {
           )}
 
           {tab === 'policy' && (
-            <div className="flex flex-col gap-5">
-              <PulseBanner photo={PHOTOS.policy} title="U.S. policy" blurb="Tariffs, sanctions and export controls, as they are published in the Federal Register." />
-              <PulseGlossary />
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="display text-3xl text-ink">U.S. policy</h2>
+                <p className="mt-1 text-sm text-ink-muted">Tariffs, sanctions and export controls, as published in the Federal Register.</p>
+              </div>
               {loadingPanels || !summary ? (
-                <div className="border border-hairline bg-paper py-6 text-center font-sans text-sm text-ink-faint">Loading…</div>
+                <div className="card py-6 text-center text-sm text-ink-faint">Loading…</div>
               ) : (
                 <PulseSignalStrip summary={summary} activeMeasureCount={overlays.length} />
               )}
-              <div className="grid grid-cols-1 gap-px bg-hairline lg:grid-cols-12">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel
                     title="What matters most"
-                    subtitle={`Standalone actions only (not part of a routine batch), ranked by document type and recency. Plain sort, not a model's judgment call.${custom ? ' Filtered to your feed.' : ''}`}
+                    help="Actions that stand on their own, ranked by how weighty the document type is (a presidential order or final rule counts for more than a routine notice), then by date. It is a simple sort, not a judgment call by a computer model."
+                    subtitle={`Standalone actions only, ranked by document type and then date.${custom ? ' Filtered to your feed.' : ''}`}
                   >
-                    {loadingPanels ? loadingBlock : <PulseTopSignals actions={myActions} emptyText={custom ? 'No recent actions match your topics. Change your feed to widen it.' : undefined} />}
-                  </PulsePanel>
-                </div>
-                <div className="grid min-w-0 gap-px bg-hairline lg:col-span-4">
-                  <PulsePanel title="Activity by country" subtitle="Named in the text, last 30 days -- best-effort, not authoritative.">
                     {loadingPanels ? (
                       loadingBlock
                     ) : (
-                      <PulseCountryBreakdown breakdown={summary?.countryBreakdown ?? []} activeCountry={activeCountry} onSelect={setActiveCountry} />
+                      <PulseTopSignals
+                        actions={myActions}
+                        emptyText={custom ? 'No recent actions match your topics. Change your feed to widen it.' : undefined}
+                      />
+                    )}
+                  </PulsePanel>
+                </div>
+                <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
+                  <PulsePanel
+                    title="Activity by country"
+                    help="Countries named in the text of recent actions. It is a best-effort match on the wording, so treat it as a guide. Click a country to filter the activity list."
+                    subtitle="Named in the text, last 30 days. Best effort, not authoritative."
+                  >
+                    {loadingPanels ? (
+                      loadingBlock
+                    ) : (
+                      <PulseCountryBreakdown
+                        breakdown={(summary?.countryBreakdown ?? []).slice(0, 8)}
+                        activeCountry={activeCountry}
+                        onSelect={setActiveCountry}
+                      />
                     )}
                   </PulsePanel>
                 </div>
 
                 <div className="min-w-0 lg:col-span-8">
-                  <PulsePanel title="Full activity">
+                  <PulsePanel
+                    title="Full activity"
+                    help="Everything collected, newest first. Use the buttons to narrow by topic, or search for a word such as steel or Mexico. Notices that repeat with the same title are grouped so they do not crowd the list."
+                  >
                     {TagFilter}
-                    {loadingFeed ? (
+                    {loadingFeed && actions.length === 0 ? (
                       loadingBlock
                     ) : (
-                      <div className="max-h-[36rem] overflow-y-auto pr-1">
+                      // Stays mounted while a filter reloads (dimmed) so the page
+                      // doesn't shrink and pull the reader's scroll position up.
+                      <div className={`max-h-[36rem] overflow-y-auto pr-1 ${loadingFeed ? 'opacity-50' : ''}`} aria-busy={loadingFeed}>
                         <PulseFeedList actions={actions} />
                       </div>
                     )}
                   </PulsePanel>
                 </div>
-                <div className="grid min-w-0 gap-px bg-hairline lg:col-span-4">
-                  <PulsePanel title="Active measures" subtitle="Section 232 / 301 / 338 overlays currently in force.">
+                <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
+                  <PulsePanel
+                    title="Active measures"
+                    help="Extra taxes on imports that the U.S. currently charges under specific laws. Scope shows which countries they cover and rate is the extra percent on top of normal duties."
+                    subtitle="Section 232, 301 and 338 measures in force."
+                  >
                     {loadingPanels ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}
                   </PulsePanel>
-                  <PulsePanel title="Activity by agency" subtitle="Primary agency, last 30 days.">
+                  <PulsePanel
+                    title="Activity by agency"
+                    help="Which government office published each action in the last 30 days. A few offices publish most of them."
+                    subtitle="Primary agency, last 30 days."
+                  >
                     {loadingPanels ? loadingBlock : <PulseAgencyBreakdown breakdown={summary?.agencyBreakdown ?? []} />}
                   </PulsePanel>
-                  <PulsePanel title="Policy tempo" subtitle="Actions published per month, last 24 months.">
+                  <PulsePanel
+                    title="Policy tempo"
+                    help="How many actions were published each month over the last two years. Taller bars mean a busier month."
+                    subtitle="Actions published per month, last 24 months."
+                  >
                     {loadingPanels ? loadingBlock : <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} />}
                   </PulsePanel>
                 </div>
               </div>
+              <PulseGlossary />
             </div>
           )}
 
           {tab === 'markets' && (
             <div className="flex flex-col gap-8">
-              <PulseBanner photo={PHOTOS.markets} title="Markets" blurb="Stocks, commodities, interest rates and currencies that move with world trade." />
-              {marketsFailed && !markets && <p className="font-sans text-sm text-ink-faint">Couldn't load market data right now.</p>}
+              <div>
+                <h2 className="display text-3xl text-ink">Markets</h2>
+                <p className="mt-1 text-sm text-ink-muted">Stocks, commodities, interest rates and currencies that move with world trade.</p>
+              </div>
+              {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
 
               {prefs.markets.length > 0 && (
-                <p className="flex flex-wrap items-baseline gap-x-2 font-sans text-xs text-ink-muted">
+                <p className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-ink-muted">
                   Showing the market groups you follow: <span className="text-ink">{prefs.markets.join(', ')}.</span>
                   <button type="button" onClick={() => setPrefs({ ...prefs, markets: [] })} className="text-accent hover:underline">
                     Show all
@@ -553,90 +630,109 @@ export function Pulse() {
                 const tiles = tilesIn(group);
                 if (tiles.length === 0) return null;
                 return (
-                  <section key={group}>
-                    <h2 className="flex items-center gap-2 font-sans text-sm font-semibold text-ink">
-                      <span className={`h-2.5 w-2.5 ${GROUP_HUE[group].bg}`} aria-hidden="true" />
-                      {group}
-                    </h2>
-                    <p className="mb-2 mt-0.5 font-sans text-xs text-ink-faint">{blurb}</p>
+                  <section key={group} className="flex flex-col gap-4">
+                    <div>
+                      <h3 className="flex items-center gap-2.5 font-display text-xl font-bold text-ink">
+                        <span className={`h-3 w-3 rounded-full ${GROUP_HUE[group].bg}`} aria-hidden="true" />
+                        {group}
+                      </h3>
+                      <p className="mt-0.5 text-sm text-ink-faint">{blurb}</p>
+                    </div>
                     <PulseMarketStrip tiles={tiles} />
                     {group === 'World stocks' && worldSeries.length > 0 && (
-                      <div className="mt-px grid grid-cols-1 gap-px bg-hairline">
-                        <PulsePanel title="How stock markets moved" subtitle="The U.S., Europe, Japan and Hong Kong over the last three months. Hover for exact values." accent={GROUP_HUE['World stocks'].bg}>
-                          <PulseLineChart series={worldSeries} />
-                        </PulsePanel>
-                      </div>
+                      <PulsePanel
+                        title="How stock markets moved"
+                        help="Each line starts at 100 on the first day, so you can compare markets that use very different numbers. A line ending at 105 rose 5% over the period; one ending at 95 fell 5%."
+                        subtitle="The U.S., Europe, Japan and Hong Kong over the last three months. Hover for exact values."
+                      >
+                        <PulseLineChart series={worldSeries} />
+                      </PulsePanel>
                     )}
                     {group === 'Trade bellwethers' && (
-                      <div className="mt-px grid grid-cols-1 gap-px bg-hairline">
-                        <PulsePanel title="Three-month winners and losers" subtitle="Change in share price over the last three months." accent={GROUP_HUE['Trade bellwethers'].bg}>
-                          <PulseMoverBars movers={bellwetherMovers} note="Right (green): the share price rose. Left (red): it fell." />
-                        </PulsePanel>
-                      </div>
+                      <PulsePanel
+                        title="Three-month winners and losers"
+                        help="How each share price changed over the last three months. These companies tend to rise and fall with global trade, which is why they are on this page. It is a watch-list, not advice."
+                        subtitle="Change in share price over the last three months."
+                      >
+                        <PulseMoverBars movers={bellwetherMovers} note="Right (green): the share price rose. Left (red): it fell." />
+                      </PulsePanel>
                     )}
                     {group === 'Commodities' && commoditySeries.length > 0 && (
-                      <div className="mt-px grid grid-cols-1 gap-px bg-hairline">
-                        <PulsePanel title="How commodity prices moved" subtitle="Oil, gas, gold and copper over the last three months." accent={GROUP_HUE.Commodities.bg}>
-                          <PulseLineChart series={commoditySeries} />
-                        </PulsePanel>
-                      </div>
+                      <PulsePanel
+                        title="How commodity prices moved"
+                        help="Each line starts at 100 on the first day, so different prices can be compared side by side. Higher means the price rose over the period."
+                        subtitle="Oil, gas, gold and copper over the last three months."
+                      >
+                        <PulseLineChart series={commoditySeries} />
+                      </PulsePanel>
                     )}
                   </section>
                 );
               })}
 
               {followsCurrencies && (
-              <section>
-                <h2 className="flex items-center gap-2 font-sans text-sm font-semibold text-ink">
-                  <span className="h-2.5 w-2.5 bg-cat-blue" aria-hidden="true" />
-                  Currencies
-                </h2>
-                <p className="mb-2 mt-0.5 font-sans text-xs text-ink-faint">How many units of each currency one U.S. dollar buys.</p>
-                <div className="grid grid-cols-1 gap-px bg-hairline lg:grid-cols-2">
-                  <PulsePanel title="U.S. dollar vs. trade partners" subtitle={currencySubtitle}>
-                    {currenciesPanel(8)}
-                  </PulsePanel>
-                  <PulsePanel title="Who moved most" subtitle="30-day change against the dollar.">
-                    <PulseCurrencyMovers rows={markets?.currencies ?? []} />
-                  </PulsePanel>
-                </div>
-              </section>
+                <section className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="flex items-center gap-2.5 font-display text-xl font-bold text-ink">
+                      <span className="h-3 w-3 rounded-full bg-hue-indigo" aria-hidden="true" />
+                      Currencies
+                    </h3>
+                    <p className="mt-0.5 text-sm text-ink-faint">How many units of each currency one U.S. dollar buys.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <PulsePanel
+                      title="U.S. dollar vs. trade partners"
+                      help="How many units of each currency one U.S. dollar buys. If the number goes up, the dollar got stronger against that currency, so imports from that country get cheaper and U.S. exports there get pricier."
+                      subtitle={currencySubtitle}
+                    >
+                      {currenciesPanel(8)}
+                    </PulsePanel>
+                    <PulsePanel
+                      title="Who moved most"
+                      help="Ranks these currencies by how much they changed against the dollar over the last 30 days. Green means the dollar bought more of that currency than before."
+                      subtitle="30-day change against the dollar."
+                    >
+                      <PulseCurrencyMovers rows={markets?.currencies ?? []} />
+                    </PulsePanel>
+                  </div>
+                </section>
               )}
 
-              <p className="font-sans text-[11px] leading-relaxed text-ink-faint">
+              <p className="text-xs leading-relaxed text-ink-faint">
                 Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not
                 trading. Currency rates are the ECB's daily reference rates, published once per business day.
               </p>
             </div>
           )}
 
+          {tab === 'guide' && <PulseGuide status={status} />}
+
           {tab === 'news' && (
-            <div className="flex flex-col gap-5">
-              <PulseBanner photo={PHOTOS.news} title="News" blurb="Trade, markets and election headlines from around the world, with the original photo where the publisher provides one." />
-              <div className="grid grid-cols-1 gap-px bg-hairline">
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="display text-3xl text-ink">News</h2>
+                <p className="mt-1 text-sm text-ink-muted">Trade, markets and election headlines from around the world.</p>
+              </div>
               <PulsePanel
                 title="World news"
-                subtitle="Trade-relevant headlines from BBC, The Guardian, NPR, the ECB and the Fed, kept only when they match trade or market topics. Headline, link and the publisher's own lead photo where the feed offers one."
+                help="Headlines from BBC, The Guardian, NPR, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."
+                subtitle="From BBC, The Guardian, NPR, the ECB and the Fed. Each headline links to the publisher, with its own photo where one is provided."
               >
                 {newsPanel(false)}
               </PulsePanel>
-              </div>
             </div>
           )}
         </div>
 
-        <Link
-          to="/calculator"
-          className="mt-8 flex flex-col gap-1 border border-hairline-strong sm:flex-row sm:items-center sm:justify-between px-4 py-3 no-underline hover:border-accent"
-        >
-          <span>
-            <span className="font-sans text-sm text-ink">Compliance calculator</span>
-            <span className="block font-sans text-xs text-ink-faint sm:ml-2 sm:inline">
-              Classify a shipment through HTS, USMCA origin, denied-party screening, and duty determination.
-            </span>
-          </span>
-          <span className="shrink-0 font-mono text-xs text-ink-muted">Run a case</span>
-        </Link>
+        <div className="card mt-10 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-[15px] font-semibold text-ink">Compliance calculator</h2>
+            <p className="mt-0.5 text-sm text-ink-muted">Classify a shipment, check origin and screen parties to get a duty determination with sources.</p>
+          </div>
+          <Link to="/calculator" className="btn shrink-0">
+            Open the calculator
+          </Link>
+        </div>
       </div>
     </div>
   );

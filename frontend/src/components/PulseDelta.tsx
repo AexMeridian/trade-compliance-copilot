@@ -3,13 +3,14 @@
 // app's existing --color-clear/--color-stop tokens rather than new hex values.
 // `text` is the already-formatted magnitude (caller knows the unit: "19%",
 // "0.03 pts", "$1.2B"); `change` only decides glyph and color.
-export function PulseDelta({ change, text, className = '' }: { change: number | null; text: string; className?: string }) {
+export function PulseDelta({ change, text, className = '', onDark = false }: { change: number | null; text: string; className?: string; onDark?: boolean }) {
   if (change === null) return null;
   const up = change > 0;
   const down = change < 0;
-  const color = up ? 'text-clear' : down ? 'text-stop' : 'text-ink-muted';
+  // The same up/down colors, lightened to stay readable on the black hero.
+  const color = onDark ? (up ? 'text-[#4ade80]' : down ? 'text-[#fca5a5]' : 'text-white') : up ? 'text-clear' : down ? 'text-stop' : 'text-ink-muted';
   return (
-    <span className={`font-mono ${color} ${className}`}>
+    <span className={`tabular-nums ${color} ${className}`}>
       {up ? '▲' : down ? '▼' : '—'} {up || down ? text : 'flat'}
     </span>
   );

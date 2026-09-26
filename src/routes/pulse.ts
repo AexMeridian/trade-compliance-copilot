@@ -120,7 +120,7 @@ pulseRoute.get('/summary', async (c) => {
     `SELECT je.value AS country, COUNT(*) AS n
      FROM trade_policy_actions, json_each(countries) je
      WHERE publication_date >= date('now', '-30 days') AND countries IS NOT NULL AND countries != '[]'
-     GROUP BY country ORDER BY n DESC LIMIT 8`
+     GROUP BY country ORDER BY n DESC LIMIT 40`
   ).all<{ country: string; n: number }>();
 
   // "Open for comment" = comments_close_on is set and hasn't passed --
@@ -216,17 +216,18 @@ pulseRoute.get('/markets', async (c) => {
        ORDER BY series_id, obs_date DESC`
     ).all<SeriesRow>();
 
+  const quotesOn = c.env.MARKET_QUOTES !== 'off';
   let { results } = await load();
   // Wait for the fetch (instead of refreshing in the background) whenever
   // FX or quote data is missing entirely, so a first visit after a deploy
   // isn't served a half-empty page.
-  const hasQuotes = results.some((r) => r.series_id === '^GSPC');
+  const hasQuotes = !quotesOn || results.some((r) => r.series_id === '^GSPC');
   const hasFx = results.some((r) => r.series_id.startsWith('FX:'));
   await refreshOnDemand(
     c,
     [
       refreshIfStale(c.env, 'fx', FX_TTL_MS, () => refreshFx(c.env)),
-      refreshIfStale(c.env, 'quotes', QUOTES_TTL_MS, () => refreshQuotes(c.env)),
+      ...(quotesOn ? [refreshIfStale(c.env, 'quotes', QUOTES_TTL_MS, () => refreshQuotes(c.env))] : []),
     ],
     !hasQuotes || !hasFx
   );
@@ -245,7 +246,7 @@ pulseRoute.get('/markets', async (c) => {
       .map((r): [string, number] => [r.obs_date, r.value])
       .reverse();
 
-  const tiles = MARKET_META.flatMap((m) => {
+  const tiles = (quotesOn ? MARKET_META : []).flatMap((m) => {
     const rows = bySeries.get(m.id);
     if (!rows || rows.length === 0) return [];
     const [latest, prev] = rows;
@@ -318,8 +319,9 @@ pulseRoute.get('/news', async (c) => {
     last_note: string | null;
   }>();
 
+  const showImages = c.env.NEWS_IMAGES !== 'off';
   return c.json({
-    items: results,
+    items: showImages ? results : results.map((r) => ({ ...r, image_url: null })),
     counts: Object.fromEntries(counts.results.map((r) => [r.category, r.n])),
     lastSuccessAt: state?.last_success_at ?? null,
     note: state?.last_note ?? null,
@@ -374,4 +376,88 @@ pulseRoute.post('/sync', async (c) => {
     await logRefresh(c.env, 'pulse', 'error', null, message, startedAt);
     return c.json({ ok: false, error: "Couldn't refresh from the Federal Register API -- showing last-synced data." }, 502);
   }
+});
+
+// ---------------------------------------------------------------------------
+// One-call page load. The page used to make six or seven separate API calls;
+// this composes the same handlers (so every rule -- lazy refresh, kill
+// switches, filters -- stays defined in exactly one place) into a single
+// response, which is faster for the reader and cuts the Worker request count
+// per visit several-fold. Also reports how fresh each source is.
+// ---------------------------------------------------------------------------
+pulseRoute.get('/home', async (c) => {
+  const call = async <T>(path: string): Promise<T> => {
+    const res = await pulseRoute.request(path, {}, c.env, c.executionCtx);
+    if (!res.ok) throw new Error(`${path} failed: HTTP ${res.status}`);
+    return (await res.json()) as T;
+  };
+  // Each part is independent: one failing (say an upstream news feed) must not
+  // blank the rest, so failures come back as null and the page shows its
+  // per-panel fallback.
+  const settle = async <T>(path: string): Promise<T | null> => {
+    try {
+      return await call<T>(path);
+    } catch {
+      return null;
+    }
+  };
+  const [summary, tempo, overlays, recent, markets, news] = await Promise.all([
+    settle('/summary'),
+    settle('/tempo'),
+    settle('/active-measures'),
+    settle('/feed?limit=100'),
+    settle('/markets'),
+    settle('/news?limit=60'),
+  ]);
+
+  const states = await c.env.DB.prepare('SELECT source_key, last_success_at FROM pulse_feed_state').all<{ source_key: string; last_success_at: string | null }>();
+  const latest = await c.env.DB.prepare('SELECT MAX(fetched_at) AS t FROM trade_policy_actions').first<{ t: string | null }>();
+  const at = (k: string) => states.results.find((r) => r.source_key === k)?.last_success_at ?? null;
+
+  c.header('Cache-Control', 'public, max-age=60');
+  return c.json({
+    summary,
+    tempo,
+    overlays,
+    recent,
+    markets,
+    news,
+    status: { policy: latest?.t ?? null, news: at('news'), quotes: c.env.MARKET_QUOTES === 'off' ? null : at('quotes'), fx: at('fx') },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RSS 2.0 feed of U.S. trade actions -- the no-account way to "get alerts":
+// paste the URL into any feed reader. Same filters as /feed (tag, country).
+// Title, agency, document type and the Federal Register's own abstract only.
+// ---------------------------------------------------------------------------
+const xmlEscape = (v: unknown) =>
+  String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+pulseRoute.get('/rss', async (c) => {
+  const limit = Math.min(Number(c.req.query('limit') ?? 30) || 30, 50);
+  const tag = c.req.query('tag') || null;
+  const country = c.req.query('country') || null;
+  const { results } = await c.env.DB.prepare(
+    `SELECT document_number, title, abstract, agency, doc_type, tag, publication_date, html_url FROM trade_policy_actions
+     WHERE (?1 IS NULL OR tag = ?1) AND (?2 IS NULL OR countries LIKE '%"' || ?2 || '"%')
+     ORDER BY publication_date DESC, document_number DESC LIMIT ?3`
+  )
+    .bind(tag, country, limit)
+    .all<{ document_number: string; title: string; abstract: string | null; agency: string; doc_type: string; tag: string; publication_date: string; html_url: string }>();
+
+  const origin = new URL(c.req.url).origin;
+  const label = [tag, country].filter(Boolean).join(', ');
+  const items = results
+    .map((r) => {
+      const desc = `${r.doc_type} (${r.tag}) from ${r.agency.split(', ').slice(0, 2).join(', ')}.${r.abstract ? ` ${r.abstract.slice(0, 300)}${r.abstract.length > 300 ? '…' : ''}` : ''}`;
+      return `<item><title>${xmlEscape(r.title)}</title><link>${xmlEscape(r.html_url)}</link><guid isPermaLink="false">${xmlEscape(r.document_number)}</guid><pubDate>${new Date(`${r.publication_date}T12:00:00Z`).toUTCString()}</pubDate><category>${xmlEscape(r.tag)}</category><description>${xmlEscape(desc)}</description></item>`;
+    })
+    .join('');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${xmlEscape(`Trade Policy Pulse: U.S. trade actions${label ? ` (${label})` : ''}`)}</title><link>${xmlEscape(origin)}/</link><description>New U.S. tariff, sanctions, export-control and trade-agreement actions from the Federal Register.</description><language>en-us</language><atom:link href="${xmlEscape(c.req.url)}" rel="self" type="application/rss+xml"/>${items}</channel></rss>`;
+  return new Response(xml, { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
 });

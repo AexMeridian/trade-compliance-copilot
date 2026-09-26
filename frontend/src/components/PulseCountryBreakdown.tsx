@@ -15,7 +15,7 @@ export function PulseCountryBreakdown({
   onSelect: (country: string | null) => void;
 }) {
   if (breakdown.length === 0) {
-    return <p className="font-sans text-sm text-ink-faint">No countries named in the last 30 days.</p>;
+    return <p className="text-sm text-ink-faint">No countries named in the last 30 days.</p>;
   }
   const max = Math.max(...breakdown.map((b) => b.count), 1);
 
@@ -31,16 +31,11 @@ export function PulseCountryBreakdown({
               aria-pressed={active}
               className={`flex w-full items-center gap-2 text-left ${active ? 'text-accent' : ''}`}
             >
-              <span className={`w-24 shrink-0 truncate font-sans text-xs ${active ? 'text-accent' : 'text-ink-muted'}`}>
-                {COUNTRY_LABELS[b.country] ?? b.country}
-              </span>
+              <span className={`w-24 shrink-0 truncate text-xs ${active ? 'text-accent' : 'text-ink-muted'}`}>{COUNTRY_LABELS[b.country] ?? b.country}</span>
               <span className="h-3 flex-1 bg-hairline">
-                <span
-                  className={`block h-full ${active ? 'bg-accent' : 'bg-cat-teal'}`}
-                  style={{ width: `${Math.max((b.count / max) * 100, 4)}%` }}
-                />
+                <span className={`block h-full ${active ? 'bg-hue-indigo' : 'bg-hue-cyan'}`} style={{ width: `${Math.max((b.count / max) * 100, 4)}%` }} />
               </span>
-              <span className="w-8 shrink-0 text-right font-mono text-xs text-ink">{b.count}</span>
+              <span className="w-8 shrink-0 text-right tabular-nums text-xs text-ink">{b.count}</span>
             </button>
           </li>
         );

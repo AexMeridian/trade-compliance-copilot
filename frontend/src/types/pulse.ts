@@ -101,6 +101,17 @@ export interface NewsItem {
   image_url: string | null; // lead image from the publisher's own feed/CDN, if it supplies one
 }
 
+export interface PulseHome {
+  summary: PulseSummary | null;
+  tempo: { months: TempoPoint[] } | null;
+  overlays: { overlays: ActiveMeasure[] } | null;
+  recent: { actions: PulseAction[] } | null;
+  markets: PulseMarkets | null;
+  news: PulseNewsResponse | null;
+  // When each source last refreshed successfully (ISO), or null if never / switched off.
+  status: { policy: string | null; news: string | null; quotes: string | null; fx: string | null };
+}
+
 export interface PulseNewsResponse {
   items: NewsItem[];
   counts: Partial<Record<NewsCategory, number>>;

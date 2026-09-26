@@ -1,5 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
-import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
+import type { PulseHome, ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -68,6 +68,10 @@ export function getPulseFeed(limit?: number, tag?: string, opts?: { search?: str
   if (opts?.country) params.set('country', opts.country);
   const qs = params.toString();
   return request<{ actions: PulseAction[] }>(`/pulse/feed${qs ? `?${qs}` : ''}`);
+}
+
+export function getPulseHome() {
+  return request<PulseHome>('/pulse/home');
 }
 
 export function getPulseTempo() {

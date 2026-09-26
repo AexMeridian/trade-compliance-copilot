@@ -1,95 +1,138 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+/* Self-hosted fonts (no request to Google, so nothing about a visitor is shared with a third party). */
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/instrument-sans';
 
 /*
-  Design language: a black-and-white instrument -- statute typesetting,
-  ledger tables, citation marks -- with exactly one accent color (a stamped-
-  ink amber) used in exactly two places: the primary action and the globe's
-  trade lanes. Everywhere else stays true greyscale. Verdict color
-  (clear/review/stop) is the only other color language and always means
-  severity, never decoration. Headlines and the globe carry a mild specular
-  sheen (a soft highlight, like light on a physical object) -- not a glow
-  effect, and never on more than those two things.
+  Black and white, with color that means something. The page is white, the top
+  bar and hero are black, and a small set of hues sorts the content:
+
+    orange   U.S. policy and tariffs
+    violet   sanctions and comment periods
+    cyan     export controls, trade news, the globe
+    pink     trade agreements and elections
+    indigo   markets, links and the primary action
+
+  Green and red are kept for up and down moves (and clear / stop verdicts), so a
+  topic color never reads as good or bad. Each hue has a bright form (fills,
+  lines, dots) and an -ink form dark enough for text on white.
 */
 @theme {
-  --font-serif: "Source Serif 4", Georgia, serif;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
 
-  --color-paper: #0b0b0a;
-  --color-paper-raised: #161615;
-  --color-ink: #f0eee8;
-  --color-ink-muted: #9a978e;
-  --color-ink-faint: #656258;
-  --color-hairline: #232320;
-  --color-hairline-strong: #3a3934;
-  --color-accent: #c9862f;
-  --color-accent-soft: #241d12;
+  --color-bar: #0a0a0b;
+  --color-paper: #f5f5f6;
+  --color-paper-raised: #ffffff;
+  --color-ink: #0b0b0c;
+  --color-ink-muted: #47474e;
+  --color-ink-faint: #62626b;
+  --color-hairline: #e4e4e7;
+  --color-hairline-strong: #8a8a94;
+  --color-accent: #4338ca;
+  --color-accent-soft: #eeefff;
 
-  --color-clear: #6bb583;
-  --color-clear-soft: #16211a;
-  --color-review: #d99c3f;
-  --color-review-soft: #241d12;
-  --color-stop: #c9695a;
-  --color-stop-soft: #231613;
+  --color-clear: #0f7a45;
+  --color-clear-soft: #e5f4ec;
+  --color-review: #8f5306;
+  --color-review-soft: #fcf1de;
+  --color-stop: #b42318;
+  --color-stop-soft: #fbeae8;
 
-  /* Categorical data-viz palette (Pulse only): muted hues that hold up on
-     the black paper. Deliberately not red or green -- those stay reserved
-     for up/down and severity -- so a category never reads as good or bad. */
-  --color-cat-amber: #e0a340;
-  --color-cat-blue: #6fa3e0;
-  --color-cat-violet: #b08ad6;
-  --color-cat-teal: #56b8ad;
-  --color-cat-gray: #8a877e;
+  --color-hue-orange: #f97316;
+  --color-hue-orange-ink: #b8400a;
+  --color-hue-violet: #8b5cf6;
+  --color-hue-violet-ink: #6d28d9;
+  --color-hue-cyan: #06b6d4;
+  --color-hue-cyan-ink: #0e7490;
+  --color-hue-pink: #ec4899;
+  --color-hue-pink-ink: #be185d;
+  --color-hue-indigo: #6366f1;
+  --color-hue-indigo-ink: #4338ca;
+  --color-hue-gray: #8a8a94;
+  --color-hue-gray-ink: #47474e;
+
+  --radius-control: 8px;
 }
 
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-serif);
-}
-
-::selection {
-  background: var(--color-accent-soft);
-}
-
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-/* Mild sheen for the hero headline only -- a subtle two-stop luminosity
-   gradient, not a rainbow/holographic effect. */
-.text-sheen {
-  background: linear-gradient(105deg, var(--color-ink) 35%, #ffffff 50%, var(--color-ink) 65%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Pulse ticker (PulseTicker.tsx) -- a CSS-only marquee, not a JS interval,
-   so it runs on the compositor thread with no per-tick re-render. The track
-   is rendered twice in the component (second copy aria-hidden) and this
-   slides exactly half its own width, so the loop point is seamless. Pauses
-   on hover/focus so it's actually readable and clickable, and stops
-   entirely under reduced motion -- this is genuinely non-essential motion. */
-@keyframes pulse-ticker-scroll {
-  from {
-    transform: translateX(0);
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
   }
-  to {
-    transform: translateX(-50%);
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  a {
+    color: var(--color-accent);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    border-radius: var(--radius-control);
+  }
+
+  button:not(:disabled),
+  select {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: #c7c9ff;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 }
-.pulse-ticker-track {
-  animation: pulse-ticker-scroll 110s linear infinite;
-}
-.pulse-ticker-viewport:hover .pulse-ticker-track,
-.pulse-ticker-viewport:focus-within .pulse-ticker-track {
-  animation-play-state: paused;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pulse-ticker-track {
-    animation: none;
+
+@layer components {
+  /* The one container style: a white sheet with a hairline edge. */
+  .card {
+    background: var(--color-paper-raised);
+    border: 1px solid var(--color-hairline);
+    border-radius: 12px;
+  }
+
+  /* Big numerals and section titles. */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 border border-hairline-strong bg-paper-raised px-4 py-2 text-sm font-semibold text-ink no-underline hover:border-ink hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#322aa8] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* On the black hero. */
+  .btn-hero {
+    @apply inline-flex items-center justify-center gap-2 border border-white bg-white px-5 py-2.5 text-sm font-semibold text-ink no-underline hover:bg-[#e4e4e7];
+  }
+  .btn-hero-ghost {
+    @apply inline-flex items-center justify-center gap-2 border border-white/30 bg-transparent px-4 py-2.5 text-sm font-semibold text-white no-underline hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60;
   }
 }

@@ -10,11 +10,11 @@ function formatRate(rate: number): string {
 // ECB reference rates (one fixing per business day), so "as of" is a date,
 // not a timestamp -- this is deliberately not presented as a live quote.
 export function PulseCurrencies({ rows }: { rows: CurrencyRow[] }) {
-  if (rows.length === 0) return <p className="font-sans text-sm text-ink-faint">Currency rates aren't available right now.</p>;
+  if (rows.length === 0) return <p className="text-sm text-ink-faint">Currency rates aren't available right now.</p>;
   return (
     <ul className="flex flex-col gap-2.5">
       {rows.map((r) => (
-        <li key={r.quote} className="flex items-center gap-2 font-mono text-xs">
+        <li key={r.quote} className="flex items-center gap-2 tabular-nums text-xs">
           <span className="w-16 shrink-0 text-ink-muted">{r.label}</span>
           <span className="w-16 shrink-0 text-right text-ink">{formatRate(r.rate)}</span>
           <div className="min-w-0 flex-1">
