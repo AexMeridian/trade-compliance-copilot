@@ -38,6 +38,11 @@ export interface PulseSummary {
   openForComment: number;
   agencyBreakdown: { agency: string; count: number }[];
   countryBreakdown: { country: string; count: number }[];
+  countryTariffs: {
+    forcedLabor: { country: string; ratePct: number; sourceUrl: string; asOf: string }[];
+    extra: { country: string; ratePct: number; program: string; note: string; sourceUrl: string }[];
+    capped: { country: string; ratePct: number; standardPct: number | null; program: string; note: string; sourceUrl: string }[];
+  };
 }
 
 // One row per real-world measure (aggregated server-side from the

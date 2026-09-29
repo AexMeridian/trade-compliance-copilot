@@ -15,9 +15,9 @@ const GLOBE_LEGEND = [
   { swatch: UNALIGNED_HUE.css, label: 'No tracked bloc' },
 ];
 
-// Same globe and country-selection interaction as the Pulse hero, recolored
-// by alliance membership instead of by how many actions named a country --
-// see lib/pulseBlocs.ts for what "membership" means here and its limits.
+// Same centered-globe-with-overlay hero treatment as PulseHero, recolored by
+// alliance membership instead of by how many actions named a country -- see
+// lib/pulseBlocs.ts for what "membership" means here and its limits.
 export function InfluenceHero({
   summary,
   activeCountry,
@@ -65,95 +65,77 @@ export function InfluenceHero({
 
   return (
     <section className="bg-bar text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-24 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-12">
-        <div>
-          <h1 className="text-lg font-semibold leading-snug text-white">
-            American influence, in real numbers
-            <span className="block text-[15px] font-normal text-[#b4b4bc]">
-              pressure (tariffs, sanctions, export controls) and reach (the dollar, alliances, diplomacy)
-            </span>
-          </h1>
-          <p className="display mt-3 text-[120px] text-white sm:text-[176px]" aria-label={summary ? `${countryCount} countries` : 'Loading'}>
-            {summary ? countryCount : '...'}
-          </p>
-          <p className="mt-1 text-lg text-[#b4b4bc]">countries facing new U.S. tariffs, sanctions or export controls, last 30 days</p>
-          {summary && (
-            <p className="mt-4 max-w-md text-lg leading-snug text-white">
-              <span className="font-semibold">{summary.last30}</span> pressure actions in total,{' '}
-              {summary.trendPct !== null ? (
-                <>
-                  <PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} onDark className="font-semibold" /> from the 30 days before
-                </>
-              ) : (
-                'no earlier period to compare yet'
-              )}
-              {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
+      <div className="mx-auto max-w-2xl px-4 pb-16 pt-8 text-center sm:pt-12">
+        <div className="relative mx-auto w-full max-w-[520px]">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-16 pt-2"
+            style={{ background: 'radial-gradient(ellipse 70% 85% at 50% 15%, rgba(10,10,11,0.94) 0%, rgba(10,10,11,0.7) 45%, rgba(10,10,11,0) 78%)' }}
+          >
+            <h1 className="display text-2xl leading-tight text-white sm:text-3xl">American influence, mapped</h1>
+            <p className="mx-auto mt-2 max-w-xs text-[13px] leading-snug text-[#d8d8dd] sm:text-sm">
+              Who the U.S. is pressuring with tariffs and sanctions, and who it's formally aligned with.
             </p>
-          )}
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onExplore} className="btn-hero">
-              See pressure tools
-            </button>
-            <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
-              {syncing ? 'Checking…' : 'Check for updates'}
-            </button>
           </div>
-          <p className="mt-3 text-[13px] text-[#b4b4bc]">{updatedText}</p>
+          {summary ? (
+            <Suspense fallback={<GlobePlaceholder />}>
+              <PulseGlobe
+                breakdown={breakdown}
+                activeCountry={activeCountry}
+                onSelect={onCountry}
+                groupColorFor={groupColorFor}
+                describe={describe}
+                legend={GLOBE_LEGEND}
+                ariaLabel="Globe of the United States and the countries it trades with, colored by alliance membership (NATO, G7, G20, BRICS, USMCA). Use the country list below to choose one."
+              />
+            </Suspense>
+          ) : (
+            <GlobePlaceholder />
+          )}
         </div>
 
-        <div className="min-w-0">
-          {summary ? (
-            <>
-              <Suspense fallback={<GlobePlaceholder />}>
-                <PulseGlobe
-                  breakdown={breakdown}
-                  activeCountry={activeCountry}
-                  onSelect={onCountry}
-                  groupColorFor={groupColorFor}
-                  describe={describe}
-                  legend={GLOBE_LEGEND}
-                  ariaLabel="Globe of the United States and the countries it trades with, colored by alliance membership (NATO, G7, G20, BRICS, USMCA). Use the country list below to choose one."
-                />
-              </Suspense>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        {summary && (
+          <>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => onCountry('US')}
+                aria-pressed={activeCountry === 'US'}
+                className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
+                  activeCountry === 'US' ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
+                }`}
+              >
+                United States
+              </button>
+              {top.map((b) => (
                 <button
+                  key={b.country}
                   type="button"
-                  onClick={() => onCountry('US')}
-                  aria-pressed={activeCountry === 'US'}
+                  onClick={() => onCountry(b.country)}
+                  aria-pressed={activeCountry === b.country}
                   className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === 'US' ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
+                    activeCountry === b.country ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
                   }`}
                 >
-                  United States
+                  {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
                 </button>
-                {top.map((b) => (
-                  <button
-                    key={b.country}
-                    type="button"
-                    onClick={() => onCountry(b.country)}
-                    aria-pressed={activeCountry === b.country}
-                    className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                      activeCountry === b.country ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
-                    }`}
-                  >
-                    {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
-                  </button>
+              ))}
+              <select
+                aria-label="Choose another country"
+                value=""
+                onChange={(e) => e.target.value && onCountry(e.target.value)}
+                className="border border-white/30 bg-bar px-2 py-1 text-[13px] font-semibold text-white"
+              >
+                <option value="">More countries…</option>
+                {others.map((c) => (
+                  <option key={c} value={c}>
+                    {COUNTRY_LABELS[c]}
+                  </option>
                 ))}
-                <select
-                  aria-label="Choose another country"
-                  value=""
-                  onChange={(e) => e.target.value && onCountry(e.target.value)}
-                  className="border border-white/30 bg-bar px-2 py-1 text-[13px] font-semibold text-white"
-                >
-                  <option value="">More countries…</option>
-                  {others.map((c) => (
-                    <option key={c} value={c}>
-                      {COUNTRY_LABELS[c]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {activeCountry && (
+              </select>
+            </div>
+
+            {activeCountry && (
+              <div className="mt-4 text-left">
                 <PulseCountryCard
                   code={activeCountry}
                   count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
@@ -167,12 +149,31 @@ export function InfluenceHero({
                   onSeeAll={onSeeAll}
                   onClose={onClearCountry}
                 />
+              </div>
+            )}
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <button type="button" onClick={onExplore} className="btn-hero">
+                See pressure tools
+              </button>
+              <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
+                {syncing ? 'Checking…' : 'Check for updates'}
+              </button>
+            </div>
+            <p className="mt-4 text-base leading-snug text-white">
+              <span className="font-semibold">{countryCount}</span> countries facing new U.S. tariffs, sanctions or export controls,{' '}
+              <span className="font-semibold">{summary.last30}</span> pressure actions in total
+              {summary.trendPct !== null && (
+                <>
+                  {' '}
+                  (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} onDark className="font-semibold" />)
+                </>
               )}
-            </>
-          ) : (
-            <GlobePlaceholder />
-          )}
-        </div>
+              {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
+            </p>
+            <p className="mt-2 text-[13px] text-[#b4b4bc]">{updatedText}</p>
+          </>
+        )}
       </div>
     </section>
   );

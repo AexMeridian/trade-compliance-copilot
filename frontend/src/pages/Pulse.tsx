@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
-import { PulseCountryBreakdown } from '../components/PulseCountryBreakdown';
+import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
@@ -557,19 +557,11 @@ export function Pulse() {
                 </div>
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
-                    title="Activity by country"
-                    help="Countries named in the text of recent actions. It is a best-effort match on the wording, so treat it as a guide. Click a country to filter the activity list."
-                    subtitle="Named in the text, last 30 days. Best effort, not authoritative."
+                    title="Tariff exposure by country"
+                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news. Click a country to filter the activity list."
+                    subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
-                    {loadingPanels ? (
-                      loadingBlock
-                    ) : (
-                      <PulseCountryBreakdown
-                        breakdown={(summary?.countryBreakdown ?? []).slice(0, 8)}
-                        activeCountry={activeCountry}
-                        onSelect={setActiveCountry}
-                      />
-                    )}
+                    {loadingPanels || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}
                   </PulsePanel>
                 </div>
 

@@ -131,6 +131,36 @@ pulseRoute.get('/summary', async (c) => {
     `SELECT COUNT(*) AS n FROM trade_policy_actions WHERE comments_close_on >= date('now')`
   ).first<{ n: number }>();
 
+  // Real tariff exposure by country, from tariff_overlays -- a genuinely
+  // different (and more decision-relevant) question than countryBreakdown
+  // above, which only counts how often a country's name appears in document
+  // text. Section 301's forced-labor determination is the one program here
+  // that's both country-specific AND broad (Chapters 1-97, not one product
+  // category), so it's the only one used to rank/size bars; Section 338
+  // (Canada) and the Section 232 metals country caps are real but narrower
+  // (3 HTS chapters; steel/aluminum/copper only) or a *reduction* rather than
+  // added pressure, so they're returned as separate notes instead of being
+  // folded into one misleadingly-precise "total rate" number.
+  const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
+  const forcedLabor = await c.env.DB.prepare(
+    `SELECT country_scope AS country, rate_pct AS ratePct, source_url AS sourceUrl, data_as_of AS asOf
+     FROM tariff_overlays WHERE program = 'sec301_forced_labor' AND ${activeOverlay}
+     ORDER BY rate_pct DESC, country_scope`
+  ).all<{ country: string; ratePct: number; sourceUrl: string; asOf: string }>();
+  const canadaExtra = await c.env.DB.prepare(
+    `SELECT country_scope AS country, MAX(rate_pct) AS ratePct, MIN(source_url) AS sourceUrl
+     FROM tariff_overlays WHERE program = 'sec338_canada' AND ${activeOverlay} GROUP BY country_scope`
+  ).all<{ country: string; ratePct: number; sourceUrl: string }>();
+  const metalsCap = await c.env.DB.prepare(
+    `SELECT country_scope AS country, rate_pct AS ratePct, source_url AS sourceUrl
+     FROM tariff_overlays WHERE program = 'sec232_metals_country_cap' AND ${activeOverlay}
+     ORDER BY country_scope`
+  ).all<{ country: string; ratePct: number; sourceUrl: string }>();
+  const metalsBaseline = await c.env.DB.prepare(
+    `SELECT MAX(rate_pct) AS n FROM tariff_overlays
+     WHERE program IN ('sec232_steel','sec232_aluminum','sec232_copper') AND country_scope IS NULL AND ${activeOverlay}`
+  ).first<{ n: number | null }>();
+
   const last30 = trend?.last_30d ?? 0;
   const prior30 = trend?.prior_30d ?? 0;
   const trendPct = prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : null;
@@ -147,6 +177,24 @@ pulseRoute.get('/summary', async (c) => {
     openForComment: openForComment?.n ?? 0,
     agencyBreakdown: agencyBreakdown.results.map((r) => ({ agency: r.agency, count: r.n })),
     countryBreakdown: countryBreakdown.results.map((r) => ({ country: r.country, count: r.n })),
+    countryTariffs: {
+      forcedLabor: forcedLabor.results,
+      extra: canadaExtra.results.map((r) => ({
+        country: r.country,
+        ratePct: r.ratePct,
+        program: 'Section 338',
+        note: 'alcoholic beverages, dairy and motor vehicles only',
+        sourceUrl: r.sourceUrl,
+      })),
+      capped: metalsCap.results.map((r) => ({
+        country: r.country,
+        ratePct: r.ratePct,
+        standardPct: metalsBaseline?.n ?? null,
+        program: 'Section 232 country cap',
+        note: 'steel, aluminum and copper only',
+        sourceUrl: r.sourceUrl,
+      })),
+    },
   });
 });
 
