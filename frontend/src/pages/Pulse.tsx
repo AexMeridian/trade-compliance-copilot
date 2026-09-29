@@ -12,6 +12,7 @@ import { PulseHighlights } from '../components/PulseHighlights';
 import { PulseGuide } from '../components/PulseGuide';
 import { PulseWelcome, markWelcomed, wasWelcomed } from '../components/PulseWelcome';
 import { PulseTabs, PULSE_TABS, type PulseTabId } from '../components/PulseTabs';
+import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars } from '../components/PulseCharts';
 import { PulseNews } from '../components/PulseNews';
@@ -44,6 +45,7 @@ import type { PulseHome, ActiveMeasure, NewsCategory, PulseAction, PulseMarkets,
 const MARKET_POLL_MS = 5 * 60_000;
 
 const MARKET_GROUPS = [
+  { group: 'Macro', blurb: 'Inflation, jobs and prices for the whole U.S. economy, from the Bureau of Labor Statistics.' },
   { group: 'U.S. stocks', blurb: 'How the big U.S. indexes are doing today.' },
   { group: 'World stocks', blurb: 'Major markets in the countries the U.S. trades with most.' },
   { group: 'Trade bellwethers', blurb: 'Companies whose fortunes rise and fall with global trade: shippers, exporters and big importers.' },
@@ -195,7 +197,10 @@ export function Pulse() {
   // reports its own error.
   useEffect(() => {
     setLoadingFeed(true);
-    loadFeed(activeTag, activeCountry, search)
+    // 'US' is the globe's stand-in for "the reporting country itself", never a
+    // real value in an action's countries field -- filtering by it for real
+    // would just come back empty, so it means "no country filter" here.
+    loadFeed(activeTag, activeCountry === 'US' ? null : activeCountry, search)
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoadingFeed(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -210,7 +215,7 @@ export function Pulse() {
       // together here -- unlike the tag-filter click above, this is one
       // user-initiated action where "did it fully refresh" matters more
       // than isolating each panel's fetch.
-      await Promise.all([loadFeed(activeTag, activeCountry, search), loadPanels()]);
+      await Promise.all([loadFeed(activeTag, activeCountry === 'US' ? null : activeCountry, search), loadPanels()]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -235,7 +240,11 @@ export function Pulse() {
     URL.revokeObjectURL(url);
   }
 
-  const lastSynced = recentAll.reduce<string | null>((latest, a) => (!latest || a.fetched_at > latest ? a.fetched_at : latest), null);
+  // status.policy is when the Federal Register feed was last successfully
+  // checked (routes/pulse.ts), not the newest document's own date -- a quiet
+  // news day and a stale check look identical from recentAll alone, and only
+  // one of those is actually worth flagging.
+  const lastSynced = status?.policy ?? null;
 
   const TagFilter = (
     <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -259,7 +268,7 @@ export function Pulse() {
           {tag}
         </button>
       ))}
-      {activeCountry && (
+      {activeCountry && activeCountry !== 'US' && (
         <button type="button" onClick={() => setActiveCountry(null)} className={`${CHIP} ${CHIP_ON}`}>
           {COUNTRY_LABELS[activeCountry] ?? activeCountry} &times;
         </button>
@@ -352,6 +361,7 @@ export function Pulse() {
     <div>
       <PulseHero
         summary={summary}
+        activeMeasures={loadingPanels ? null : overlays.length}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}
         onClearCountry={() => setActiveCountry(null)}
@@ -364,7 +374,7 @@ export function Pulse() {
         onRefresh={handleRefresh}
       />
 
-      <div className="relative mx-auto -mt-10 max-w-5xl px-4 pb-8">
+      <div className="relative mx-auto -mt-10 max-w-7xl px-4 pb-8">
         {!welcomed && !custom && (
           <PulseWelcome
             onPick={(p) => {
@@ -505,7 +515,7 @@ export function Pulse() {
                     <PulsePanel
                       title="Latest headlines"
                       help="Recent news from major outlets that mentions trade, markets or elections. Click a headline to read the full story on the publisher's own site."
-                      subtitle="Trade, markets and elections, from BBC, The Guardian, NPR, the ECB and the Fed."
+                      subtitle="Trade, markets and elections, from 8 outlets including BBC, The Guardian, Al Jazeera and the ECB."
                     >
                       {newsPanel(true)}
                       {seeAll('All news', 'news')}
@@ -638,7 +648,7 @@ export function Pulse() {
                       </h3>
                       <p className="mt-0.5 text-sm text-ink-faint">{blurb}</p>
                     </div>
-                    <PulseMarketStrip tiles={tiles} />
+                    {group === 'Macro' ? <PulseMacroStrip tiles={tiles} /> : <PulseMarketStrip tiles={tiles} />}
                     {group === 'World stocks' && worldSeries.length > 0 && (
                       <PulsePanel
                         title="How stock markets moved"
@@ -715,8 +725,8 @@ export function Pulse() {
               </div>
               <PulsePanel
                 title="World news"
-                help="Headlines from BBC, The Guardian, NPR, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."
-                subtitle="From BBC, The Guardian, NPR, the ECB and the Fed. Each headline links to the publisher, with its own photo where one is provided."
+                help="Headlines from BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."
+                subtitle="From 8 outlets: BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed. Each headline links to the publisher, with its own photo where one is provided."
               >
                 {newsPanel(false)}
               </PulsePanel>

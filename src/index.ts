@@ -55,6 +55,17 @@ app.route('/api/pulse', pulseRoute);
 
 app.get('/api/health', (c) => c.json({ ok: true }));
 
+// Without this, an uncaught exception (a D1 outage, a quota day, anything
+// unexpected) falls through to Hono's default handler: a bare "Internal
+// Server Error" text response, which lib/api.ts's request() can't parse as
+// JSON and therefore reports as a generic, unhelpful message everywhere it's
+// surfaced. This keeps every route's error contract the same ({ error }, as
+// json) and logs the real cause to the Worker's own log instead of the client.
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: 'Something went wrong on our end. Please try again shortly.' }, 500);
+});
+
 export default {
   fetch: app.fetch,
   scheduled,

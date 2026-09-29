@@ -58,6 +58,12 @@ export const MARKET_HINTS: Record<string, string> = {
   'HG=F': 'Copper, used in nearly everything from wiring to cars. Its price is a popular read on global manufacturing.',
   '^TNX': 'What the U.S. government pays to borrow for 10 years. It sets the tone for borrowing costs worldwide and pulls currency values with it.',
   'DX-Y.NYB': 'How strong the U.S. dollar is against a basket of major currencies. Higher means U.S. imports get cheaper and U.S. exports get pricier abroad.',
+  'BLS:CPI': 'The Consumer Price Index: the government’s main measure of inflation, based on what households actually pay.',
+  'BLS:UNRATE': 'The share of people looking for work who don’t have a job. A standard read on how the economy is doing overall.',
+  'BLS:PAYROLLS': 'Total nonfarm jobs in the U.S. economy. The month-over-month change is the number reported as "jobs added" or "jobs lost."',
+  'BLS:PPI': 'Producer prices: what U.S. producers get paid, before it reaches a store shelf. Often moves before consumer prices do.',
+  'BLS:IMPORT_PX': 'What the U.S. actually pays for imported goods. The most direct government-published read on whether tariffs are showing up in prices.',
+  'BLS:EXPORT_PX': 'What buyers abroad pay for U.S. exports. A read on U.S. export competitiveness as the dollar and trade policy shift.',
 };
 
 export const NEWS_CATEGORY_HINTS: Record<string, string> = {

@@ -23,6 +23,11 @@ const MARKET_TERMS: [string, string][] = [
   ['Tariff', 'A tax a government charges on goods brought in from another country.'],
   ['Sanctions', 'Restrictions on doing business with certain people, companies or countries.'],
   ['Export control', 'Rules about what technology or goods may be sold or shipped to other countries.'],
+  ['CPI', "The Consumer Price Index: the government's main measure of inflation, based on what households actually pay."],
+  [
+    'Import price index',
+    'What the U.S. actually pays for goods bought from abroad -- the most direct government-published read on whether tariffs are showing up in prices.',
+  ],
 ];
 
 const SOURCES: { name: string; what: string; fresh: string }[] = [
@@ -38,9 +43,14 @@ const SOURCES: { name: string; what: string; fresh: string }[] = [
   },
   { name: 'European Central Bank (via Frankfurter)', what: 'Currency exchange rates against the U.S. dollar.', fresh: 'Published once each business day.' },
   {
-    name: 'BBC, The Guardian, NPR, ECB, Federal Reserve',
+    name: 'BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, ECB, Federal Reserve',
     what: 'News headlines about trade, markets and elections.',
     fresh: 'Checked about every 30 minutes.',
+  },
+  {
+    name: 'U.S. Bureau of Labor Statistics',
+    what: 'Inflation, unemployment, jobs and import/export prices for the whole economy.',
+    fresh: 'Published monthly by BLS; checked a few times a day for a new release.',
   },
 ];
 
@@ -85,7 +95,8 @@ export function PulseGuide({ status }: { status: PulseHome['status'] | null }) {
     'Federal Register': status?.policy ?? null,
     'Yahoo Finance': status?.quotes ?? null,
     'European Central Bank (via Frankfurter)': status?.fx ?? null,
-    'BBC, The Guardian, NPR, ECB, Federal Reserve': status?.news ?? null,
+    'BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, ECB, Federal Reserve': status?.news ?? null,
+    'U.S. Bureau of Labor Statistics': status?.macro ?? null,
   };
   return (
     <div className="flex flex-col gap-8">
@@ -111,7 +122,7 @@ export function PulseGuide({ status }: { status: PulseHome['status'] | null }) {
             <span className="text-ink">Select "What's this?"</span> on a panel for a plain explanation of it. The explanations stay closed until you ask.
           </li>
           <li>
-            <span className="text-ink">Make it yours.</span> "Customize feed" lets you pick the topics, countries and markets you care about, and hide the rest.
+            <span className="text-ink">Make it yours.</span> "Filter" lets you pick the topics, countries and markets you care about, and hide the rest.
           </li>
         </ol>
       </Section>

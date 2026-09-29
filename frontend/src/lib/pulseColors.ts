@@ -4,6 +4,8 @@
 // moves (PulseDelta) so a topic never reads as good or bad. Full class names are
 // spelled out so Tailwind can see and generate them.
 
+import type { Bloc } from './pulseBlocs';
+
 export interface Hue {
   text: string; // dark enough for text on white
   bg: string; // bright, for fills and dots
@@ -36,6 +38,7 @@ export const NEWS_HUE: Record<string, Hue> = {
 };
 
 export const GROUP_HUE: Record<string, Hue> = {
+  Macro: PINK,
   'U.S. stocks': INDIGO,
   'World stocks': CYAN,
   'Trade bellwethers': VIOLET,
@@ -47,3 +50,10 @@ export const GROUP_HUE: Record<string, Hue> = {
 export const SERIES_HUES: Hue[] = [INDIGO, ORANGE, CYAN, PINK];
 
 export const SECTION_HUE = { policy: ORANGE, markets: INDIGO, news: PINK, comment: VIOLET } as const;
+
+export const INFLUENCE_SECTION_HUE = { pressure: ORANGE, reach: INDIGO, alliances: PINK } as const;
+
+// One hue per bloc, for the Influence page's globe and alliance table. GRAY
+// marks a country that isn't a member of any bloc tracked here (see pulseBlocs.ts).
+export const BLOC_HUE: Record<Bloc, Hue> = { NATO: CYAN, G7: ORANGE, G20: INDIGO, BRICS: VIOLET, USMCA: PINK };
+export const UNALIGNED_HUE = GRAY;

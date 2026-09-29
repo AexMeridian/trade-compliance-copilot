@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import type { Env } from '../types/env.js';
 import { runPulseSync } from '../lib/pulse/sync.js';
 import { MARKET_META, FX_META, refreshQuotes, refreshFx } from '../lib/pulse/markets.js';
+import { MACRO_META, refreshMacro } from '../lib/pulse/macro.js';
 import { refreshNews } from '../lib/pulse/news.js';
 import { refreshIfStale } from '../lib/pulse/refreshLazy.js';
 import { logRefresh } from '../lib/refresh/log.js';
@@ -185,6 +186,7 @@ pulseRoute.get('/active-measures', async (c) => {
 const FX_TTL_MS = 30 * 60_000;
 const QUOTES_TTL_MS = 15 * 60_000; // Yahoo data is itself ~15 min delayed
 const NEWS_TTL_MS = 30 * 60_000;
+const MACRO_TTL_MS = 6 * 60 * 60_000; // BLS publishes monthly; this just bounds the keyless daily-query budget
 
 // First-ever request (empty table) waits for the refresh so the panel isn't
 // blank; every later request answers from D1 immediately and refreshes in
@@ -212,26 +214,28 @@ pulseRoute.get('/markets', async (c) => {
   const load = () =>
     c.env.DB.prepare(
       `SELECT series_id, obs_date, value FROM market_series
-       WHERE obs_date >= date('now', '-130 days')
+       WHERE obs_date >= date('now', '-430 days')
        ORDER BY series_id, obs_date DESC`
     ).all<SeriesRow>();
 
   const quotesOn = c.env.MARKET_QUOTES !== 'off';
   let { results } = await load();
   // Wait for the fetch (instead of refreshing in the background) whenever
-  // FX or quote data is missing entirely, so a first visit after a deploy
-  // isn't served a half-empty page.
+  // FX, quote or macro data is missing entirely, so a first visit after a
+  // deploy isn't served a half-empty page.
   const hasQuotes = !quotesOn || results.some((r) => r.series_id === '^GSPC');
   const hasFx = results.some((r) => r.series_id.startsWith('FX:'));
+  const hasMacro = results.some((r) => r.series_id.startsWith('BLS:'));
   await refreshOnDemand(
     c,
     [
       refreshIfStale(c.env, 'fx', FX_TTL_MS, () => refreshFx(c.env)),
       ...(quotesOn ? [refreshIfStale(c.env, 'quotes', QUOTES_TTL_MS, () => refreshQuotes(c.env))] : []),
+      refreshIfStale(c.env, 'macro', MACRO_TTL_MS, () => refreshMacro(c.env)),
     ],
-    !hasQuotes || !hasFx
+    !hasQuotes || !hasFx || !hasMacro
   );
-  if (!hasQuotes || !hasFx) ({ results } = await load());
+  if (!hasQuotes || !hasFx || !hasMacro) ({ results } = await load());
 
   const bySeries = new Map<string, SeriesRow[]>();
   for (const r of results) {
@@ -246,11 +250,23 @@ pulseRoute.get('/markets', async (c) => {
       .map((r): [string, number] => [r.obs_date, r.value])
       .reverse();
 
-  const tiles = (quotesOn ? MARKET_META : []).flatMap((m) => {
+  const tiles = [...(quotesOn ? MARKET_META : []), ...MACRO_META].flatMap((m) => {
     const rows = bySeries.get(m.id);
     if (!rows || rows.length === 0) return [];
     const [latest, prev] = rows;
     const change = prev ? latest.value - prev.value : null;
+    // Year-over-year, for the monthly macro series: the newest observation at
+    // or before 360 days prior to the latest one. Not meaningful for daily
+    // market data (a "year ago" stock price is a different kind of fact than
+    // "up 3 months"), so only computed for the Macro group.
+    let yoyChangePct: number | null = null;
+    if (m.group === 'Macro') {
+      const edge = new Date(Date.parse(latest.obs_date) - 360 * 86_400_000).toISOString().slice(0, 10);
+      const base = rows.find((r) => r.obs_date <= edge);
+      if (base && base.obs_date !== latest.obs_date && base.value !== 0 && m.changeMode === 'percent') {
+        yoyChangePct = ((latest.value - base.value) / base.value) * 100;
+      }
+    }
     return [
       {
         id: m.id,
@@ -264,6 +280,7 @@ pulseRoute.get('/markets', async (c) => {
         change,
         changePct: change !== null && prev && prev.value !== 0 && m.changeMode === 'percent' ? (change / prev.value) * 100 : null,
         changeMode: m.changeMode,
+        yoyChangePct,
         points: points(rows, 70),
       },
     ];
@@ -410,8 +427,28 @@ pulseRoute.get('/home', async (c) => {
     settle('/news?limit=60'),
   ]);
 
-  const states = await c.env.DB.prepare('SELECT source_key, last_success_at FROM pulse_feed_state').all<{ source_key: string; last_success_at: string | null }>();
-  const latest = await c.env.DB.prepare('SELECT MAX(fetched_at) AS t FROM trade_policy_actions').first<{ t: string | null }>();
+  // Same degrade-don't-crash rule as the panels above: freshness timestamps
+  // are a nice-to-have (a "how stale is this" caption), not core data, so a
+  // D1 hiccup here (an outage, a quota day) must not 500 the whole page when
+  // every panel above already came back fine.
+  const states = await c.env.DB.prepare('SELECT source_key, last_success_at FROM pulse_feed_state')
+    .all<{ source_key: string; last_success_at: string | null }>()
+    .catch(() => ({ results: [] as { source_key: string; last_success_at: string | null }[] }));
+  // "Freshness" here means the same thing for every source: when did the
+  // Worker last successfully check for new data, not when the newest row
+  // happened to be published. The other four sources already get this from
+  // pulse_feed_state (refreshIfStale's lazy-refresh tracker); the Federal
+  // Register sync runs on its own cron + on-demand path instead (see
+  // scheduled.ts), so its equivalent is the latest successful row in
+  // data_refresh_log. Using MAX(fetched_at) from trade_policy_actions here
+  // used to conflate "checked today, found nothing new" with "haven't
+  // checked in days" -- a real source of the exact stale-looking timestamp
+  // this was rewritten to fix.
+  const policyChecked = await c.env.DB.prepare(
+    `SELECT MAX(finished_at) AS t FROM data_refresh_log WHERE source = 'pulse' AND status = 'success'`
+  )
+    .first<{ t: string | null }>()
+    .catch(() => null);
   const at = (k: string) => states.results.find((r) => r.source_key === k)?.last_success_at ?? null;
 
   c.header('Cache-Control', 'public, max-age=60');
@@ -422,7 +459,13 @@ pulseRoute.get('/home', async (c) => {
     recent,
     markets,
     news,
-    status: { policy: latest?.t ?? null, news: at('news'), quotes: c.env.MARKET_QUOTES === 'off' ? null : at('quotes'), fx: at('fx') },
+    status: {
+      policy: policyChecked?.t ?? null,
+      news: at('news'),
+      quotes: c.env.MARKET_QUOTES === 'off' ? null : at('quotes'),
+      fx: at('fx'),
+      macro: at('macro'),
+    },
   });
 });
 

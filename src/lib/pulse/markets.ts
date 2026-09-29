@@ -40,7 +40,7 @@ export const FX_META: SeriesMeta[] = FX_QUOTES.map((q) => ({
 // for a level (an index, a price), or an absolute difference for a rate or
 // gauge where "percent of a percent" would mislead. `group` only decides
 // which panel a tile is shown in.
-export type MarketGroup = 'U.S. stocks' | 'World stocks' | 'Trade bellwethers' | 'Commodities' | 'Rates & dollar';
+export type MarketGroup = 'U.S. stocks' | 'World stocks' | 'Trade bellwethers' | 'Commodities' | 'Rates & dollar' | 'Macro';
 export interface MarketMeta extends SeriesMeta {
   changeMode: 'percent' | 'absolute';
   group: MarketGroup;
@@ -98,7 +98,7 @@ function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 }
 
-async function writeSeries(env: Env, meta: SeriesMeta[], rows: { id: string; date: string; value: number }[]): Promise<void> {
+export async function writeSeries(env: Env, meta: SeriesMeta[], rows: { id: string; date: string; value: number }[]): Promise<void> {
   const now = new Date().toISOString();
   const valueRows = rows.map((r) => `(${sqlString(r.id)}, ${sqlString(r.date)}, ${r.value})`);
   const metaRows = meta.map(

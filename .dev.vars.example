@@ -1,4 +1,9 @@
 # Copy this file to .dev.vars (gitignored) and fill in real values for local `wrangler dev`.
-# In production, set this as a Worker secret instead: wrangler secret put ANTHROPIC_API_KEY
+# In production, set these as Worker secrets instead: wrangler secret put <NAME>
 
 ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional. Raises the BLS public API's rate limit from 25 to 500 requests/day
+# (free instant signup, no approval wait: https://www.bls.gov/developers/).
+# Code falls back to keyless access if this is unset -- see src/lib/pulse/macro.ts.
+BLS_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

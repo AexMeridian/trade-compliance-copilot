@@ -62,8 +62,16 @@ export interface FederalRegisterDocument {
 
 interface DocumentsResponse {
   count: number;
-  total_pages: number;
-  results: FederalRegisterDocument[];
+  // Verified live: when count is 0 (routine for a narrow incremental window
+  // -- most of the 13 search terms have no new documents on a given day),
+  // the API omits results and total_pages from the response entirely rather
+  // than returning an empty array/1 -- it does not just make them empty. A
+  // term hitting this used to throw ("body.results is not iterable") and
+  // silently break the whole daily sync from that point on, which is why
+  // this fetch guards both fields as optional instead of assuming they're
+  // always present.
+  total_pages?: number;
+  results?: FederalRegisterDocument[];
 }
 
 // Sized against real, verified per-term volume across the full 7-agency
@@ -108,10 +116,11 @@ export async function fetchDocumentsForTerm(term: string, sinceDate: string): Pr
     });
     if (!res.ok) throw new Error(`Federal Register fetch failed for term "${term}": HTTP ${res.status}`);
     const body = (await res.json()) as DocumentsResponse;
-    docs.push(...body.results);
+    docs.push(...(body.results ?? []));
 
-    if (page >= body.total_pages) break;
-    if (page === MAX_PAGES_PER_TERM && body.total_pages > MAX_PAGES_PER_TERM) truncated = true;
+    const totalPages = body.total_pages ?? 1; // absent means count was 0, i.e. one (empty) page
+    if (page >= totalPages) break;
+    if (page === MAX_PAGES_PER_TERM && totalPages > MAX_PAGES_PER_TERM) truncated = true;
   }
 
   return { docs, truncated };

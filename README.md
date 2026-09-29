@@ -7,8 +7,12 @@ determination — the way a trade compliance analyst would, and produces one
 coherent compliance report. A separate live dashboard, **Trade Policy
 Pulse** (`/pulse`), turns the same real-data-only philosophy into a
 continuously-updated feed of actual U.S. trade-policy actions rather than a
-static essay — see [Refreshing the data](#refreshing-the-data). Built as a
-resume piece for an International Business student heading toward trade law.
+static essay — see [Refreshing the data](#refreshing-the-data). **Influence**
+(`/influence`) reframes that same real data (plus one new static reference
+file, `frontend/src/lib/pulseBlocs.ts`) as U.S. economic pressure and reach
+abroad — no new data source of its own except alliance membership, no LLM,
+nothing fabricated. Built as a resume piece for an International Business
+student heading toward trade law.
 
 **Not legal advice.** Every report ends with that disclaimer, and it's meant
 literally — this is a demonstration of how an LLM can be *grounded* in real
@@ -119,6 +123,16 @@ For a real deployment, use a Worker secret instead of a file:
 npx wrangler secret put ANTHROPIC_API_KEY
 ```
 
+Optional: `BLS_API_KEY` (free instant signup, no approval wait, at
+[bls.gov/developers](https://www.bls.gov/developers/)) raises Pulse's
+Bureau of Labor Statistics macro data (see below) from 25 to 500 requests a
+day. The app works without it — Cloudflare Workers share a pool of egress
+IPs, so the unregistered tier can get rate-limited by *other* tenants'
+traffic before this app has made a single call of its own, which is exactly
+what happened during development — but a key removes that risk entirely.
+Same pattern as above: `.dev.vars` locally, `wrangler secret put BLS_API_KEY`
+in production.
+
 ### 5. Run it
 
 ```bash
@@ -174,11 +188,12 @@ scripts/                 Bulk data loaders (HTS, Schedule B, OFAC SDN, CSL) +
 src/
   routes/                One Hono route file per module + cases.ts (create/report/samples) + pulse.ts
   lib/                    D1 query helpers, fuzzy matcher, duty-stack math, Anthropic wrapper
-  lib/pulse/              Federal Register client, keyword tagging, incremental sync (see "Refreshing the data")
+  lib/pulse/              Federal Register client, keyword tagging, incremental sync (see "Refreshing the data"),
+                          markets.ts (Yahoo/Frankfurter) + macro.ts (BLS)
   lib/refresh/            Cron-triggered bulk reference-table refresh jobs (HTS, SDN, CSL, ...)
   prompts/                System prompts + tool schemas, one file per module
   types/case.ts           The shared CaseFile type every module reads/writes
-frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse)
+frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse, Influence)
 tests/                    golden-cases.json + the accuracy-test runner
 ```
 
@@ -268,6 +283,17 @@ worse for a compliance tool than disclosing them. All of the following are
   "9.1¢/kg") or that carry the USMCA "S+" differential-by-country indicator
   are flagged rather than summed into a false total — `landed_cost_estimate_pct`
   is `null` in that case, and the report says exactly which line blocked it.
+- **D1's free-tier daily row-read quota is shared across the whole app**,
+  and every Pulse/Influence panel is a D1 read. Hit once during development
+  (heavy repeated testing in one session, not normal traffic) and confirmed
+  live: every `/api/pulse/*` route 500'd, including the composite `/home`
+  call both pages load from. Root cause was two direct D1 calls in `/home`
+  that bypassed the per-panel degrade pattern the rest of the route already
+  used (`src/routes/pulse.ts`) — fixed so a D1 outage now returns real data
+  where it still can and an honest "not available right now" where it
+  can't, instead of a blank page. The quota itself resets at midnight UTC;
+  there is no code fix for the underlying cap, only Workers Paid (see
+  "Before you launch" below).
 
 ## Refreshing the data
 
@@ -358,9 +384,10 @@ Beyond the Federal Register feed, Pulse shows non-tariff context. None of it is 
 
 - **Currencies**: Frankfurter (ECB daily reference rates), no key. One fixing per business day, not a live quote.
 - **Stocks, commodities and rates**: Yahoo Finance's public chart data (24 series: U.S. and world stock indices, trade-bellwether shares such as FedEx, UPS, Caterpillar and Boeing, oil/gas/gold/copper futures, the 10-year Treasury yield and the dollar index), roughly 15 minutes delayed and refreshed on request every 15 minutes. This is an unofficial, undocumented endpoint (no key, no SLA) intended for personal/non-commercial use, so treat it as best-effort: if it stops answering, the refresh note records why and the rest of Pulse keeps working. FRED was tried first and dropped: its CSV endpoint answers Cloudflare Workers with HTTP 520.
-- **World news**: RSS from BBC, The Guardian, NPR, the ECB and the Federal Reserve (the WTO feed works locally but returns HTTP 403 to Cloudflare Workers, so it is not used). General-news feeds are kept only when a headline matches the trade/market/election rules in `src/lib/pulse/newsTag.ts` (typically about a fifth of items); the refresh log records kept vs. considered counts. Headline, link, a short summary and, where the feed supplies one, the publisher's own lead-image URL (BBC and Guardian only; the image is loaded by the visitor's browser straight from the publisher's CDN and is never copied or stored; only those two hosts are accepted). **Election coverage is headline-derived; there is no election calendar.**
-- **Freshness**: the Workers Free plan's five cron triggers are all in use, so these sources refresh on request when their cache is stale (news and currency rates 30 min, stock quotes 15 min), with a daily cron backstop.
-- **Terms**: BBC, Guardian and NPR RSS feeds (and their images) are provided for personal, non-commercial use. That is fine for a portfolio project; a commercial deployment would need licences.
+- **World news**: RSS from 8 outlets -- BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Federal Reserve (USTR, the WTO, the IMF, Politico, AP and a Dow Jones/WSJ mirror were all tried and rejected: mixed/unsorted dates, HTTP 403 from Cloudflare Workers' egress IPs, a Cloudflare bot challenge instead of XML, or in the WSJ mirror's case, live-looking RSS where every item was frozen on a January 2025 date). General-news feeds are kept only when a headline matches the trade/market/election rules in `src/lib/pulse/newsTag.ts` (typically about a fifth of items); the refresh log records kept vs. considered counts. Headline, link, a short summary and, where the feed supplies one, the publisher's own lead-image URL (BBC and Guardian only; the image is loaded by the visitor's browser straight from the publisher's CDN and is never copied or stored; only those two hosts are accepted -- the other 6 feeds never surface a photo). **Election coverage is headline-derived; there is no election calendar.**
+- **U.S. macro data**: the Bureau of Labor Statistics' public API (`src/lib/pulse/macro.ts`) — CPI, unemployment, nonfarm payrolls, producer prices, and import/export price indexes, with month-over-month and year-over-year change. Free and keyless (see the optional `BLS_API_KEY` note above), published monthly, stored in the same `market_series` table as the Yahoo/Frankfurter data. Import/export prices are also surfaced on the Influence page as the closest real, published read on whether tariffs are showing up in prices.
+- **Freshness**: the Workers Free plan's five cron triggers are all in use, so these sources refresh on request when their cache is stale (news and currency rates 30 min, stock quotes 15 min, macro 6 hours), with a daily cron backstop.
+- **Terms**: the news RSS feeds (and their images) are provided for personal, non-commercial use. That is fine for a portfolio project; a commercial deployment would need licences. BLS data is U.S. government work product (public domain, no licence needed, no restriction on commercial use).
 - **Friendly to newcomers**: a one-time welcome card asks what describes the visitor and applies a matching preset; a Guide tab explains the page, the colors, the terms and where each number comes from; a small "?" on each panel opens a plain-language explanation; and every U.S. action carries a one-sentence plain-English line (`frontend/src/lib/pulsePlain.ts`). That sentence is a fixed template filled from the document's type, agency, topic tag, dates and countries. No model writes it, and it never describes a document's contents beyond those fields.
 - **Personal feed**: visitors can pick which U.S. policy topics, news topics, countries and market groups they follow (or start from a preset such as Importer, Investor or Compliance officer). The choice is stored only in the visitor's own browser (`localStorage`, key `pulse:prefs:v1`); nothing is sent to or kept on the server, there are no accounts, and clearing site data resets it. Nothing selected in a list means everything, so the default feed is unchanged. Logic lives in `frontend/src/lib/pulsePrefs.ts`; filtering is client-side over the data the page already loads.
 - **Photos**: the only photos are the publishers' own lead images on news items, loaded from their CDNs (BBC, Guardian) and switched off with `NEWS_IMAGES`. There are no stock photos.
@@ -371,8 +398,8 @@ Things only the site's owner can decide or set. Everything else in this list is 
 
 1. **Custom domain.** Attach one under Workers, Settings, Domains & Routes, then replace `trade-compliance-copilot.ceo-ae4.workers.dev` in `frontend/index.html` (canonical, `og:url`, `og:image`, `twitter:image`), `frontend/public/sitemap.xml` and `frontend/public/robots.txt`.
 2. **Contact address.** Set `contactEmail` in `frontend/src/lib/site.ts`. While it is empty the About and Privacy pages and the footer simply omit it; nothing is invented.
-3. **Workers plan.** The Free plan allows 100,000 Worker requests a day and 5 cron triggers (all in use). A page view now costs about two API calls (one `/api/pulse/home` plus the filtered feed) and static files are free, so Free is fine for a soft launch, but a traffic spike or link on a big site could exhaust it. Workers Paid (about $5 a month) removes that risk and allows more cron triggers.
-4. **Third-party terms if the site is or becomes commercial.** Yahoo Finance's chart data is an unofficial endpoint intended for personal use, and the BBC, Guardian and NPR feeds and photos are provided for non-commercial use. Two switches in `wrangler.jsonc` turn these off without code changes: `MARKET_QUOTES` (`"off"` hides the stock/commodity tiles; ECB currencies stay) and `NEWS_IMAGES` (`"off"` hides publisher photos). For a commercial product, license market data from a provider and news from the publishers or an aggregator.
+3. **Workers plan.** The Free plan allows 100,000 Worker requests a day and 5 cron triggers (all in use), and D1's free tier caps daily row reads account-wide — see "Known limitations" above for what happens if that's hit (degrades, doesn't crash) and how it was found. A page view now costs about two API calls (one `/api/pulse/home` plus the filtered feed) and static files are free, so Free is fine for a soft launch, but a traffic spike or link on a big site could exhaust either quota. Workers Paid (about $5 a month) removes that risk and allows more cron triggers.
+4. **Third-party terms if the site is or becomes commercial.** Yahoo Finance's chart data is an unofficial endpoint intended for personal use, and the news feeds and photos are provided for non-commercial use. Two switches in `wrangler.jsonc` turn these off without code changes: `MARKET_QUOTES` (`"off"` hides the stock/commodity tiles; ECB currencies stay) and `NEWS_IMAGES` (`"off"` hides publisher photos). For a commercial product, license market data from a provider and news from the publishers or an aggregator.
 5. **Legal review.** The About and Privacy pages describe what the site does today (no accounts, no cookies, no analytics, local-storage preferences, Cloudflare logs, calculator data stored and sent to Anthropic). They are not a substitute for advice from a lawyer, especially if you serve users in the EU, U.K. or California. Note that calculator cases have no delete or expiry today; consider adding one before promoting the calculator.
 6. **Analytics (optional).** None is installed. If you enable Cloudflare Web Analytics, the Content-Security-Policy in `frontend/public/_headers` already allows its beacon; update the Privacy page to say so.
 7. **Monitoring.** Workers observability is on. Point an uptime monitor at `/api/health`, and check `data_refresh_log` and `pulse_feed_state` (D1) if a source looks stale.

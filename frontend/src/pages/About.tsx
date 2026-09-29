@@ -22,7 +22,7 @@ const SOURCES: { name: string; used: string; terms: string }[] = [
     terms: "The ECB's daily reference rates, published once each business day.",
   },
   {
-    name: 'BBC News, The Guardian, NPR, the European Central Bank and the U.S. Federal Reserve (RSS feeds)',
+    name: 'BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve (RSS feeds)',
     used: 'News headlines. We show the headline, a short summary, a link to the original story and, for BBC and Guardian items, their own lead photo.',
     terms: 'Each publisher owns its content. We link to the original and do not copy article text. Photos load directly from the publisher.',
   },

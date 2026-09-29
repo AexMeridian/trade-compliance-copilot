@@ -61,7 +61,7 @@ export interface ActiveMeasure {
 export interface MarketTile {
   id: string;
   label: string;
-  group: 'U.S. stocks' | 'World stocks' | 'Trade bellwethers' | 'Commodities' | 'Rates & dollar';
+  group: 'U.S. stocks' | 'World stocks' | 'Trade bellwethers' | 'Commodities' | 'Rates & dollar' | 'Macro';
   unit: string;
   source: string;
   sourceUrl: string;
@@ -70,7 +70,8 @@ export interface MarketTile {
   change: number | null;
   changePct: number | null; // only for level-type series (index, price); null for rates/balances
   changeMode: 'percent' | 'absolute';
-  points: [string, number][]; // [ISO date, close], oldest first, ~3 months of daily closes
+  yoyChangePct: number | null; // Macro group only: year-over-year, the standard way these are reported elsewhere
+  points: [string, number][]; // [ISO date, close] -- ~3 months of daily closes for markets, up to 3 years of monthly points for Macro
 }
 
 export interface CurrencyRow {
@@ -109,7 +110,7 @@ export interface PulseHome {
   markets: PulseMarkets | null;
   news: PulseNewsResponse | null;
   // When each source last refreshed successfully (ISO), or null if never / switched off.
-  status: { policy: string | null; news: string | null; quotes: string | null; fx: string | null };
+  status: { policy: string | null; news: string | null; quotes: string | null; fx: string | null; macro: string | null };
 }
 
 export interface PulseNewsResponse {

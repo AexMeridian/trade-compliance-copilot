@@ -6,4 +6,5 @@ export interface Env {
   PULSE_RATE_LIMITER: RateLimit;
   NEWS_IMAGES?: string; // "off" hides publisher lead images
   MARKET_QUOTES?: string; // "off" disables the Yahoo Finance quote tiles
+  BLS_API_KEY?: string; // optional free key (bls.gov/developers) for a higher BLS rate limit; unset works fine at the lower keyless tier
 }

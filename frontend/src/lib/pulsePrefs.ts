@@ -11,7 +11,7 @@ import { parseCountries } from './pulseCountries';
 
 export const POLICY_TOPICS = ['Tariff', 'Sanctions', 'Export Control', 'Trade Agreement', 'Other'] as const;
 export const NEWS_TOPICS = ['Trade & Supply Chain', 'Markets & Currency', 'Elections & Politics', 'Official'] as const;
-export const MARKET_TOPICS = ['U.S. stocks', 'World stocks', 'Trade bellwethers', 'Commodities', 'Rates & dollar', 'Currencies'] as const;
+export const MARKET_TOPICS = ['Macro', 'U.S. stocks', 'World stocks', 'Trade bellwethers', 'Commodities', 'Rates & dollar', 'Currencies'] as const;
 
 export interface PulsePrefs {
   tags: string[]; // U.S. policy topics

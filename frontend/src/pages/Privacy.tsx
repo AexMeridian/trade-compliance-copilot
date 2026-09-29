@@ -26,7 +26,7 @@ export function Privacy() {
 
       <H>What stays on your device</H>
       <p className="mt-3">
-        The site remembers two things using your browser's local storage: the topics, countries and markets you chose under "Customize feed", and whether you
+        The site remembers two things using your browser's local storage: the topics, countries and markets you chose under "Filter", and whether you
         have dismissed the welcome card. This never leaves your device. Clearing your browser's site data, or using "Reset to default", removes it.
       </p>
 

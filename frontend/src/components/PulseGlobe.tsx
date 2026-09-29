@@ -3,15 +3,26 @@ import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoOrthographic, g
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 
-// A wireframe, dotted globe you can turn and press. Every land dot is drawn in
-// a soft grey; the countries the feed can name are coloured by how many U.S.
-// actions named them in the last 30 days (the same count as the "Activity by
-// country" panel), and pressing one filters the policy feed to it. Country
-// outlines are Natural Earth 1:110m public-domain data from the `world-atlas`
-// package, bundled with the app (nothing is fetched from another site) and
-// loaded only when this component first appears.
+// A wireframe, dotted globe you can turn and press. Every country the feed
+// can name is coloured by how many U.S. actions named it in the last 30 days
+// (the same count as the "Activity by country" panel); every OTHER country in
+// the world is still drawn, outlined and hoverable -- with its real name
+// (read straight from the bundled map data, not this file's own curated
+// list) and an honest "not tracked individually" note -- rather than left as
+// dead, uncoloured land. Pressing a country only filters the feed when it is
+// one this app actually tags (see lib/pulse/country.ts); pressing anywhere
+// else is a no-op, and the cursor reflects that. The United States itself is
+// shaded its own "home" colour rather than counted, but just as hoverable and
+// pressable, and pressing it opens a card about the feed as a whole instead
+// of a per-country count. Country outlines are Natural Earth 1:110m
+// public-domain data from the `world-atlas` package, bundled with the app
+// (nothing is fetched from another site) and loaded only when this component
+// first appears.
 
-// ISO 3166-1 numeric id (as used by world-atlas) -> the two-letter code the feed uses.
+// ISO 3166-1 numeric id (as used by world-atlas) -> the code the feed uses.
+// 'US' is a code no action or headline is ever tagged with (see
+// lib/pulseCountries.ts) -- it exists only so the globe can single out the
+// reporting country itself, the same way it does any other place.
 const ID_TO_CODE: Record<number, string> = {
   156: 'CN',
   704: 'VN',
@@ -45,17 +56,31 @@ const ID_TO_CODE: Record<number, string> = {
   376: 'IL',
   682: 'SA',
   784: 'AE',
+  840: 'US',
 };
-// The feed tags "the European Union" as one place; the other member states share its count.
-const EU_MEMBERS = new Set([40, 56, 100, 191, 196, 203, 208, 233, 246, 300, 348, 372, 428, 440, 442, 528, 616, 620, 642, 703, 705, 724, 752]);
-const US_ID = 840;
+const CODE_TO_ID = new Map<string, number>(Object.entries(ID_TO_CODE).map(([id, code]) => [code, Number(id)]));
+
+// The feed's 'EU' code means a document said "the European Union" itself, not
+// any one member state -- distinct from a document naming, say, Germany by
+// name (which already has its own code above). There's no single landmass to
+// colour for a supranational bloc, so these ids are used only for two purely
+// visual things when 'EU' is the active/hovered code: aiming the camera, and
+// tracing the bloc's outline. They never recolour a member state's own dots --
+// each of those is drawn with its own (real, usually untracked) color, same
+// as any other country not in ID_TO_CODE, so the bloc never reads as one flat
+// block on the map.
+const EU_FOOTPRINT_IDS = [40, 56, 100, 191, 196, 203, 208, 233, 246, 300, 348, 372, 428, 440, 442, 528, 616, 620, 642, 703, 705, 724, 752];
 const ANTARCTICA_ID = 10;
 
-const codeFor = (id: number): string | null => ID_TO_CODE[id] ?? (EU_MEMBERS.has(id) ? 'EU' : null);
+const codeFor = (id: number): string | null => ID_TO_CODE[id] ?? null;
+const idsForCode = (code: string): number[] => {
+  if (code === 'EU') return EU_FOOTPRINT_IDS;
+  const id = CODE_TO_ID.get(code);
+  return id === undefined ? [] : [id];
+};
 
 const GLOBE_RAMP = ['#0e7490', '#06b6d4', '#67e8f9', '#ecfeff']; // 1..4+ actions, dim to bright
-const QUIET = '#8a8a94'; // a country the feed can name, with no actions this month
-const OTHER = '#4b4b55'; // land the feed never names
+const QUIET = '#8a8a94'; // any real country: no actions this month, tracked or not
 const HOME = '#a78bfa'; // the United States
 const SELECTED = '#fb923c';
 const HOVERED = '#ffffff';
@@ -122,21 +147,37 @@ export function PulseGlobe({
   breakdown,
   activeCountry,
   onSelect,
+  groupColorFor,
+  describe,
+  legend,
+  ariaLabel,
 }: {
   breakdown: { country: string; count: number }[];
   activeCountry: string | null;
   onSelect: (code: string) => void;
+  // Optional: color countries by some other grouping (e.g. alliance
+  // membership on the Influence page) instead of this month's action count.
+  // Returning null falls back to the neutral "no group" shade. Only ever
+  // called for a code this app tracks (see codeFor) -- never for a country
+  // drawn only from the map's own name.
+  groupColorFor?: (code: string) => string | null;
+  // Optional: replace the count-based hover/status sentence with a custom
+  // one. Same rule as groupColorFor -- tracked codes only.
+  describe?: (code: string) => string;
+  // Optional: replace the "Fewer ... actions" count key with a different legend.
+  legend?: { swatch: string; label: string }[];
+  ariaLabel?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [world, setWorld] = useState<World | null>(null);
   const [size, setSize] = useState(440);
-  const [hover, setHover] = useState<string | null>(null);
+  const [hoverId, setHoverId] = useState<number | null>(null);
 
   const rotation = useRef<[number, number]>([-95, -22]);
   const pointerRef = useRef<{ x: number; y: number } | null>(null); // where the cursor is, while it is over the globe
   const dragRef = useRef<{ x: number; y: number; r: [number, number]; moved: boolean } | null>(null);
-  const hoverRef = useRef<string | null>(null);
+  const hoverIdRef = useRef<number | null>(null);
 
   const counts = useMemo(() => new Map(breakdown.map((b) => [b.country, b.count])), [breakdown]);
   const max = Math.max(...breakdown.map((b) => b.count), 1);
@@ -159,21 +200,28 @@ export function PulseGlobe({
 
   const projection = useMemo(() => geoOrthographic().clipAngle(90), []);
   const graticule = useMemo(() => geoGraticule10(), []);
-  // Only countries the feed can name (or the U.S.) can be hovered or pressed.
-  const hittable = useMemo(() => (world ? world.countries.filter((c) => codeFor(c.id) !== null) : []), [world]);
+  // Every country is hoverable (so its real name always shows), except
+  // Antarctica -- excluded from the dot grid above for the same reason, and
+  // odd to single out with a "not tracked" message since it is never a
+  // plausible trade-action target.
+  const hittable = useMemo(() => (world ? world.countries.filter((c) => c.id !== ANTARCTICA_ID) : []), [world]);
 
-  // Dot colour for each country, from this month's counts.
+  // Dot colour for each country, from this month's counts. A country this
+  // feed doesn't track gets the same "quiet" shade as a tracked one with zero
+  // actions -- both are honestly "no U.S. actions on record", just for a
+  // different reason -- rather than a separate, darker "unknown" bucket.
   const colorFor = useCallback(
     (id: number): string => {
-      if (id === US_ID) return HOME;
       const code = codeFor(id);
-      if (!code) return OTHER;
-      if (code === activeCountry) return SELECTED;
-      if (code === hoverRef.current) return HOVERED;
+      if (code === 'US') return HOME;
+      if (code && code === activeCountry) return SELECTED;
+      if (id === hoverIdRef.current) return HOVERED;
+      if (!code) return QUIET;
+      if (groupColorFor) return groupColorFor(code) ?? QUIET;
       const n = counts.get(code) ?? 0;
       return n > 0 ? GLOBE_RAMP[stepFor(n, max) - 1] : QUIET;
     },
-    [counts, max, activeCountry],
+    [counts, max, activeCountry, groupColorFor]
   );
 
   const draw = useCallback(() => {
@@ -218,19 +266,23 @@ export function PulseGlobe({
     ctx.lineWidth = 0.6;
     ctx.stroke();
 
-    // A gentle wash over the country under the cursor, and a warmer one on the chosen country.
-    const wash = (code: string | null, fill: string, stroke: string, width: number) => {
-      if (!code) return;
+    // A gentle wash over the country (or, for 'EU', the whole bloc's
+    // footprint) under the cursor, and a warmer one on the chosen one.
+    const washIds = (ids: number[], fill: string, stroke: string, width: number) => {
+      if (ids.length === 0) return;
       ctx.beginPath();
-      for (const c of hittable) if (codeFor(c.id) === code) path(c);
+      for (const c of hittable) if (ids.includes(c.id)) path(c);
       ctx.fillStyle = fill;
       ctx.fill();
       ctx.strokeStyle = stroke;
       ctx.lineWidth = width;
       ctx.stroke();
     };
-    if (hoverRef.current !== activeCountry) wash(hoverRef.current, 'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.9)', 1.4);
-    wash(activeCountry, 'rgba(251,146,60,0.2)', SELECTED, 1.8);
+    const activeIds = activeCountry ? idsForCode(activeCountry) : [];
+    if (hoverIdRef.current !== null && !activeIds.includes(hoverIdRef.current)) {
+      washIds([hoverIdRef.current], 'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.9)', 1.4);
+    }
+    washIds(activeIds, 'rgba(251,146,60,0.2)', SELECTED, 1.8);
 
     // Halftone dots, one pass per colour. A dot is on the near side when it
     // points the same way as the centre of the view.
@@ -277,10 +329,10 @@ export function PulseGlobe({
         rotation.current = [rotation.current[0] + (now - last) * speed, rotation.current[1]];
         const p = pointerRef.current;
         if (p) {
-          const code = hitTest(p.x, p.y);
-          if (code !== hoverRef.current) {
-            hoverRef.current = code;
-            setHover(code);
+          const id = hitTestId(p.x, p.y);
+          if (id !== hoverIdRef.current) {
+            hoverIdRef.current = id;
+            setHoverId(id);
           }
         }
         draw();
@@ -290,20 +342,17 @@ export function PulseGlobe({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // hitTest is stable enough for this loop; the loop restarts when the world or selection changes.
+    // hitTestId is stable enough for this loop; the loop restarts when the world or selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world, activeCountry, draw]);
 
   // Bring a chosen country to the front (from the list, or after pressing it).
   useEffect(() => {
     if (!world || !activeCountry) return;
-    // "The European Union" has no outline of its own, so bring Germany forward for it.
-    const id =
-      activeCountry === 'EU'
-        ? 276
-        : Object.keys(ID_TO_CODE)
-            .map(Number)
-            .find((k) => ID_TO_CODE[k] === activeCountry);
+    // "The European Union" has no outline of its own, so bring Germany
+    // forward as a representative centre -- a camera choice, not a claim
+    // that Germany was individually named.
+    const id = activeCountry === 'EU' ? 276 : CODE_TO_ID.get(activeCountry);
     const target = world.countries.find((c) => c.id === id);
     if (!target) return;
     const [lng, lat] = geoCentroid(target);
@@ -325,21 +374,33 @@ export function PulseGlobe({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCountry, world]);
 
-  const hitTest = (clientX: number, clientY: number): string | null => {
+  const hitTestId = (clientX: number, clientY: number): number | null => {
     const cv = canvas.current;
     if (!cv) return null;
     const rect = cv.getBoundingClientRect();
     const at = projection.invert?.([((clientX - rect.left) / rect.width) * size, ((clientY - rect.top) / rect.height) * size]);
     if (!at) return null;
-    for (const c of hittable) if (geoContains(c, at)) return codeFor(c.id);
+    for (const c of hittable) if (geoContains(c, at)) return c.id;
     return null;
   };
 
-  const say = (code: string) => {
+  const sayForCode = (code: string): string => {
+    if (describe) return describe(code);
+    if (code === 'US') return 'United States: the country these trade actions come from. Press it for the feed as a whole.';
     const n = counts.get(code) ?? 0;
     return `${COUNTRY_LABELS[code] ?? code}: ${n === 0 ? 'no U.S. actions' : `${n} U.S. ${n === 1 ? 'action' : 'actions'}`} in the last 30 days`;
   };
-  const shown = hover ?? activeCountry;
+  const sayForId = (id: number): string => {
+    const code = codeFor(id);
+    if (code) return sayForCode(code);
+    const name = world?.countries.find((c) => c.id === id)?.properties.name ?? 'This place';
+    return `${name}: not tracked individually in this feed`;
+  };
+  const shownMessage = hoverId !== null ? sayForId(hoverId) : activeCountry ? sayForCode(activeCountry) : null;
+  // A hovered country is only pressable when it's one the feed actually
+  // tags -- everywhere else, hovering still shows the name, but the cursor
+  // stays a plain grab/drag hand rather than implying a click will do something.
+  const hoverIsPressable = hoverId !== null && codeFor(hoverId) !== null;
 
   return (
     <div className="min-w-0">
@@ -347,14 +408,14 @@ export function PulseGlobe({
         <canvas
           ref={canvas}
           role="img"
-          aria-label="Globe of countries named in recent U.S. trade actions. Use the country list below to choose one."
-          style={{ width: size, height: size, cursor: hover ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
+          aria-label={ariaLabel ?? 'Globe of every country, coloured by how many U.S. actions named it in the last 30 days. Use the country list below to choose one.'}
+          style={{ width: size, height: size, cursor: hoverIsPressable ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
           className="mx-auto block select-none"
           onPointerLeave={() => {
             pointerRef.current = null;
             dragRef.current = null;
-            hoverRef.current = null;
-            setHover(null);
+            hoverIdRef.current = null;
+            setHoverId(null);
             draw();
           }}
           onPointerDown={(e) => {
@@ -372,10 +433,10 @@ export function PulseGlobe({
               return;
             }
             pointerRef.current = { x: e.clientX, y: e.clientY };
-            const code = hitTest(e.clientX, e.clientY);
-            if (code !== hoverRef.current) {
-              hoverRef.current = code;
-              setHover(code);
+            const id = hitTestId(e.clientX, e.clientY);
+            if (id !== hoverIdRef.current) {
+              hoverIdRef.current = id;
+              setHoverId(id);
               draw(); // repaint the wash at once, even when the globe is standing still
             }
           }}
@@ -383,24 +444,36 @@ export function PulseGlobe({
             const d = dragRef.current;
             dragRef.current = null;
             if (d && !d.moved) {
-              const code = hitTest(e.clientX, e.clientY);
+              const id = hitTestId(e.clientX, e.clientY);
+              const code = id !== null ? codeFor(id) : null;
               if (code) onSelect(code);
             }
           }}
         />
       </div>
       <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-white">
-        {shown ? say(shown) : world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…'}
+        {shownMessage ?? (world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…')}
       </p>
-      <p className="mt-1 flex items-center justify-center gap-2 text-xs text-[#b4b4bc]" aria-hidden="true">
-        Fewer
-        <span className="flex gap-1">
-          {GLOBE_RAMP.map((c) => (
-            <span key={c} className="h-2.5 w-4 rounded-sm" style={{ background: c }} />
+      {legend ? (
+        <p className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#b4b4bc]" aria-hidden="true">
+          {legend.map((l) => (
+            <span key={l.label} className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.swatch }} />
+              {l.label}
+            </span>
           ))}
-        </span>
-        actions
-      </p>
+        </p>
+      ) : (
+        <p className="mt-1 flex items-center justify-center gap-2 text-xs text-[#b4b4bc]" aria-hidden="true">
+          Fewer
+          <span className="flex gap-1">
+            {GLOBE_RAMP.map((c) => (
+              <span key={c} className="h-2.5 w-4 rounded-sm" style={{ background: c }} />
+            ))}
+          </span>
+          actions
+        </p>
+      )}
     </div>
   );
 }

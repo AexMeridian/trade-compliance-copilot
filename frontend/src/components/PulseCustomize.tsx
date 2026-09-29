@@ -5,6 +5,7 @@ import { TAG_HINTS, NEWS_CATEGORY_HINTS } from '../lib/pulseGlossary';
 import { DEFAULT_PREFS, MARKET_TOPICS, NEWS_TOPICS, POLICY_TOPICS, PRESETS, isDefaultPrefs, prefsToQuery, samePrefs, type PulsePrefs } from '../lib/pulsePrefs';
 
 const MARKET_HINTS_SHORT: Record<string, string> = {
+  Macro: 'Inflation, unemployment, jobs and import/export prices',
   'U.S. stocks': 'S&P 500, Nasdaq, Dow and the VIX',
   'World stocks': 'Japan, Germany, the U.K., Hong Kong and China',
   'Trade bellwethers': 'FedEx, UPS, Caterpillar, Boeing and other trade-sensitive shares',
@@ -51,7 +52,7 @@ export function CustomizeButton({ open, onClick, custom }: { open: boolean; onCl
       aria-controls="pulse-customize"
       className={`btn shrink-0 self-end whitespace-nowrap sm:mb-2 sm:ml-auto sm:self-center ${custom ? 'border-accent bg-accent-soft text-accent hover:text-white' : ''}`}
     >
-      {custom ? 'My feed (custom)' : 'Customize feed'}
+      {custom ? 'My feed (filtered)' : 'Filter'}
     </button>
   );
 }
@@ -93,7 +94,7 @@ export function CustomizePanel({
     .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
 
   return (
-    <section id="pulse-customize" aria-label="Customize your feed" className="card mt-5">
+    <section id="pulse-customize" aria-label="Filter your feed" className="card mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-hairline px-4 py-3">
         <div>
           <h2 className="text-lg font-semibold text-ink">Choose what you follow</h2>

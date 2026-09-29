@@ -19,8 +19,12 @@ export interface NewsFeed {
 }
 
 // Checked and rejected: USTR's RSS (verified to mix items from 2009 through
-// 2026 unsorted) and the WTO's (works from a laptop but returns HTTP 403 to
-// Cloudflare Workers' egress IPs -- an IP-level block, not worth evading).
+// 2026 unsorted), the WTO's (works from a laptop but returns HTTP 403 to
+// Cloudflare Workers' egress IPs -- an IP-level block, not worth evading),
+// the IMF's and Politico's (also 403 from Workers), AP's (Cloudflare bot
+// challenge page instead of XML), and a Dow Jones/WSJ markets mirror
+// (resolves and parses fine but every item on it is dated January 2025 --
+// a dead, frozen feed, not a live one). Reuters discontinued public RSS.
 export const NEWS_FEEDS: NewsFeed[] = [
   { key: 'ecb', source: 'European Central Bank', url: 'https://www.ecb.europa.eu/rss/press.html', kind: 'official' },
   { key: 'fed', source: 'Federal Reserve', url: 'https://www.federalreserve.gov/feeds/press_all.xml', kind: 'filtered' },
@@ -30,6 +34,9 @@ export const NEWS_FEEDS: NewsFeed[] = [
   { key: 'guardian-business', source: 'The Guardian', url: 'https://www.theguardian.com/business/rss', kind: 'filtered' },
   { key: 'guardian-world', source: 'The Guardian', url: 'https://www.theguardian.com/world/rss', kind: 'filtered' },
   { key: 'npr-economy', source: 'NPR', url: 'https://feeds.npr.org/1017/rss.xml', kind: 'filtered' },
+  { key: 'aljazeera-world', source: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', kind: 'filtered' },
+  { key: 'dw-business', source: 'Deutsche Welle', url: 'https://rss.dw.com/xml/rss-en-bus', kind: 'filtered' },
+  { key: 'cnbc-business', source: 'CNBC', url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', kind: 'filtered' },
 ];
 
 const TRADE_RE =

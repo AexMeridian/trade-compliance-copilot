@@ -4,13 +4,14 @@ import { Landing } from './pages/Landing';
 import { CaseWizard } from './pages/CaseWizard';
 import { Report } from './pages/Report';
 import { Pulse } from './pages/Pulse';
+import { Influence } from './pages/Influence';
 import { About } from './pages/About';
 import { Privacy } from './pages/Privacy';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { SITE } from './lib/site';
 
-const KNOWN_PATHS = ['/', '/calculator', '/about', '/privacy'];
+const KNOWN_PATHS = ['/', '/calculator', '/influence', '/about', '/privacy'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -21,6 +22,7 @@ function usePageMeta(pathname: string, tab: string | null) {
       const t = PULSE_TABS.find((x) => x.id === tab);
       if (t && t.id !== 'overview') title = `${t.label} | ${SITE.name}`;
     } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
+    else if (pathname === '/influence') title = `American influence: pressure and reach | ${SITE.name}`;
     else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname.startsWith('/case/')) title = `Compliance case | ${SITE.name}`;
@@ -43,7 +45,7 @@ function usePageMeta(pathname: string, tab: string | null) {
   }, [pathname, tab]);
 }
 
-// On the black top bar: light text, and the current page is a solid yellow block.
+// On the black top bar: light text, and the current page is a solid white block.
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-white text-ink' : 'text-[#b4b4bc] hover:text-white'}`;
 
@@ -62,17 +64,28 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 bg-bar text-white">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
-          <Link to="/" className="truncate font-display text-[19px] font-extrabold tracking-tight text-white no-underline">
-            {SITE.name}
+      {/* border-b so the sticky nav reads as its own bar rather than bleeding
+          into the hero below -- both use bg-bar, so without a seam they were
+          one indistinguishable black area. */}
+      <header className="sticky top-0 z-10 border-b border-white/15 bg-bar text-white">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
+          {/* Below sm, the full wordmark doesn't fit next to all four nav
+              links without truncating mid-word -- the mark alone (it's
+              already drawn on the header's own background color) reads fine
+              at that size and never clips. */}
+          <Link to="/" className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-white no-underline" aria-label={SITE.name}>
+            <img src="/favicon.svg" alt="" aria-hidden="true" className="h-7 w-7 rounded sm:hidden" />
+            <span className="hidden sm:inline">{SITE.name}</span>
           </Link>
-          <nav aria-label="Main" className="flex shrink-0 items-center gap-1">
+          <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <NavLink to="/" end className={navClass}>
               Pulse
             </NavLink>
             <NavLink to="/calculator" className={navClass}>
               Calculator
+            </NavLink>
+            <NavLink to="/influence" className={navClass}>
+              Influence
             </NavLink>
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
@@ -85,6 +98,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
+          <Route path="/influence" element={<Influence />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
           <Route path="/about" element={<About />} />
@@ -94,7 +108,7 @@ export default function App() {
       </div>
 
       <footer className="mt-16 bg-bar text-[#b4b4bc]">
-        <div className="mx-auto max-w-5xl px-4 py-10 text-sm">
+        <div className="mx-auto max-w-7xl px-4 py-10 text-sm">
           <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
             <p className="max-w-xl text-[13px] leading-relaxed">
               For information only. This is not legal, customs, tax, financial or investment advice. Sources can be delayed, revised or incomplete, and market
@@ -102,6 +116,9 @@ export default function App() {
               attorney before relying on them.
             </p>
             <nav aria-label="Site" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
+              <Link to="/influence" className="text-white no-underline hover:underline">
+                American influence
+              </Link>
               <Link to="/about" className="text-white no-underline hover:underline">
                 About and sources
               </Link>

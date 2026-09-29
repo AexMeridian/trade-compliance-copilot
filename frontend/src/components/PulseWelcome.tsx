@@ -3,7 +3,7 @@ import { PRESETS, type Preset } from '../lib/pulsePrefs';
 // Shown once to a first-time visitor (until they pick, skip, or open the
 // guide). One question -- "what describes you?" -- because that is the
 // quickest way to turn a wall of trade data into a page about *their* trade
-// world; every choice can be changed later under "Customize feed".
+// world; every choice can be changed later under "Filter".
 const WELCOME_KEY = 'pulse:welcomed:v1';
 
 export function wasWelcomed(): boolean {
@@ -70,7 +70,7 @@ export function PulseWelcome({ onPick, onGuide, onSkip }: { onPick: (p: Preset) 
       </div>
 
       <p className="mt-3 text-xs text-ink-faint">
-        You can change this any time with <span className="text-ink-muted">Customize feed</span>. Want a walkthrough first?{' '}
+        You can change this any time with <span className="text-ink-muted">Filter</span>. Want a walkthrough first?{' '}
         <button type="button" onClick={onGuide} className="text-accent hover:underline">
           Read the short guide
         </button>
