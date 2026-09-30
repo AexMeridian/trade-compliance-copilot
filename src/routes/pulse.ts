@@ -3,10 +3,13 @@ import type { Env } from '../types/env.js';
 import { runPulseSync } from '../lib/pulse/sync.js';
 import { MARKET_META, FX_META, refreshQuotes, refreshFx } from '../lib/pulse/markets.js';
 import { MACRO_META, refreshMacro } from '../lib/pulse/macro.js';
+import { COFER_META, refreshCofer } from '../lib/pulse/cofer.js';
 import { refreshNews } from '../lib/pulse/news.js';
 import { refreshIfStale } from '../lib/pulse/refreshLazy.js';
 import { logRefresh } from '../lib/refresh/log.js';
 import type { PulseAction, TempoPoint } from '../lib/pulse/types.js';
+import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows } from '../lib/db.js';
+import { buildDutyStack } from '../lib/dutyStack.js';
 
 export const pulseRoute = new Hono<{ Bindings: Env }>();
 
@@ -32,9 +35,13 @@ pulseRoute.get('/feed', async (c) => {
 });
 
 pulseRoute.get('/tempo', async (c) => {
+  // Default (24) preserves every existing caller's behavior unchanged --
+  // /home calls this unparameterized. Clamped so a bad query string can't
+  // request an unbounded scan.
+  const months = Math.min(Math.max(Number(c.req.query('months') ?? 24) || 24, 6), 120);
   const since = (() => {
     const d = new Date();
-    d.setUTCMonth(d.getUTCMonth() - 24);
+    d.setUTCMonth(d.getUTCMonth() - months);
     return d.toISOString().slice(0, 10);
   })();
   const { results } = await c.env.DB.prepare(
@@ -60,6 +67,17 @@ pulseRoute.get('/summary', async (c) => {
      FROM trade_policy_actions
      WHERE publication_date >= date('now', '-60 days')`
   ).first<{ last_30d: number; prior_30d: number }>();
+
+  // A second, longer comparison window -- 90 vs. prior 90 days -- smooths
+  // over the noise of any single busy or quiet week that the 30-day figure
+  // above is more exposed to. Same shape, same "no baseline yet" handling.
+  const trend90 = await c.env.DB.prepare(
+    `SELECT
+       SUM(CASE WHEN publication_date >= date('now', '-90 days') THEN 1 ELSE 0 END) AS last_90d,
+       SUM(CASE WHEN publication_date < date('now', '-90 days') THEN 1 ELSE 0 END) AS prior_90d
+     FROM trade_policy_actions
+     WHERE publication_date >= date('now', '-180 days')`
+  ).first<{ last_90d: number; prior_90d: number }>();
 
   const leadingTag = await c.env.DB.prepare(
     `SELECT tag, COUNT(*) AS n FROM trade_policy_actions
@@ -165,10 +183,17 @@ pulseRoute.get('/summary', async (c) => {
   const prior30 = trend?.prior_30d ?? 0;
   const trendPct = prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : null;
 
+  const last90 = trend90?.last_90d ?? 0;
+  const prior90 = trend90?.prior_90d ?? 0;
+  const trendPct90 = prior90 > 0 ? Math.round(((last90 - prior90) / prior90) * 100) : null;
+
   return c.json({
     last30,
     prior30,
     trendPct,
+    last90,
+    prior90,
+    trendPct90,
     leadingTag: leadingTag?.tag ?? null,
     leadingTagCount: leadingTag?.n ?? 0,
     leadingTagShare: last30 > 0 && leadingTag ? Math.round((leadingTag.n / last30) * 100) : null,
@@ -231,10 +256,256 @@ pulseRoute.get('/active-measures', async (c) => {
   return c.json({ overlays: results });
 });
 
+// A small, disclosed sample of real HTS headings that already carry Section
+// 232/301/338 overlay coverage -- NOT the full ~31,000-line schedule. Picked
+// to span the programs that actually vary by country (metals, autos, plus one
+// plain consumer good to show what Section 301's forced-labor determination
+// alone looks like on something with no metals/auto exposure). Every code
+// below is a real, loaded hts_lines row, verified against the local database
+// before being hardcoded here.
+const REPRESENTATIVE_HTS: { htsno: string; label: string }[] = [
+  { htsno: '7208.10.30.00', label: 'Steel, flat-rolled (Chapter 72)' },
+  { htsno: '7601.10.30.00', label: 'Aluminum, unwrought (Chapter 76)' },
+  { htsno: '7403.11.00.00', label: 'Copper cathodes (Chapter 74)' },
+  { htsno: '8703.23.01', label: 'Passenger vehicles, 1,500-3,000cc (Chapter 87)' },
+  { htsno: '8708.10.30', label: 'Motor vehicle bumpers (Chapter 87)' },
+  { htsno: '6109.10.00', label: 'Cotton T-shirts (Chapter 61)' },
+];
+
+// ---------------------------------------------------------------------------
+// Everything real, sourced data this app has about one country, in one call:
+// full action history and tempo (not just a 30-day window -- the whole
+// dataset is small enough that "all of it" is the honest default for a
+// single country's slice), the tariff programs it faces, a bulk duty-stack
+// sample across REPRESENTATIVE_HTS (buildDutyStack already exists and is
+// already correct -- this just loops it, no new math), export-control chart
+// status, and a sanctioned-entity count. Each section is independent, same
+// philosophy as /home: one section's failure never blanks the others.
+// ---------------------------------------------------------------------------
+pulseRoute.get('/country/:code', async (c) => {
+  const code = c.req.param('code').toUpperCase();
+  // The frontend already resolves code -> full display name from its own
+  // label maps (pulseCountries.ts + pulseTariffCountries.ts) before it ever
+  // calls this endpoint, so it's passed through rather than duplicated here.
+  // Without it, the sanctions text-match below is skipped rather than
+  // matched against a bare 2-letter code, which would false-positive
+  // constantly against free-text OFAC/BIS address data (e.g. "IN" inside
+  // "Inc" or a street name) -- a wrong count is worse than a disclosed gap.
+  const countryName = c.req.query('name') || null;
+  const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
+
+  const actions = await c.env.DB.prepare(
+    `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
+     ORDER BY publication_date DESC, document_number DESC LIMIT 200`
+  )
+    .bind(code)
+    .all<PulseAction>()
+    .catch(() => ({ results: [] as PulseAction[] }));
+
+  const tempo = await c.env.DB.prepare(
+    `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
+     FROM trade_policy_actions, json_each(countries) je
+     WHERE je.value = ?1 GROUP BY month ORDER BY month`
+  )
+    .bind(code)
+    .all<TempoPoint>()
+    .catch(() => ({ results: [] as TempoPoint[] }));
+
+  const forcedLabor = await c.env.DB.prepare(
+    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, data_as_of AS asOf, legal_basis AS legalBasis
+     FROM tariff_overlays WHERE program = 'sec301_forced_labor' AND country_scope = ?1 AND ${activeOverlay}`
+  )
+    .bind(code)
+    .first<{ ratePct: number; sourceUrl: string; asOf: string; legalBasis: string }>()
+    .catch(() => null);
+  const extra = await c.env.DB.prepare(
+    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
+     FROM tariff_overlays WHERE program = 'sec338_canada' AND country_scope = ?1 AND ${activeOverlay}`
+  )
+    .bind(code)
+    .all<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
+    .catch(() => ({ results: [] }));
+  const capped = await c.env.DB.prepare(
+    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
+     FROM tariff_overlays WHERE program = 'sec232_metals_country_cap' AND country_scope = ?1 AND ${activeOverlay}`
+  )
+    .bind(code)
+    .first<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
+    .catch(() => null);
+  const metalsBaseline = await c.env.DB.prepare(
+    `SELECT MAX(rate_pct) AS n FROM tariff_overlays
+     WHERE program IN ('sec232_steel','sec232_aluminum','sec232_copper') AND country_scope IS NULL AND ${activeOverlay}`
+  )
+    .first<{ n: number | null }>()
+    .catch(() => null);
+
+  const dutyStack = await Promise.all(
+    REPRESENTATIVE_HTS.map(async ({ htsno, label }) => {
+      try {
+        const hts = await getRateBearingHtsLine(c.env, htsno);
+        if (!hts) return { htsno, label, description: null, totalPct: null, lines: [], error: 'This HTS line is not in the loaded schedule.' };
+        const overlays = await getApplicableOverlays(c.env, htsno, code);
+        const result = buildDutyStack(hts, code, null, overlays);
+        return { htsno, label, description: hts.description, totalPct: result.totalPct, lines: result.lines, error: null };
+      } catch {
+        return { htsno, label, description: null, totalPct: null, lines: [], error: 'Could not compute this line right now.' };
+      }
+    })
+  );
+
+  const coverage = await getCountryCoverage(c.env, code).catch(() => null);
+  const chartRows = coverage ? await getCountryChartRows(c.env, code).catch(() => []) : [];
+
+  const sanctions = countryName
+    ? await (async () => {
+        const [sdn, csl] = await Promise.all([
+          c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`)
+            .bind(countryName)
+            .first<{ n: number }>()
+            .catch(() => null),
+          c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`)
+            .bind(countryName)
+            .first<{ n: number }>()
+            .catch(() => null),
+        ]);
+        return {
+          sdnCount: sdn?.n ?? null,
+          cslCount: csl?.n ?? null,
+          note: 'Text match on the OFAC/BIS address field, not a normalized country code -- see the full sanctions list for exact hits.',
+        };
+      })()
+    : { sdnCount: null, cslCount: null, note: 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.' };
+
+  return c.json({
+    code,
+    actions: actions.results,
+    tempo: tempo.results,
+    tariffs: {
+      forcedLabor: forcedLabor ? { ratePct: forcedLabor.ratePct, sourceUrl: forcedLabor.sourceUrl, asOf: forcedLabor.asOf, legalBasis: forcedLabor.legalBasis } : null,
+      extra: extra.results.map((r) => ({ ratePct: r.ratePct, sourceUrl: r.sourceUrl, legalBasis: r.legalBasis, asOf: r.asOf, note: 'alcoholic beverages, dairy and motor vehicles only' })),
+      capped: capped ? { ratePct: capped.ratePct, standardPct: metalsBaseline?.n ?? null, sourceUrl: capped.sourceUrl, legalBasis: capped.legalBasis, note: 'steel, aluminum and copper only' } : null,
+    },
+    dutyStack,
+    exportControl: {
+      status: coverage?.status ?? 'not_curated',
+      notes: coverage?.notes ?? null,
+      sourceUrl: coverage?.source_url ?? null,
+      lastUpdated: coverage?.last_updated ?? null,
+      rows: chartRows,
+    },
+    sanctions,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Raw browsers over data the app otherwise only ever shows pre-aggregated:
+// /tariffs is every individual tariff_overlays row (vs. /active-measures'
+// per-program rollup and /summary's three-slice countryTariffs), /sanctions
+// is a country-filterable SDN/CSL browser (this data has never been queried
+// by country anywhere else in the app), /export-control-chart is the full
+// Commerce Country Chart curation (vs. one country at a time via
+// /country/:code). Plain pagination, no new aggregation logic.
+// ---------------------------------------------------------------------------
+pulseRoute.get('/tariffs', async (c) => {
+  const program = c.req.query('program') || null;
+  const country = c.req.query('country') || null;
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50) || 50, 1), 200);
+  const offset = Math.max(Number(c.req.query('offset') ?? 0) || 0, 0);
+
+  const where = `(?1 IS NULL OR program = ?1) AND (?2 IS NULL OR country_scope = ?2)`;
+  const { results } = await c.env.DB.prepare(
+    `SELECT program, hts_pattern, country_scope, rate_pct, rate_type, legal_basis, effective_date, expiration_date, source_url, source_tier, data_as_of
+     FROM tariff_overlays WHERE ${where}
+     ORDER BY program, country_scope, hts_pattern LIMIT ?3 OFFSET ?4`
+  )
+    .bind(program, country, limit, offset)
+    .all();
+  const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM tariff_overlays WHERE ${where}`).bind(program, country).first<{ n: number }>();
+  const programs = await c.env.DB.prepare(`SELECT DISTINCT program FROM tariff_overlays ORDER BY program`).all<{ program: string }>();
+
+  return c.json({ rows: results, total: total?.n ?? 0, limit, offset, programs: programs.results.map((r) => r.program) });
+});
+
+pulseRoute.get('/sanctions', async (c) => {
+  // Same country-name-text-match caveat as /country/:code's sanctions
+  // section: addresses.country is free text from OFAC/BIS source data, not a
+  // normalized ISO code, so this matches a full country name, not a code.
+  const countryName = c.req.query('country') || null;
+  const list = c.req.query('list'); // 'sdn' | 'csl' | omitted = both
+  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50) || 50, 1), 200);
+  const offset = Math.max(Number(c.req.query('offset') ?? 0) || 0, 0);
+
+  const sdnWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
+  const cslWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
+  const bind = countryName ? [countryName] : [];
+
+  const sdn =
+    !list || list === 'sdn'
+      ? await (async () => {
+          const { results } = await c.env.DB.prepare(
+            `SELECT id, primary_name AS name, entity_type, programs, addresses, source_url FROM sdn_entries ${sdnWhere}
+             ORDER BY primary_name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
+          )
+            .bind(...bind, limit, offset)
+            .all();
+          const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries ${sdnWhere}`)
+            .bind(...bind)
+            .first<{ n: number }>();
+          return { rows: results.map((r) => ({ ...r, list: 'SDN' as const })), total: total?.n ?? 0 };
+        })()
+      : { rows: [], total: 0 };
+
+  const csl =
+    !list || list === 'csl'
+      ? await (async () => {
+          const { results } = await c.env.DB.prepare(
+            `SELECT id, name, source_list, license_requirement, addresses, source_url FROM csl_entries ${cslWhere}
+             ORDER BY name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
+          )
+            .bind(...bind, limit, offset)
+            .all();
+          const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries ${cslWhere}`)
+            .bind(...bind)
+            .first<{ n: number }>();
+          return { rows: results.map((r) => ({ ...r, list: 'CSL' as const })), total: total?.n ?? 0 };
+        })()
+      : { rows: [], total: 0 };
+
+  return c.json({
+    sdn: { rows: sdn.rows, total: sdn.total },
+    csl: { rows: csl.rows, total: csl.total },
+    limit,
+    offset,
+    note: countryName
+      ? 'Text match on the OFAC/BIS address field, not a normalized country code.'
+      : 'No country filter applied -- showing entries in name order.',
+  });
+});
+
+// Full history, not the 430-day window /markets caps everything else to --
+// COFER's real story (the dollar's declining reserve share) plays out over
+// decades, not months, and this series is only ~110 rows total, so there's
+// no reason to cap it.
+pulseRoute.get('/cofer', async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT obs_date, value FROM market_series WHERE series_id = 'COFER:USD_SHARE' ORDER BY obs_date`
+  ).all<{ obs_date: string; value: number }>();
+  return c.json({ points: results.map((r) => [r.obs_date, r.value]) });
+});
+
+pulseRoute.get('/export-control-chart', async (c) => {
+  const [rows, coverage] = await Promise.all([
+    c.env.DB.prepare(`SELECT * FROM country_chart ORDER BY country_name, reason_for_control`).all(),
+    c.env.DB.prepare(`SELECT * FROM country_chart_coverage ORDER BY country_name`).all(),
+  ]);
+  return c.json({ rows: rows.results, coverage: coverage.results });
+});
+
 const FX_TTL_MS = 30 * 60_000;
 const QUOTES_TTL_MS = 15 * 60_000; // Yahoo data is itself ~15 min delayed
 const NEWS_TTL_MS = 30 * 60_000;
 const MACRO_TTL_MS = 6 * 60 * 60_000; // BLS publishes monthly; this just bounds the keyless daily-query budget
+const COFER_TTL_MS = 24 * 60 * 60_000; // IMF publishes quarterly; this just bounds the keyless daily-query budget
 
 // First-ever request (empty table) waits for the refresh so the panel isn't
 // blank; every later request answers from D1 immediately and refreshes in
@@ -259,6 +530,10 @@ interface SeriesRow {
 }
 
 pulseRoute.get('/markets', async (c) => {
+  // How many daily points each tile's chart series carries -- default (70,
+  // ~3 months) is unchanged for every existing caller; a range selector on
+  // the frontend can request more, up to as much as market_series retains.
+  const days = Math.min(Math.max(Number(c.req.query('days') ?? 70) || 70, 30), 430);
   const load = () =>
     c.env.DB.prepare(
       `SELECT series_id, obs_date, value FROM market_series
@@ -274,16 +549,18 @@ pulseRoute.get('/markets', async (c) => {
   const hasQuotes = !quotesOn || results.some((r) => r.series_id === '^GSPC');
   const hasFx = results.some((r) => r.series_id.startsWith('FX:'));
   const hasMacro = results.some((r) => r.series_id.startsWith('BLS:'));
+  const hasCofer = results.some((r) => r.series_id === 'COFER:USD_SHARE');
   await refreshOnDemand(
     c,
     [
       refreshIfStale(c.env, 'fx', FX_TTL_MS, () => refreshFx(c.env)),
       ...(quotesOn ? [refreshIfStale(c.env, 'quotes', QUOTES_TTL_MS, () => refreshQuotes(c.env))] : []),
       refreshIfStale(c.env, 'macro', MACRO_TTL_MS, () => refreshMacro(c.env)),
+      refreshIfStale(c.env, 'cofer', COFER_TTL_MS, () => refreshCofer(c.env)),
     ],
-    !hasQuotes || !hasFx || !hasMacro
+    !hasQuotes || !hasFx || !hasMacro || !hasCofer
   );
-  if (!hasQuotes || !hasFx || !hasMacro) ({ results } = await load());
+  if (!hasQuotes || !hasFx || !hasMacro || !hasCofer) ({ results } = await load());
 
   const bySeries = new Map<string, SeriesRow[]>();
   for (const r of results) {
@@ -298,7 +575,7 @@ pulseRoute.get('/markets', async (c) => {
       .map((r): [string, number] => [r.obs_date, r.value])
       .reverse();
 
-  const tiles = [...(quotesOn ? MARKET_META : []), ...MACRO_META].flatMap((m) => {
+  const tiles = [...(quotesOn ? MARKET_META : []), ...MACRO_META, COFER_META].flatMap((m) => {
     const rows = bySeries.get(m.id);
     if (!rows || rows.length === 0) return [];
     const [latest, prev] = rows;
@@ -329,7 +606,7 @@ pulseRoute.get('/markets', async (c) => {
         changePct: change !== null && prev && prev.value !== 0 && m.changeMode === 'percent' ? (change / prev.value) * 100 : null,
         changeMode: m.changeMode,
         yoyChangePct,
-        points: points(rows, 70),
+        points: points(rows, days),
       },
     ];
   });

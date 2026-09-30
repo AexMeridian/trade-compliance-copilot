@@ -1,12 +1,13 @@
 import { SECTION_HUE } from '../lib/pulseColors';
 
-export type PulseTabId = 'overview' | 'policy' | 'markets' | 'news' | 'guide';
+export type PulseTabId = 'overview' | 'policy' | 'markets' | 'news' | 'data' | 'guide';
 
 export const PULSE_TABS: { id: PulseTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
   { id: 'policy', label: 'U.S. policy', hint: 'Tariffs, sanctions and export rules' },
   { id: 'markets', label: 'Markets', hint: 'Exchange rates and key economic numbers' },
   { id: 'news', label: 'News', hint: 'Trade-related headlines from around the world' },
+  { id: 'data', label: 'Data', hint: 'Browse the raw tariff and export-control reference tables' },
   { id: 'guide', label: 'Guide', hint: 'New here? How to read this page' },
 ];
 
@@ -15,6 +16,7 @@ const TAB_BORDER: Record<PulseTabId, string> = {
   policy: SECTION_HUE.policy.border,
   markets: SECTION_HUE.markets.border,
   news: SECTION_HUE.news.border,
+  data: 'border-hue-gray',
   guide: 'border-ink',
 };
 

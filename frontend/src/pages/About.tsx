@@ -26,6 +26,16 @@ const SOURCES: { name: string; used: string; terms: string }[] = [
     used: 'News headlines. We show the headline, a short summary, a link to the original story and, for BBC and Guardian items, their own lead photo.',
     terms: 'Each publisher owns its content. We link to the original and do not copy article text. Photos load directly from the publisher.',
   },
+  {
+    name: 'U.S. Bureau of Labor Statistics (bls.gov)',
+    used: 'Consumer prices (CPI), the unemployment rate, nonfarm payrolls, producer prices (PPI), and import and export price indexes.',
+    terms: 'Official U.S. government statistics, published on the BLS release schedule. Public information; keyless public API.',
+  },
+  {
+    name: 'International Monetary Fund, COFER (data.imf.org)',
+    used: "The U.S. dollar's share of the world's allocated foreign-exchange reserves.",
+    terms: 'Official IMF statistics, published quarterly with roughly a one-quarter lag. Public information; keyless public API.',
+  },
 ];
 
 export function About() {

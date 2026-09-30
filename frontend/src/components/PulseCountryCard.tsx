@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import type { NewsItem, PulseAction, PulseSummary } from '../types/pulse';
 import { COUNTRY_LABELS, parseCountries } from '../lib/pulseCountries';
 import { NEWS_HUE, TAG_HUE } from '../lib/pulseColors';
@@ -112,9 +113,16 @@ export function PulseCountryCard({
         <p className="mt-3 text-sm text-[#b4b4bc]">The newest of these are in the U.S. policy tab.</p>
       )}
 
-      <button type="button" onClick={onSeeAll} className="btn-hero mt-3">
-        {isHome ? `See all ${homeCount} in U.S. policy` : count > 0 ? `See all ${count} in U.S. policy` : 'Open U.S. policy'}
-      </button>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <button type="button" onClick={onSeeAll} className="btn-hero">
+          {isHome ? `See all ${homeCount} in U.S. policy` : count > 0 ? `See all ${count} in U.S. policy` : 'Open U.S. policy'}
+        </button>
+        {!isHome && (
+          <Link to={`/country/${code}`} className="btn-hero-ghost">
+            Full country page &rarr;
+          </Link>
+        )}
+      </div>
     </section>
   );
 }

@@ -5,13 +5,16 @@ import { CaseWizard } from './pages/CaseWizard';
 import { Report } from './pages/Report';
 import { Pulse } from './pages/Pulse';
 import { Influence } from './pages/Influence';
+import { Power } from './pages/Power';
+import { CountryDetail } from './pages/CountryDetail';
 import { About } from './pages/About';
 import { Privacy } from './pages/Privacy';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { SITE } from './lib/site';
+import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
-const KNOWN_PATHS = ['/', '/calculator', '/influence', '/about', '/privacy'];
+const KNOWN_PATHS = ['/', '/calculator', '/influence', '/power', '/about', '/privacy'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -23,14 +26,22 @@ function usePageMeta(pathname: string, tab: string | null) {
       if (t && t.id !== 'overview') title = `${t.label} | ${SITE.name}`;
     } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
     else if (pathname === '/influence') title = `American influence: pressure and reach | ${SITE.name}`;
+    else if (pathname === '/power') title = `American power: hard and soft | ${SITE.name}`;
     else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname.startsWith('/case/')) title = `Compliance case | ${SITE.name}`;
-    else title = `Page not found | ${SITE.name}`;
+    else if (pathname.startsWith('/country/')) {
+      const code = pathname.slice('/country/'.length).toUpperCase();
+      const name = TARIFF_COUNTRY_LABELS[code] ?? code;
+      title = `${name} | ${SITE.name}`;
+    } else title = `Page not found | ${SITE.name}`;
     document.title = title;
 
-    // Unknown URLs and private case pages should not be indexed.
-    const indexable = KNOWN_PATHS.includes(pathname);
+    // Unknown URLs and private case pages should not be indexed. Country
+    // pages are real content (like /about), so they're indexable too, but
+    // their path varies per code, so it needs a prefix check rather than an
+    // exact match against the fixed KNOWN_PATHS list.
+    const indexable = KNOWN_PATHS.includes(pathname) || pathname.startsWith('/country/');
     let robots = document.querySelector('meta[name="robots"]');
     if (!indexable) {
       if (!robots) {
@@ -73,7 +84,16 @@ export default function App() {
               links without truncating mid-word -- the mark alone (it's
               already drawn on the header's own background color) reads fine
               at that size and never clips. */}
-          <Link to="/" className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-white no-underline" aria-label={SITE.name}>
+          {/* The scroll-reset effect below only fires on a pathname change, so
+              it misses this link when you're already on "/" with a tab in
+              the query string (e.g. "/?tab=guide") -- the logo should always
+              return to the hero, so it scrolls explicitly on click too. */}
+          <Link
+            to="/"
+            onClick={() => window.scrollTo({ top: 0 })}
+            className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-white no-underline"
+            aria-label={SITE.name}
+          >
             <img src="/favicon.svg" alt="" aria-hidden="true" className="h-7 w-7 rounded sm:hidden" />
             <span className="hidden sm:inline">{SITE.name}</span>
           </Link>
@@ -87,6 +107,9 @@ export default function App() {
             <NavLink to="/influence" className={navClass}>
               Influence
             </NavLink>
+            <NavLink to="/power" className={(s) => `${navClass(s)} hidden sm:block`}>
+              Power
+            </NavLink>
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
             </NavLink>
@@ -99,6 +122,8 @@ export default function App() {
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
           <Route path="/influence" element={<Influence />} />
+          <Route path="/power" element={<Power />} />
+          <Route path="/country/:code" element={<CountryDetail />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
           <Route path="/about" element={<About />} />
@@ -118,6 +143,9 @@ export default function App() {
             <nav aria-label="Site" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
               <Link to="/influence" className="text-white no-underline hover:underline">
                 American influence
+              </Link>
+              <Link to="/power" className="text-white no-underline hover:underline">
+                American power
               </Link>
               <Link to="/about" className="text-white no-underline hover:underline">
                 About and sources

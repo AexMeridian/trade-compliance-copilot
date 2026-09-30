@@ -19,6 +19,7 @@ import { refreshCsl } from './lib/refresh/csl.js';
 import { runPulseSync } from './lib/pulse/sync.js';
 import { refreshFx, refreshQuotes } from './lib/pulse/markets.js';
 import { refreshMacro } from './lib/pulse/macro.js';
+import { refreshCofer } from './lib/pulse/cofer.js';
 import { refreshNews } from './lib/pulse/news.js';
 import { logRefresh } from './lib/refresh/log.js';
 import type { RefreshResult } from './lib/refresh/types.js';
@@ -55,6 +56,7 @@ const CRON_JOBS: Record<string, RefreshJob[]> = {
     { source: 'pulse_quotes', run: (env) => (env.MARKET_QUOTES === 'off' ? Promise.resolve({ source: 'pulse_quotes', rows: 0 }) : refreshQuotes(env)) },
     { source: 'pulse_news', run: refreshNews },
     { source: 'pulse_macro', run: refreshMacro },
+    { source: 'pulse_cofer', run: refreshCofer },
   ],
   '0 6 * * 1': [
     { source: 'sdn', run: refreshSdn },

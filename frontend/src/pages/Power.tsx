@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
+import { getPulseCoferHistory, getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
-import { PulseSanctionsBrowser } from '../components/PulseSanctionsBrowser';
-import { InfluenceGuide } from '../components/InfluenceGuide';
-import { InfluenceHero } from '../components/InfluenceHero';
-import { InfluenceTabs, INFLUENCE_TABS, type InfluenceTabId } from '../components/InfluenceTabs';
+import { PowerGuide } from '../components/PowerGuide';
+import { PowerHero } from '../components/PowerHero';
+import { PowerCoferChart } from '../components/PowerCoferChart';
+import { PowerTabs, POWER_TABS, type PowerTabId } from '../components/PowerTabs';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseCurrencyMovers } from '../components/PulseCharts';
-import { PulseDelta } from '../components/PulseDelta';
-import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { PulsePanel } from '../components/PulsePanel';
@@ -22,12 +20,13 @@ import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { agoText, plainSummary } from '../lib/pulsePlain';
 import type { ActiveMeasure, NewsItem, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
-// A second lens on the same real Trade Policy Pulse data (see InfluenceGuide
-// for exactly what's reused vs. new): pressure = the tariff/sanctions/export
-// tools already tracked there; reach = the dollar's reach and
-// diplomatic/political news, already collected there too; alliances = one
-// new, static, sourced reference file (lib/pulseBlocs.ts). No new backend
-// route, no LLM, nothing fabricated -- see routes/pulse.ts for the source.
+// A third lens on the same real Trade Policy Pulse data (see PowerGuide for
+// exactly what's reused vs. new): hard power = the same tariff/sanctions/
+// export tools Influence's Pressure tab already tracks; soft power = the
+// dollar's reach Influence's Reach tab already tracks, PLUS one genuinely
+// new data point (IMF COFER, the dollar's reserve-currency share); alliances
+// = the same static, sourced bloc file Influence uses. No new fabricated
+// score anywhere -- see routes/pulse.ts and lib/pulse/cofer.ts for sources.
 const Item = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex min-w-0 flex-col border-t-4 border-ink p-4">
     <h2 className="font-sans text-[13px] font-semibold tracking-normal text-ink">{label}</h2>
@@ -36,7 +35,7 @@ const Item = ({ label, children }: { label: string; children: React.ReactNode })
 );
 const Unavailable = ({ loading }: { loading: boolean }) => <p className="text-sm text-ink-faint">{loading ? 'Loading…' : 'Not available right now.'}</p>;
 
-export function Influence() {
+export function Power() {
   const [summary, setSummary] = useState<PulseSummary | null>(null);
   const [months, setMonths] = useState<TempoPoint[]>([]);
   const [tempoRange, setTempoRange] = useState<TempoRangeId>('2yr');
@@ -46,6 +45,7 @@ export function Influence() {
   const [marketsFailed, setMarketsFailed] = useState(false);
   const [news, setNews] = useState<PulseNewsResponse | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
+  const [coferPoints, setCoferPoints] = useState<[string, number][]>([]);
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -54,13 +54,13 @@ export function Influence() {
 
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
-  const tab: InfluenceTabId = INFLUENCE_TABS.some((t) => t.id === tabParam) ? (tabParam as InfluenceTabId) : 'overview';
-  const setTab = (id: InfluenceTabId, reveal = false) => {
+  const tab: PowerTabId = POWER_TABS.some((t) => t.id === tabParam) ? (tabParam as PowerTabId) : 'overview';
+  const setTab = (id: PowerTabId, reveal = false) => {
     const next = new URLSearchParams(params);
     if (id === 'overview') next.delete('tab');
     else next.set('tab', id);
     setParams(next, { replace: true });
-    if (reveal) requestAnimationFrame(() => document.getElementById('influence-tabs')?.scrollIntoView({ block: 'start' }));
+    if (reveal) requestAnimationFrame(() => document.getElementById('power-tabs')?.scrollIntoView({ block: 'start' }));
   };
 
   const handleTempoRangeChange = useCallback(async (id: TempoRangeId) => {
@@ -72,12 +72,13 @@ export function Influence() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const home = await getPulseHome();
+    const [home, cofer] = await Promise.all([getPulseHome(), getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] }))]);
     if (home.tempo) setMonths(home.tempo.months);
     if (home.overlays) setOverlays(home.overlays.overlays);
     if (home.summary) setSummary(home.summary);
     if (home.recent) setRecentAll(home.recent.actions);
     setPolicyChecked(home.status?.policy ?? null);
+    setCoferPoints(cofer.points);
     if (home.markets) {
       setMarkets(home.markets);
       setMarketsFailed(false);
@@ -112,37 +113,37 @@ export function Influence() {
     }
   }
 
-  // Same fix as Pulse.tsx: reflects when the feed was last successfully
-  // checked, not the newest document's own date, so a quiet policy day
-  // doesn't read as a stale page.
   const lastSynced = policyChecked;
   const topAction = rankSignals(recentAll, 1)[0] ?? null;
   const politicalNews = (news?.items ?? []).filter((n) => n.category === 'Elections & Politics' || n.category === 'Official');
   const headline = politicalNews[0] ?? null;
-  const dxy = markets?.tiles.find((t) => t.id === 'DX-Y.NYB') ?? null;
   const tilesIn = (group: string) => (markets?.tiles ?? []).filter((t) => t.group === group);
-  const priceTiles = (markets?.tiles ?? []).filter((t) => t.id === 'BLS:IMPORT_PX' || t.id === 'BLS:EXPORT_PX');
   const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
-  const seeAll = (label: string, to: InfluenceTabId) => (
+  const seeAll = (label: string, to: PowerTabId) => (
     <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
       {label}
     </button>
   );
 
+  const coferLatest = coferPoints.length > 0 ? { date: coferPoints[coferPoints.length - 1][0], value: coferPoints[coferPoints.length - 1][1] } : null;
+  const coferEarliest = coferPoints.length > 0 ? { date: coferPoints[0][0], value: coferPoints[0][1] } : null;
+
   return (
     <div>
-      <InfluenceHero
+      <PowerHero
         summary={summary}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}
         onClearCountry={() => setActiveCountry(null)}
-        onSeeAll={() => setTab('pressure', true)}
+        onSeeAll={() => setTab('hard', true)}
         recent={recentAll}
         news={news?.items ?? []}
-        onExplore={() => setTab('pressure', true)}
+        onExplore={() => setTab('hard', true)}
         updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
         syncing={syncing}
         onRefresh={handleRefresh}
+        coferLatest={coferLatest}
+        coferEarliest={coferEarliest}
       />
 
       <div className="relative mx-auto -mt-10 max-w-7xl px-4 pb-8">
@@ -152,13 +153,13 @@ export function Influence() {
           </p>
         )}
 
-        <InfluenceTabs active={tab} onChange={(id) => setTab(id)} />
+        <PowerTabs active={tab} onChange={(id) => setTab(id)} />
 
-        <div role="tabpanel" id="influence-tabpanel" aria-labelledby={`influence-tab-${tab}`} className="pt-6">
+        <div role="tabpanel" id="power-tabpanel" aria-labelledby={`power-tab-${tab}`} className="pt-6">
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
               <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-                <Item label="Biggest pressure action lately">
+                <Item label="Biggest hard-power action lately">
                   {topAction ? (
                     <>
                       <a
@@ -175,19 +176,21 @@ export function Influence() {
                     <Unavailable loading={loading} />
                   )}
                 </Item>
-                <Item label="The dollar's reach">
-                  {dxy ? (
+                <Item label="Soft power: the dollar's reserve share">
+                  {coferLatest ? (
                     <>
                       <p className="text-base font-semibold leading-snug text-ink">
-                        <PulseDelta change={dxy.changePct} text={`${Math.abs(dxy.changePct ?? 0).toFixed(1)}%`} className="mr-1.5 text-sm" />
-                        U.S. dollar index, {dxy.value.toFixed(1)}
+                        <span className="mr-1.5 text-2xl tabular-nums">{coferLatest.value.toFixed(0)}%</span>
+                        of world FX reserves
                       </p>
                       <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
-                        A gauge of the dollar against a basket of major currencies. Higher means the dollar buys more abroad.
+                        {coferEarliest && coferEarliest.date !== coferLatest.date
+                          ? `Down from ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)} (IMF COFER).`
+                          : 'IMF COFER, the U.S. dollar share of allocated reserves.'}
                       </p>
                     </>
                   ) : (
-                    <Unavailable loading={!markets && !marketsFailed} />
+                    <Unavailable loading={loading} />
                   )}
                 </Item>
                 <Item label="Top diplomatic headline">
@@ -213,21 +216,26 @@ export function Influence() {
               </div>
 
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
-                Every figure above and on the tabs below is a real, sourced number -- the same data behind{' '}
+                Every figure above and on the tabs below is a real, sourced number -- most of it the same data behind{' '}
                 <Link to="/" className="text-accent hover:underline">
                   Trade Policy Pulse
+                </Link>{' '}
+                and{' '}
+                <Link to="/influence" className="text-accent hover:underline">
+                  American influence
                 </Link>
-                , reframed as pressure and reach. See the Guide tab for exactly what that does and doesn't mean.
+                , read as two opposing trends rather than combined into a score. See the Guide tab for exactly what that does and doesn't mean.
               </p>
             </div>
           )}
 
-          {tab === 'pressure' && (
+          {tab === 'hard' && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="display text-3xl text-ink">Pressure</h2>
+                <h2 className="display text-3xl text-ink">Hard power</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  Tariffs, sanctions and export controls: the tools the U.S. uses to raise costs or cut off access, as published in the Federal Register.
+                  Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
+                  Register.
                 </p>
               </div>
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
@@ -246,7 +254,11 @@ export function Influence() {
                     help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
-                    {loading || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}
+                    {loading || !summary ? (
+                      loadingBlock
+                    ) : (
+                      <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />
+                    )}
                   </PulsePanel>
                 </div>
                 <div className="min-w-0 lg:col-span-8">
@@ -267,7 +279,7 @@ export function Influence() {
                     {loading ? loadingBlock : <PulseAgencyBreakdown breakdown={summary?.agencyBreakdown ?? []} />}
                   </PulsePanel>
                   <PulsePanel
-                    title="Tempo of pressure"
+                    title="Tempo of coercion"
                     help="How many actions were published each month. Taller bars mean a busier month. Pick a shorter or longer window with the range buttons."
                     subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`}
                   >
@@ -283,17 +295,30 @@ export function Influence() {
             </div>
           )}
 
-          {tab === 'reach' && (
+          {tab === 'soft' && (
             <div className="flex flex-col gap-8">
               <div>
-                <h2 className="display text-3xl text-ink">Reach</h2>
+                <h2 className="display text-3xl text-ink">Soft power</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  Two real proxies, not a measure of favorability: the dollar's reach in world markets, and diplomatic/political news.
+                  The dollar's pull as the world's reserve currency, its reach in world markets, and diplomatic/political news. Not a measure of culture or
+                  favorability.
                 </p>
               </div>
+
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">The dollar's reserve-currency share</h3>
+                <PulsePanel
+                  title="Percent of world FX reserves held in U.S. dollars"
+                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings -- not a prediction about what replaces it."
+                  subtitle="Quarterly since 1999."
+                >
+                  {coferPoints.length === 0 ? loadingBlock : <PowerCoferChart points={coferPoints} />}
+                </PulsePanel>
+              </section>
+
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
               <section className="flex flex-col gap-4">
-                <h3 className="font-display text-xl font-bold text-ink">The dollar and world markets</h3>
+                <h3 className="font-display text-xl font-bold text-ink">The dollar's market reach</h3>
                 <PulseMarketStrip tiles={tilesIn('Rates & dollar')} />
                 <PulseMarketStrip tiles={tilesIn('World stocks')} />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -313,16 +338,7 @@ export function Influence() {
                   </PulsePanel>
                 </div>
               </section>
-              {priceTiles.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h3 className="font-display text-xl font-bold text-ink">Is pressure reaching prices?</h3>
-                  <p className="text-sm text-ink-muted">
-                    What the U.S. actually pays for imports, and what buyers abroad actually pay for U.S. exports -- the closest real, published read on whether
-                    tariffs (and the dollar's moves) are showing up in prices, not just in policy announcements.
-                  </p>
-                  <PulseMacroStrip tiles={priceTiles} />
-                </section>
-              )}
+
               <section className="flex flex-col gap-4">
                 <h3 className="font-display text-xl font-bold text-ink">Diplomatic and political headlines</h3>
                 {newsFailed && !news ? (
@@ -353,9 +369,10 @@ export function Influence() {
                 )}
               </section>
               <p className="text-xs leading-relaxed text-ink-faint">
-                Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not
-                trading. Currency rates are the ECB's daily reference rates. News is BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the
-                Fed, filtered to their Elections & Politics and Official categories.
+                Reserve-share data is the IMF's COFER series, published quarterly with roughly a one-quarter lag. Stock, commodity and rate quotes come from
+                Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not trading. Currency rates are the ECB's daily
+                reference rates. News is BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed, filtered to their Elections & Politics
+                and Official categories.
               </p>
             </div>
           )}
@@ -365,8 +382,8 @@ export function Influence() {
               <div>
                 <h2 className="display text-3xl text-ink">Alliances</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown. See the Guide tab for sources and
-                  limits.
+                  Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown. See the Guide tab for sources
+                  and limits.
                 </p>
               </div>
               {loading ? (
@@ -376,7 +393,11 @@ export function Influence() {
               )}
               {activeCountry && (
                 <p className="text-sm text-ink-muted">
-                  Selected: <span className="text-ink">{COUNTRY_LABELS[activeCountry] ?? activeCountry}</span>. See its details on the hero above, or{' '}
+                  Selected: <span className="text-ink">{COUNTRY_LABELS[activeCountry] ?? activeCountry}</span>. See its{' '}
+                  <Link to={`/country/${activeCountry}`} className="text-accent hover:underline">
+                    full country page
+                  </Link>
+                  , or{' '}
                   <button type="button" onClick={() => setTab('overview', true)} className="text-accent hover:underline">
                     scroll up
                   </button>
@@ -386,22 +407,7 @@ export function Influence() {
             </div>
           )}
 
-          {tab === 'sanctions' && (
-            <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Sanctions</h2>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
-                  text match on each entry's address field, not a normalized code -- see the note below the search box.
-                </p>
-              </div>
-              <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
-                <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
-              </PulsePanel>
-            </div>
-          )}
-
-          {tab === 'guide' && <InfluenceGuide />}
+          {tab === 'guide' && <PowerGuide />}
         </div>
 
         <div className="card mt-10 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">

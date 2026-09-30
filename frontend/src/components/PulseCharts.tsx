@@ -40,10 +40,32 @@ export interface LineSeries {
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
+// Range options for charts backed by /markets?days=, mirroring
+// PulseTempoChart's TEMPO_RANGES pattern -- id/label pairs for the selector,
+// with the day-count each maps to (the route clamps to [30, 430]).
+export const MARKET_RANGES = [
+  { id: '3mo', label: '3mo', days: 70 },
+  { id: '6mo', label: '6mo', days: 182 },
+  { id: '1yr', label: '1yr', days: 365 },
+  { id: 'max', label: 'Max', days: 430 },
+] as const;
+export type MarketRangeId = (typeof MARKET_RANGES)[number]['id'];
+
 // Different markets trade on different calendars and sit at very different
 // levels (Dow ~51,000 vs. S&P ~7,700), so each series is rebased to 100 at
 // its first point in the window; the chart then shows relative performance.
-export function PulseLineChart({ series }: { series: LineSeries[] }) {
+//
+// range/onRangeChange are opt-in, same convention as PulseTempoChart: omit
+// them and the chart renders with no selector.
+export function PulseLineChart({
+  series,
+  range,
+  onRangeChange,
+}: {
+  series: LineSeries[];
+  range?: MarketRangeId;
+  onRangeChange?: (id: MarketRangeId) => void;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [hoverX, setHoverX] = useState<number | null>(null);
@@ -87,6 +109,21 @@ export function PulseLineChart({ series }: { series: LineSeries[] }) {
 
   return (
     <div>
+      {onRangeChange && (
+        <div className="mb-3 flex gap-1">
+          {MARKET_RANGES.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onRangeChange(r.id)}
+              aria-pressed={range === r.id}
+              className={`rounded px-2 py-1 text-xs font-semibold ${range === r.id ? 'bg-ink text-white' : 'text-ink-muted hover:bg-hairline'}`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
       <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
         {usable.map((s) => {
           const last = s.pts[s.pts.length - 1][1] - 100;

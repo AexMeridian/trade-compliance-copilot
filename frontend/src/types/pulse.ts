@@ -30,6 +30,9 @@ export interface PulseSummary {
   last30: number;
   prior30: number;
   trendPct: number | null; // null when there's no prior-period baseline to compare against
+  last90: number;
+  prior90: number;
+  trendPct90: number | null; // same shape as trendPct, over a 90-vs-prior-90-day window
   leadingTag: PulseTag | null;
   leadingTagCount: number;
   leadingTagShare: number | null; // % of last30 that leadingTag accounts for
@@ -105,6 +108,49 @@ export interface NewsItem {
   countries: string | null; // JSON array of country codes
   published_at: string;
   image_url: string | null; // lead image from the publisher's own feed/CDN, if it supplies one
+}
+
+// GET /api/pulse/country/:code -- everything real, sourced data this app has
+// about one country. duty_stack lines use the same DutyStackLine shape as
+// types/case.ts (mirrored, not imported, same convention as this file's
+// header comment) so DutyStackTable can render them unmodified.
+export interface CountryDutyStackHeading {
+  htsno: string;
+  label: string;
+  description: string | null;
+  totalPct: number | null;
+  lines: import('./case').DutyStackLine[];
+  error: string | null;
+}
+
+export interface CountryChartRow {
+  id: number;
+  country_code: string;
+  reason_for_control: string;
+  control_level: string;
+  source_url: string;
+  source_tier: number;
+  last_updated: string;
+}
+
+export interface PulseCountryDetail {
+  code: string;
+  actions: PulseAction[];
+  tempo: TempoPoint[];
+  tariffs: {
+    forcedLabor: { ratePct: number; sourceUrl: string; asOf: string; legalBasis: string } | null;
+    extra: { ratePct: number; sourceUrl: string; legalBasis: string; asOf: string; note: string }[];
+    capped: { ratePct: number; standardPct: number | null; sourceUrl: string; legalBasis: string; note: string } | null;
+  };
+  dutyStack: CountryDutyStackHeading[];
+  exportControl: {
+    status: 'curated' | 'comprehensive_embargo' | 'broad_restriction_746_5' | 'not_curated';
+    notes: string | null;
+    sourceUrl: string | null;
+    lastUpdated: string | null;
+    rows: CountryChartRow[];
+  };
+  sanctions: { sdnCount: number | null; cslCount: number | null; note: string };
 }
 
 export interface PulseHome {

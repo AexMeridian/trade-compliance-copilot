@@ -27,6 +27,18 @@ function windowChange(t: MarketTile): { change: number; text: string } | null {
   return { change, text: formatMagnitude(change, pct) };
 }
 
+// The label used to just say "3 months" for every tile, which happened to be
+// true only because every tile's window was a fixed 70 real days -- once a
+// quarterly series (COFER) shares this same component, that window can span
+// several quarters, so the label needs to say what it actually spans rather
+// than assume it.
+function windowSpanLabel(points: [string, number][]): string {
+  if (points.length < 2) return '';
+  const days = (Date.parse(points[points.length - 1][0]) - Date.parse(points[0][0])) / 86_400_000;
+  const months = Math.max(Math.round(days / 30.44), 1);
+  return months === 1 ? '1 month' : `${months} months`;
+}
+
 // Quotes come from Yahoo Finance's public chart data (roughly 15 minutes
 // delayed). Each row says which day it is for, so nothing reads as more
 // current than it is. The plain-language explanation of each series is the
@@ -66,7 +78,7 @@ export function PulseMarketStrip({ tiles }: { tiles: MarketTile[] }) {
             <p className="hidden text-[13px] text-ink-faint sm:block">
               {win ? (
                 <>
-                  3 months <PulseDelta change={win.change} text={win.text} className="font-semibold" />
+                  {windowSpanLabel(t.points)} <PulseDelta change={win.change} text={win.text} className="font-semibold" />
                 </>
               ) : null}
             </p>

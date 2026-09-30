@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, syncPulse } from '../lib/api';
+import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTempo, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
+import { PulseTariffBrowser } from '../components/PulseTariffBrowser';
+import { PulseExportChart } from '../components/PulseExportChart';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
@@ -14,11 +16,11 @@ import { PulseWelcome, markWelcomed, wasWelcomed } from '../components/PulseWelc
 import { PulseTabs, PULSE_TABS, type PulseTabId } from '../components/PulseTabs';
 import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
-import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars } from '../components/PulseCharts';
+import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars, MARKET_RANGES, type MarketRangeId } from '../components/PulseCharts';
 import { PulseNews } from '../components/PulseNews';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseSignalStrip } from '../components/PulseSignalStrip';
-import { PulseTempoChart } from '../components/PulseTempoChart';
+import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/PulseTempoChart';
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { agoText } from '../lib/pulsePlain';
@@ -64,6 +66,8 @@ export function Pulse() {
   const [actions, setActions] = useState<PulseAction[]>([]);
   const [recentAll, setRecentAll] = useState<PulseAction[]>([]);
   const [months, setMonths] = useState<TempoPoint[]>([]);
+  const [tempoRange, setTempoRange] = useState<TempoRangeId>('2yr');
+  const [marketsRange, setMarketsRange] = useState<MarketRangeId>('3mo');
   const [overlays, setOverlays] = useState<ActiveMeasure[]>([]);
   const [summary, setSummary] = useState<PulseSummary | null>(null);
   const [activeTag, setActiveTag] = useState<PulseTag | null>(null);
@@ -150,6 +154,25 @@ export function Pulse() {
   const loadFeed = useCallback(async (tag: PulseTag | null, country: string | null, q: string) => {
     const { actions } = await getPulseFeed(30, tag ?? undefined, { country: country ?? undefined, search: q || undefined });
     setActions(actions);
+  }, []);
+
+  // /home's bundled /tempo call always returns the 24-month default; picking
+  // a different range on the chart re-fetches just that one endpoint rather
+  // than re-running every panel in loadPanels.
+  const handleTempoRangeChange = useCallback(async (id: TempoRangeId) => {
+    setTempoRange(id);
+    const range = TEMPO_RANGES.find((r) => r.id === id);
+    if (!range) return;
+    const { months: pts } = await getPulseTempo(range.months);
+    setMonths(pts);
+  }, []);
+
+  const handleMarketsRangeChange = useCallback(async (id: MarketRangeId) => {
+    setMarketsRange(id);
+    const range = MARKET_RANGES.find((r) => r.id === id);
+    if (!range) return;
+    const data = await getPulseMarkets(range.days);
+    setMarkets(data);
   }, []);
 
   // Every number and ranking on this page comes from plain SQL aggregation
@@ -599,10 +622,14 @@ export function Pulse() {
                   </PulsePanel>
                   <PulsePanel
                     title="Policy tempo"
-                    help="How many actions were published each month over the last two years. Taller bars mean a busier month."
-                    subtitle="Actions published per month, last 24 months."
+                    help="How many actions were published each month. Taller bars mean a busier month. Pick a shorter or longer window with the range buttons."
+                    subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`}
                   >
-                    {loadingPanels ? loadingBlock : <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} />}
+                    {loadingPanels ? (
+                      loadingBlock
+                    ) : (
+                      <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} range={tempoRange} onRangeChange={handleTempoRangeChange} />
+                    )}
                   </PulsePanel>
                 </div>
               </div>
@@ -644,10 +671,10 @@ export function Pulse() {
                     {group === 'World stocks' && worldSeries.length > 0 && (
                       <PulsePanel
                         title="How stock markets moved"
-                        help="Each line starts at 100 on the first day, so you can compare markets that use very different numbers. A line ending at 105 rose 5% over the period; one ending at 95 fell 5%."
-                        subtitle="The U.S., Europe, Japan and Hong Kong over the last three months. Hover for exact values."
+                        help="Each line starts at 100 on the first day, so you can compare markets that use very different numbers. A line ending at 105 rose 5% over the period; one ending at 95 fell 5%. Pick a shorter or longer window with the range buttons."
+                        subtitle={`The U.S., Europe, Japan and Hong Kong, last ${MARKET_RANGES.find((r) => r.id === marketsRange)?.label ?? '3mo'}. Hover for exact values.`}
                       >
-                        <PulseLineChart series={worldSeries} />
+                        <PulseLineChart series={worldSeries} range={marketsRange} onRangeChange={handleMarketsRangeChange} />
                       </PulsePanel>
                     )}
                     {group === 'Trade bellwethers' && (
@@ -662,10 +689,10 @@ export function Pulse() {
                     {group === 'Commodities' && commoditySeries.length > 0 && (
                       <PulsePanel
                         title="How commodity prices moved"
-                        help="Each line starts at 100 on the first day, so different prices can be compared side by side. Higher means the price rose over the period."
-                        subtitle="Oil, gas, gold and copper over the last three months."
+                        help="Each line starts at 100 on the first day, so different prices can be compared side by side. Higher means the price rose over the period. Pick a shorter or longer window with the range buttons."
+                        subtitle={`Oil, gas, gold and copper, last ${MARKET_RANGES.find((r) => r.id === marketsRange)?.label ?? '3mo'}.`}
                       >
-                        <PulseLineChart series={commoditySeries} />
+                        <PulseLineChart series={commoditySeries} range={marketsRange} onRangeChange={handleMarketsRangeChange} />
                       </PulsePanel>
                     )}
                   </section>
@@ -704,6 +731,24 @@ export function Pulse() {
                 Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not
                 trading. Currency rates are the ECB's daily reference rates, published once per business day.
               </p>
+            </div>
+          )}
+
+          {tab === 'data' && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <h2 className="display text-3xl text-ink">Data</h2>
+                <p className="mt-1 text-sm text-ink-muted">The raw reference tables behind this page's summaries, for checking a specific rate or country yourself.</p>
+              </div>
+              <PulsePanel
+                title="Tariff programs, every row"
+                help="Every row in this app's tariff_overlays table: one per (program, HTS pattern, country). /active-measures above groups these into one row per real-world measure, and the tariff-exposure panel picks three specific slices -- this is the full underlying data both are built from."
+              >
+                <PulseTariffBrowser />
+              </PulsePanel>
+              <PulsePanel title="Commerce Country Chart, full curation" help="Every destination this app has hand-verified export-control status for, and an honest count of how many it hasn't.">
+                <PulseExportChart />
+              </PulsePanel>
             </div>
           )}
 

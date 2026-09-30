@@ -1,12 +1,13 @@
 import { INFLUENCE_SECTION_HUE } from '../lib/pulseColors';
 
-export type InfluenceTabId = 'overview' | 'pressure' | 'reach' | 'alliances' | 'guide';
+export type InfluenceTabId = 'overview' | 'pressure' | 'reach' | 'alliances' | 'sanctions' | 'guide';
 
 export const INFLUENCE_TABS: { id: InfluenceTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
   { id: 'pressure', label: 'Pressure', hint: 'Tariffs, sanctions and export controls, as tools of pressure' },
   { id: 'reach', label: 'Reach', hint: "The dollar's reach, and diplomatic and political headlines" },
   { id: 'alliances', label: 'Alliances', hint: "Who the U.S. is formally aligned with, and who it's recently targeted" },
+  { id: 'sanctions', label: 'Sanctions', hint: 'Browse the OFAC and Commerce/State sanctioned-entity lists by country' },
   { id: 'guide', label: 'Guide', hint: 'What "pressure" and "reach" mean on this page, and their limits' },
 ];
 
@@ -15,6 +16,7 @@ const TAB_BORDER: Record<InfluenceTabId, string> = {
   pressure: INFLUENCE_SECTION_HUE.pressure.border,
   reach: INFLUENCE_SECTION_HUE.reach.border,
   alliances: INFLUENCE_SECTION_HUE.alliances.border,
+  sanctions: 'border-hue-violet',
   guide: 'border-ink',
 };
 
