@@ -69,9 +69,16 @@ export type MatchVerdict = 'true_match' | 'false_positive' | 'inconclusive';
 
 export interface PartyMatch {
   matched_entity_id: number;
+  source: 'SDN' | 'CSL' | 'UN' | 'UK';
   matched_list: 'SDN' | string; // string covers csl_entries.source_list values (Entity List, Denied Persons List, ...)
   matched_name: string;
-  match_score: number; // 0-1
+  match_score: number; // 0-1, blended token-sort + Jaro-Winkler score
+  // Breakdown of match_score, surfaced so a reviewer can see *why* a score was
+  // given rather than just the final number -- src/lib/fuzzyMatch.ts already
+  // computes these, they just weren't threaded through before.
+  token_sort_score?: number;
+  jaro_winkler_score?: number;
+  matched_via?: 'primary_name' | 'alias';
   matched_fields: string[]; // e.g. ["alias: 'OOO Vostok'", "DOB: 10 Dec 1948"]
   verdict: MatchVerdict;
   risk_memo: string;
@@ -88,6 +95,8 @@ export interface ScreeningResult {
   parties: PartyScreeningResult[];
   highest_severity: 'none' | 'caution' | 'hard_stop';
   hard_stop_triggered: boolean; // export direction + Entity List/Denied Persons true_match
+  screened_at: string | null; // ISO timestamp of this screening run, so a case can flag itself stale
+  deemed_export_flagged: boolean; // disclosed by the user: tech may be shared with a foreign national employee
 }
 
 export interface DutyStackLine {
@@ -108,6 +117,22 @@ export interface DeterminationResult {
   // import branch: uses origin.final_assembly_country as country of origin for overlay lookups
   duty_stack: DutyStackLine[] | null;
   landed_cost_estimate_pct: number | null;
+  // Dollar figures: only populated when the user discloses a declared value
+  // (optional -- a percentage-only estimate is still useful without one).
+  // null landed_cost_usd with a non-null declared_value_usd means totalPct
+  // was itself null (an unparseable duty line), same "can't compute, don't
+  // guess" rule as landed_cost_estimate_pct.
+  declared_value_usd: number | null;
+  landed_cost_usd: number | null; // declared_value_usd + duty, not duty alone
+  // Section 321 de minimis (19 CFR 10.151): true/false reflects ONLY the $800
+  // statutory threshold, which this app can check with certainty -- it is
+  // deliberately NOT a full eligibility determination, since antidumping/
+  // countervailing-duty orders, quota merchandise, certain regulated goods,
+  // and country-specific executive actions can all independently disqualify
+  // a shipment this app has no source wired up to detect. de_minimis_note
+  // always carries that caveat so the boolean is never read as a final answer.
+  de_minimis_eligible: boolean | null;
+  de_minimis_note: string | null;
   // export branch: destination is a distinct concept from origin.final_assembly_country
   // (an exported good's origin/assembly country and the country it ships TO are not the
   // same field), so it's collected at determination time rather than reusing Module 2's data.
@@ -173,12 +198,18 @@ export function emptyCaseFile(id: string, direction: Direction): CaseFile {
       parties: [],
       highest_severity: 'none',
       hard_stop_triggered: false,
+      screened_at: null,
+      deemed_export_flagged: false,
     },
     determination: {
       status: 'not_started',
       direction,
       duty_stack: null,
       landed_cost_estimate_pct: null,
+      declared_value_usd: null,
+      landed_cost_usd: null,
+      de_minimis_eligible: null,
+      de_minimis_note: null,
       destination_country: null,
       eccn: null,
       reasons_for_control: null,

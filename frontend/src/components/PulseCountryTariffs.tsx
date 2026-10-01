@@ -63,8 +63,15 @@ export function PulseCountryTariffs({
         {capped.length > 0 && (
           <>
             {' '}
-            {capped.length} countries ({capped.map((cCode) => TARIFF_COUNTRY_LABELS[cCode.country] ?? cCode.country).join(', ')}) have their Section 232
-            metals rate capped at {capped[0].ratePct}% instead of the standard {capped[0].standardPct}% ({capped[0].note}).
+            {/* Rendered per-country, not as one shared figure -- a capped rate/standard
+                pair can differ by country, and assuming they all match the first
+                entry would misstate every other country's real rate. */}
+            {capped
+              .map(
+                (cCode) =>
+                  `${TARIFF_COUNTRY_LABELS[cCode.country] ?? cCode.country}'s Section 232 metals rate is capped at ${cCode.ratePct}% instead of the standard ${cCode.standardPct}% (${cCode.note}).`
+              )
+              .join(' ')}
           </>
         )}
       </p>

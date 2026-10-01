@@ -65,9 +65,13 @@ export type MatchVerdict = 'true_match' | 'false_positive' | 'inconclusive';
 
 export interface PartyMatch {
   matched_entity_id: number;
+  source: 'SDN' | 'CSL' | 'UN' | 'UK';
   matched_list: string;
   matched_name: string;
   match_score: number;
+  token_sort_score?: number;
+  jaro_winkler_score?: number;
+  matched_via?: 'primary_name' | 'alias';
   matched_fields: string[];
   verdict: MatchVerdict;
   risk_memo: string;
@@ -84,6 +88,8 @@ export interface ScreeningResult {
   parties: PartyScreeningResult[];
   highest_severity: 'none' | 'caution' | 'hard_stop';
   hard_stop_triggered: boolean;
+  screened_at: string | null;
+  deemed_export_flagged: boolean;
 }
 
 export interface DutyStackLine {
@@ -103,6 +109,10 @@ export interface DeterminationResult {
   direction: Direction;
   duty_stack: DutyStackLine[] | null;
   landed_cost_estimate_pct: number | null;
+  declared_value_usd: number | null;
+  landed_cost_usd: number | null;
+  de_minimis_eligible: boolean | null;
+  de_minimis_note: string | null;
   destination_country: string | null;
   eccn: string | null;
   reasons_for_control: string[] | null;

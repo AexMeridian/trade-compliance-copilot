@@ -1,4 +1,5 @@
 import { PRESETS, type Preset } from '../lib/pulsePrefs';
+import { SITE } from '../lib/site';
 
 // Shown once to a first-time visitor (until they pick, skip, or open the
 // guide). One question -- "what describes you?" -- because that is the
@@ -39,7 +40,7 @@ export function PulseWelcome({ onPick, onGuide, onSkip }: { onPick: (p: Preset) 
     <section aria-label="Welcome" className="card mb-6 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-ink">Welcome to Trade Policy Pulse</h2>
+          <h2 className="text-xl font-semibold text-ink">Welcome to {SITE.name}</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
             This page keeps track of what's changing in world trade: new U.S. tariff and sanctions rules, stock and currency moves, and the news behind them.
             Everything is explained in plain English, and you don't need any background to follow it.

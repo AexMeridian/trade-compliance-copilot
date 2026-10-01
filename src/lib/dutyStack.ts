@@ -8,6 +8,11 @@
 import type { HtsCandidateRow, TariffOverlayRow } from './db.js';
 import type { DutyStackLine } from '../types/case.js';
 
+/** The two USMCA member countries besides the U.S. itself. Shared so this
+ * file's and determination.ts's "is USMCA even relevant here" checks can't
+ * drift out of sync with each other. */
+export const USMCA_COUNTRIES = new Set(['CA', 'MX']);
+
 /** Extracts a leading ad-valorem percentage from an HTS rate string like
  * "Free", "2.5%", "9.1¢/kg" (unparseable -> null, flagged for manual review
  * rather than silently treated as 0%). */
@@ -63,7 +68,7 @@ export function buildDutyStack(
   // the pre-2020 NAFTA convention and do not appear in the current schedule.
   // Verified against the live HTS data during this build: no Chapter 87 line
   // carries a "CA" token in its special_rate column at all.
-  const isUsmcaCountry = country === 'CA' || country === 'MX';
+  const isUsmcaCountry = USMCA_COUNTRIES.has(country);
   const programSymbol = isUsmcaCountry ? 'S' : null;
   const hasDifferentialSymbol = specialRateHasProgram(hts.special_rate ?? '', 'S+');
   const specialApplies =

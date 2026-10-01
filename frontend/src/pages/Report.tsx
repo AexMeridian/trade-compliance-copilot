@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { CaseFile, Verdict } from '../types/case';
-import { getReport } from '../lib/api';
+import { getReport, submitScreening } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
 import { DutyStackTable } from '../components/DutyStackTable';
 import { LicensePath } from '../components/LicensePath';
 import { ReasoningPanel } from '../components/ReasoningPanel';
+import { ScreeningRedFlags } from '../components/ScreeningRedFlags';
+import { agoText } from '../lib/pulsePlain';
+import { SITE } from '../lib/site';
 
 export function Report() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{ case_file: CaseFile; verdict: Verdict; generated_at: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [rescreening, setRescreening] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -18,6 +22,22 @@ export function Report() {
       .then(setData)
       .catch((e) => setLoadError((e as Error).message));
   }, [id]);
+
+  async function handleRescreen() {
+    if (!id || !data) return;
+    setRescreening(true);
+    try {
+      const parties = data.case_file.screening.parties.map((p) => ({ role: p.role, name: p.input_name }));
+      const { screening } = await submitScreening(id, parties, data.case_file.screening.deemed_export_flagged);
+      setData({ ...data, case_file: { ...data.case_file, screening } });
+    } catch {
+      // A failed re-screen leaves the existing (still-labeled, still-dated)
+      // result in place rather than clearing it -- a stale result the reader
+      // can see is stale is better than silently losing it.
+    } finally {
+      setRescreening(false);
+    }
+  }
 
   if (!id || loadError) {
     return (
@@ -40,6 +60,24 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {/* Screen-only: the printed/PDF copy names the site in its own
+          print-only header below instead, since the site's live header
+          (with its nav links) is hidden for print. */}
+      <div className="no-print mb-4 flex justify-end">
+        <button type="button" onClick={() => window.print()} className="btn text-sm">
+          Print or save as PDF
+        </button>
+      </div>
+      {/* Print-only: window.print()'s own header/footer already add a page
+          title and URL in most browsers, but this makes the case identity
+          and as-of date part of the document itself, not just the chrome
+          around it (which a reader may trim when saving to PDF). */}
+      <div className="mb-4 hidden border-b border-hairline pb-3 print:block">
+        <p className="font-display text-lg font-bold text-ink">{SITE.name} -- compliance case</p>
+        <p className="text-xs text-ink-faint">
+          Case {cf.id}, printed {new Date().toLocaleString()}. Not legal, customs, tax or financial advice -- see the disclaimer at the end of this document.
+        </p>
+      </div>
       <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} />
 
       <section className="mt-8 border-t border-hairline pt-6">
@@ -59,8 +97,18 @@ export function Report() {
       </section>
 
       <section className="mt-8 border-t border-hairline pt-6">
-        <h2 className="font-display text-xl font-bold text-ink">3. Screening</h2>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="font-display text-xl font-bold text-ink">3. Screening</h2>
+          <button type="button" onClick={handleRescreen} disabled={rescreening} className="no-print btn text-xs">
+            {rescreening ? 'Re-screening…' : 'Re-screen parties'}
+          </button>
+        </div>
         <p className="mt-1 text-sm capitalize">{cf.screening.highest_severity.replace('_', ' ')}</p>
+        {cf.screening.screened_at && (
+          <p className="text-xs text-ink-faint">
+            Screened {agoText(cf.screening.screened_at)}. Watchlists change over time -- re-screen before acting on a result from a while ago.
+          </p>
+        )}
         {cf.screening.parties.map((p, i) => (
           <div key={i} className="mt-3">
             <div className="text-sm font-semibold text-ink">
@@ -78,11 +126,18 @@ export function Report() {
                     ({m.matched_list}, score {m.match_score.toFixed(2)})
                   </span>
                 </div>
+                {m.token_sort_score !== undefined && m.jaro_winkler_score !== undefined && (
+                  <div className="text-xs text-ink-faint">
+                    Matched on {m.matched_via === 'alias' ? 'an alias' : 'the primary name'} -- token-sort {m.token_sort_score.toFixed(2)}, Jaro-Winkler{' '}
+                    {m.jaro_winkler_score.toFixed(2)}.
+                  </div>
+                )}
                 <div className="text-sm text-ink-muted">{m.risk_memo}</div>
               </div>
             ))}
           </div>
         ))}
+        <ScreeningRedFlags />
       </section>
 
       <section className="mt-8 border-t border-hairline pt-6">
@@ -90,7 +145,14 @@ export function Report() {
         <p className="mt-1 text-sm text-ink-muted">{cf.determination.reasoning?.summary}</p>
         <div className="mt-4">
           {cf.determination.direction === 'import' && cf.determination.duty_stack ? (
-            <DutyStackTable lines={cf.determination.duty_stack} totalPct={cf.determination.landed_cost_estimate_pct} />
+            <DutyStackTable
+              lines={cf.determination.duty_stack}
+              totalPct={cf.determination.landed_cost_estimate_pct}
+              htsCode={cf.classification.selected_code}
+              declaredValueUsd={cf.determination.declared_value_usd}
+              landedCostUsd={cf.determination.landed_cost_usd}
+              deMinimisNote={cf.determination.de_minimis_note}
+            />
           ) : (
             <LicensePath determination={cf.determination} />
           )}

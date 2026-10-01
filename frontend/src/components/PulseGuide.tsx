@@ -3,6 +3,7 @@ import { NEWS_CATEGORY_HINTS, TAG_HINTS } from '../lib/pulseGlossary';
 import { PulseDelta } from './PulseDelta';
 import { PulseGlossary } from './PulseGlossary';
 import { agoText } from '../lib/pulsePlain';
+import { SITE } from '../lib/site';
 import type { PulseHome } from '../types/pulse';
 
 const MARKET_TERMS: [string, string][] = [
@@ -103,7 +104,7 @@ export function PulseGuide({ status }: { status: PulseHome['status'] | null }) {
       <div>
         <h2 className="display text-3xl text-ink">A short guide to this page</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-          Trade Policy Pulse follows how governments, markets and news are changing the way goods and money move around the world, and explains it in plain
+          {SITE.name} follows how governments, markets and news are changing the way goods and money move around the world, and explains it in plain
           English. Here is how to get the most out of it.
         </p>
       </div>

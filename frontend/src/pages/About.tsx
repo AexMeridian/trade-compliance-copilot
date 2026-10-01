@@ -1,44 +1,73 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SITE } from '../lib/site';
+import { getPulseCoverage, type PulseCoverage } from '../lib/api';
 
 function H({ children }: { children: React.ReactNode }) {
   return <h2 className="display mt-10 border-t-2 border-ink pt-4 text-2xl text-ink">{children}</h2>;
 }
 
-const SOURCES: { name: string; used: string; terms: string }[] = [
+const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof PulseCoverage }[] = [
   {
     name: 'Federal Register (federalregister.gov)',
     used: 'Every U.S. trade action on this page: title, agency, document type, dates and abstract.',
     terms: 'Official U.S. government publication. Public information; we add topic labels and a plain-English sentence.',
+    coverageKey: 'federal_register',
   },
   {
     name: 'Yahoo Finance',
     used: 'Stock indexes, company shares, oil, natural gas, gold, copper, the 10-year Treasury yield and the dollar index.',
     terms: 'Public chart data, roughly 15 minutes delayed, provided for personal, informational use. Not an official or guaranteed feed.',
+    coverageKey: 'yahoo_finance',
   },
   {
     name: 'European Central Bank, via Frankfurter (frankfurter.dev)',
     used: 'Currency exchange rates against the U.S. dollar.',
     terms: "The ECB's daily reference rates, published once each business day.",
+    coverageKey: 'ecb_fx',
   },
   {
     name: 'BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve (RSS feeds)',
     used: 'News headlines. We show the headline, a short summary, a link to the original story and, for BBC and Guardian items, their own lead photo.',
     terms: 'Each publisher owns its content. We link to the original and do not copy article text. Photos load directly from the publisher.',
+    coverageKey: 'news',
   },
   {
     name: 'U.S. Bureau of Labor Statistics (bls.gov)',
     used: 'Consumer prices (CPI), the unemployment rate, nonfarm payrolls, producer prices (PPI), and import and export price indexes.',
     terms: 'Official U.S. government statistics, published on the BLS release schedule. Public information; keyless public API.',
+    coverageKey: 'bls',
   },
   {
     name: 'International Monetary Fund, COFER (data.imf.org)',
     used: "The U.S. dollar's share of the world's allocated foreign-exchange reserves.",
     terms: 'Official IMF statistics, published quarterly with roughly a one-quarter lag. Public information; keyless public API.',
+    coverageKey: 'imf_cofer',
+  },
+  {
+    name: 'Global Trade Alert (globaltradealert.org)',
+    used: "On each country's page: that country's own trade measures evaluated as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years.",
+    terms: "This is the one source on this page that is not a government or official statistics body -- it's an independent research database (University of St. Gallen-affiliated), free for non-commercial use under a CC BY-NC 4.0 license. Requires a free API key; limited here to a recent window, not its full archive back to 2009.",
+  },
+  {
+    name: 'U.S. Customs and Border Protection, Withhold Release Orders & Findings (cbp.gov)',
+    used: "On each country's page: forced-labor merchandise/entity orders under Section 307 (19 U.S.C. 1307) naming that country, active and historical.",
+    terms: 'Official U.S. government enforcement data, published as a CSV that CBP updates periodically. A separate, newer DHS list (the UFLPA Entity List) is linked to directly rather than ingested, since DHS publishes it only as a web page with no bulk data file.',
   },
 ];
 
 export function About() {
+  // Loaded, not hardcoded: each "tracked here since" date below is a live
+  // MIN() over that source's own table (src/routes/pulse.ts's /coverage
+  // route), so it can never drift from what's actually stored. A failed
+  // fetch just means the dates don't render -- never a guessed fallback.
+  const [coverage, setCoverage] = useState<PulseCoverage | null>(null);
+  useEffect(() => {
+    getPulseCoverage()
+      .then(setCoverage)
+      .catch(() => {});
+  }, []);
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">About {SITE.name}</h1>
@@ -53,13 +82,17 @@ export function About() {
 
       <H>Where the information comes from</H>
       <ul className="mt-3 divide-y divide-hairline border border-hairline">
-        {SOURCES.map((s) => (
-          <li key={s.name} className="px-4 py-3">
-            <p className="text-ink">{s.name}</p>
-            <p className="mt-0.5">{s.used}</p>
-            <p className="mt-0.5 text-ink-faint">{s.terms}</p>
-          </li>
-        ))}
+        {SOURCES.map((s) => {
+          const since = s.coverageKey && coverage ? coverage[s.coverageKey] : null;
+          return (
+            <li key={s.name} className="px-4 py-3">
+              <p className="text-ink">{s.name}</p>
+              <p className="mt-0.5">{s.used}</p>
+              <p className="mt-0.5 text-ink-faint">{s.terms}</p>
+              {since && <p className="mt-0.5 text-ink-faint">Tracked on this site since {since}.</p>}
+            </li>
+          );
+        })}
       </ul>
 
       <H>How it works</H>
@@ -68,8 +101,12 @@ export function About() {
       </p>
       <ul className="mt-3 list-disc space-y-2 pl-5">
         <li>
-          <span className="text-ink">Topic labels</span> (tariff, sanctions, export control, trade agreement) come from keyword rules applied to each document's
-          title and abstract, and to its issuing agency.
+          <span className="text-ink">Topic labels</span> (tariff, sanctions, export control, trade agreement) come from keyword rules applied to each
+          document's title and abstract, checked in a fixed order. A document from the sanctions office (OFAC) or the export-control bureau (BIS) gets that
+          label from agency membership alone, since that is effectively their entire function; every other agency is labelled only when the text itself
+          matches a topic's keywords (for example "tariff," "Section 301," "Section 232," "antidumping" for Tariff; "entity list," "EAR," "ITAR" for Export
+          Control). This order matters: it is why a State Department notice is only tagged Export Control when it is actually about arms-trade controls, not
+          whenever State publishes anything. A document matching none of the rules is labelled "Other."
         </li>
         <li>
           <span className="text-ink">The plain-English sentence</span> on each action is a template filled from its document type, agency, topic label, dates
@@ -96,7 +133,10 @@ export function About() {
         <Link to="/calculator" className="text-accent">
           Compliance calculator
         </Link>{' '}
-        is a different tool. It uses an AI model to help work through a shipment and shows its sources.
+        is a different tool. It uses an AI model to help work through a shipment and shows its sources. One part of it is not AI at all: party screening
+        matches a name against watchlists with a deterministic two-stage algorithm (a fast word-order-independent pre-filter, then a character-similarity
+        score called Jaro-Winkler), and shows both numbers next to each candidate so you can see why a match was or wasn't flagged, not just a single
+        unexplained score.
       </p>
 
       <H>Follow along</H>
@@ -105,8 +145,15 @@ export function About() {
         <a href="/api/pulse/rss" className="text-accent">
           RSS feed
         </a>{' '}
-        you can add to any feed reader. Add <code className="tabular-nums text-xs text-ink">?tag=Tariff</code> or{' '}
-        <code className="tabular-nums text-xs text-ink">?country=CN</code> to narrow it.
+        you can add to any feed reader -- no account needed. Narrow it with <code className="tabular-nums text-xs text-ink">?tag=</code>,{' '}
+        <code className="tabular-nums text-xs text-ink">?country=</code> or <code className="tabular-nums text-xs text-ink">?q=</code> (a keyword search
+        against the title and abstract, useful for a specific program like "Section 301"). Each accepts a comma-separated list, matched as "any of
+        these": <code className="tabular-nums text-xs text-ink">{'?q=Section 301,Section 232&country=CN,MX,CA'}</code> is one link for "Section 301 or 232
+        actions naming China, Mexico or Canada." The same three filters work on the{' '}
+        <a href="/api/pulse/feed" className="text-accent">
+          JSON feed
+        </a>{' '}
+        used elsewhere on this site.
       </p>
 
       <H>Important limits</H>
@@ -143,6 +190,10 @@ export function About() {
         See also:{' '}
         <Link to="/privacy" className="text-accent">
           Privacy
+        </Link>{' '}
+        and{' '}
+        <Link to="/accessibility" className="text-accent">
+          Accessibility
         </Link>
         .
       </p>

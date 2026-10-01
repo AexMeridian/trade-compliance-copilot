@@ -7,7 +7,7 @@ import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
 
 const SOURCE_URL = 'https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt';
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 export async function refreshScheduleB(env: Env): Promise<RefreshResult> {
   const today = new Date().toISOString().slice(0, 10);

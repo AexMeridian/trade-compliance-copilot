@@ -13,32 +13,91 @@ import { buildDutyStack } from '../lib/dutyStack.js';
 
 export const pulseRoute = new Hono<{ Bindings: Env }>();
 
+/** Parses and clamps a query-string integer param, defaulting on anything
+ * missing or non-numeric. Using `Number.isFinite` (rather than `Number(x) ||
+ * fallback`, which every call site here used to repeat) means an explicit
+ * `0` from the caller is respected instead of silently replaced by the
+ * default. */
+function clampInt(raw: string | undefined, opts: { default: number; min: number; max?: number }): number {
+  const n = raw === undefined || raw === '' ? NaN : Number(raw);
+  const v = Number.isFinite(n) ? n : opts.default;
+  const withMin = Math.max(v, opts.min);
+  return opts.max !== undefined ? Math.min(withMin, opts.max) : withMin;
+}
+
+/** Splits a comma-separated query param into a trimmed, non-empty list, so
+ * `?country=CN,MX,CA` reads the same as three separate values -- the
+ * no-account alternative to a saved multi-select filter (procurement's "alert
+ * me about Section 301 and Section 232 for these three countries" needs both
+ * this and the `q` multi-keyword support below). Returns [] for a missing or
+ * empty param, which the callers below treat as "no filter." */
+function csvParam(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 pulseRoute.get('/feed', async (c) => {
-  const limit = Math.min(Number(c.req.query('limit') ?? 30) || 30, 100);
-  const tag = c.req.query('tag') || null;
-  const search = c.req.query('q') || null;
+  const limit = clampInt(c.req.query('limit'), { default: 30, min: 1, max: 100 });
+  const tags = csvParam(c.req.query('tag'));
+  const keywords = csvParam(c.req.query('q'));
   // `countries` is stored as a JSON array string, e.g. '["CN","MX"]' -- the
   // quotes around the code in the LIKE pattern anchor the match to a whole
   // array element, so a 2-letter code can't accidentally match inside a
-  // longer one.
-  const country = c.req.query('country') || null;
+  // longer one. Each of tags/keywords/countries below is matched as an OR
+  // across the whole list (any match keeps the row), via json_each over the
+  // *requested* list rather than building one `?N` placeholder per value --
+  // that keeps the query text (and its positional param count) fixed
+  // regardless of how many comma-separated values were passed.
+  const countries = csvParam(c.req.query('country'));
   const { results } = await c.env.DB.prepare(
     `SELECT * FROM trade_policy_actions
-     WHERE (?1 IS NULL OR tag = ?1)
-       AND (?2 IS NULL OR title LIKE '%' || ?2 || '%' OR abstract LIKE '%' || ?2 || '%')
-       AND (?3 IS NULL OR countries LIKE '%"' || ?3 || '"%')
+     WHERE (?1 = '[]' OR EXISTS (SELECT 1 FROM json_each(?1) je WHERE tag = je.value))
+       AND (?2 = '[]' OR EXISTS (SELECT 1 FROM json_each(?2) je WHERE title LIKE '%' || je.value || '%' OR abstract LIKE '%' || je.value || '%'))
+       AND (?3 = '[]' OR EXISTS (SELECT 1 FROM json_each(?3) je WHERE countries LIKE '%"' || je.value || '"%'))
      ORDER BY publication_date DESC, document_number DESC LIMIT ?4`
   )
-    .bind(tag, search, country, limit)
+    .bind(JSON.stringify(tags), JSON.stringify(keywords), JSON.stringify(countries), limit)
     .all<PulseAction>();
   return c.json({ actions: results });
+});
+
+// Backs About.tsx's per-source coverage claim ("tracked here since...") with
+// a real MIN() over each source's own table, instead of a guessed date --
+// this project's standing rule against inventing figures applies just as
+// much to a date as to a dollar amount.
+pulseRoute.get('/coverage', async (c) => {
+  const [fedReg, news, bySource] = await Promise.all([
+    c.env.DB.prepare(`SELECT MIN(publication_date) AS min_date FROM trade_policy_actions`).first<{ min_date: string | null }>(),
+    c.env.DB.prepare(`SELECT MIN(published_at) AS min_date FROM world_news`).first<{ min_date: string | null }>(),
+    c.env.DB.prepare(
+      `SELECT meta.source AS source, MIN(ms.obs_date) AS min_date
+       FROM market_series ms JOIN market_series_meta meta ON meta.series_id = ms.series_id
+       GROUP BY meta.source`
+    ).all<{ source: string; min_date: string }>(),
+  ]);
+  const bySourceMap: Record<string, string> = {};
+  for (const row of bySource.results) bySourceMap[row.source] = row.min_date;
+  return c.json({
+    federal_register: fedReg?.min_date ?? null,
+    // world_news.published_at is a full ISO timestamp, not a bare date like
+    // every other source's obs_date/publication_date -- trimmed to match so
+    // About.tsx doesn't show a stray time-of-day for this one entry alone.
+    news: news?.min_date ? news.min_date.slice(0, 10) : null,
+    yahoo_finance: bySourceMap['Yahoo Finance'] ?? null,
+    ecb_fx: bySourceMap['Frankfurter (ECB reference rates)'] ?? null,
+    bls: bySourceMap['U.S. Bureau of Labor Statistics'] ?? null,
+    imf_cofer: bySourceMap['IMF COFER'] ?? null,
+  });
 });
 
 pulseRoute.get('/tempo', async (c) => {
   // Default (24) preserves every existing caller's behavior unchanged --
   // /home calls this unparameterized. Clamped so a bad query string can't
   // request an unbounded scan.
-  const months = Math.min(Math.max(Number(c.req.query('months') ?? 24) || 24, 6), 120);
+  const months = clampInt(c.req.query('months'), { default: 24, min: 6, max: 120 });
   const since = (() => {
     const d = new Date();
     d.setUTCMonth(d.getUTCMonth() - months);
@@ -60,7 +119,11 @@ pulseRoute.get('/tempo', async (c) => {
 // analyst would actually look for first (is activity accelerating, what
 // kind of action is dominating right now, what's new).
 pulseRoute.get('/summary', async (c) => {
-  const trend = await c.env.DB.prepare(
+  // Every query below reads a different slice of already-populated tables and
+  // none depends on another's result -- run them all concurrently rather than
+  // paying for the sum of ~12 D1 round trips on this endpoint (which /home
+  // also calls internally on every page load).
+  const trendP = c.env.DB.prepare(
     `SELECT
        SUM(CASE WHEN publication_date >= date('now', '-30 days') THEN 1 ELSE 0 END) AS last_30d,
        SUM(CASE WHEN publication_date < date('now', '-30 days') THEN 1 ELSE 0 END) AS prior_30d
@@ -71,7 +134,7 @@ pulseRoute.get('/summary', async (c) => {
   // A second, longer comparison window -- 90 vs. prior 90 days -- smooths
   // over the noise of any single busy or quiet week that the 30-day figure
   // above is more exposed to. Same shape, same "no baseline yet" handling.
-  const trend90 = await c.env.DB.prepare(
+  const trend90P = c.env.DB.prepare(
     `SELECT
        SUM(CASE WHEN publication_date >= date('now', '-90 days') THEN 1 ELSE 0 END) AS last_90d,
        SUM(CASE WHEN publication_date < date('now', '-90 days') THEN 1 ELSE 0 END) AS prior_90d
@@ -79,7 +142,7 @@ pulseRoute.get('/summary', async (c) => {
      WHERE publication_date >= date('now', '-180 days')`
   ).first<{ last_90d: number; prior_90d: number }>();
 
-  const leadingTag = await c.env.DB.prepare(
+  const leadingTagP = c.env.DB.prepare(
     `SELECT tag, COUNT(*) AS n FROM trade_policy_actions
      WHERE publication_date >= date('now', '-30 days')
      GROUP BY tag ORDER BY n DESC LIMIT 1`
@@ -89,9 +152,9 @@ pulseRoute.get('/summary', async (c) => {
   // "new" means the real-world measure itself took effect recently, not
   // that a row was touched by a refresh (these are never auto-refreshed,
   // see src/scheduled.ts's header comment).
-  const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM trade_policy_actions`).first<{ n: number }>();
+  const totalP = c.env.DB.prepare(`SELECT COUNT(*) AS n FROM trade_policy_actions`).first<{ n: number }>();
 
-  const newMeasures = await c.env.DB.prepare(
+  const newMeasuresP = c.env.DB.prepare(
     `SELECT COUNT(*) AS n FROM (
        SELECT program, legal_basis, rate_type, MIN(effective_date) AS effective_date
        FROM tariff_overlays
@@ -112,7 +175,7 @@ pulseRoute.get('/summary', async (c) => {
   // same 7 tracked agencies as lib/pulse/federalRegister.ts's AGENCY_SLUGS
   // (substring match, same technique as tag.ts's resolveAgencySlugs),
   // verified to produce exactly those 7 clean buckets.
-  const agencyBreakdown = await c.env.DB.prepare(
+  const agencyBreakdownP = c.env.DB.prepare(
     `WITH primary_agency AS (
        SELECT CASE
          WHEN agency LIKE '%International Trade Administration%' THEN 'International Trade Administration'
@@ -135,7 +198,7 @@ pulseRoute.get('/summary', async (c) => {
   // not "documents" (a document naming 3 countries counts once per country,
   // by design -- this is a coverage view, not a partition of the 30-day total).
   // Verified json_each works against this D1 instance before writing this.
-  const countryBreakdown = await c.env.DB.prepare(
+  const countryBreakdownP = c.env.DB.prepare(
     `SELECT je.value AS country, COUNT(*) AS n
      FROM trade_policy_actions, json_each(countries) je
      WHERE publication_date >= date('now', '-30 days') AND countries IS NOT NULL AND countries != '[]'
@@ -145,7 +208,7 @@ pulseRoute.get('/summary', async (c) => {
   // "Open for comment" = comments_close_on is set and hasn't passed --
   // directly answers the one question a trade attorney or affected company
   // actually needs a fast answer to: what can I still weigh in on right now.
-  const openForComment = await c.env.DB.prepare(
+  const openForCommentP = c.env.DB.prepare(
     `SELECT COUNT(*) AS n FROM trade_policy_actions WHERE comments_close_on >= date('now')`
   ).first<{ n: number }>();
 
@@ -160,24 +223,52 @@ pulseRoute.get('/summary', async (c) => {
   // added pressure, so they're returned as separate notes instead of being
   // folded into one misleadingly-precise "total rate" number.
   const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
-  const forcedLabor = await c.env.DB.prepare(
+  const forcedLaborP = c.env.DB.prepare(
     `SELECT country_scope AS country, rate_pct AS ratePct, source_url AS sourceUrl, data_as_of AS asOf
      FROM tariff_overlays WHERE program = 'sec301_forced_labor' AND ${activeOverlay}
      ORDER BY rate_pct DESC, country_scope`
   ).all<{ country: string; ratePct: number; sourceUrl: string; asOf: string }>();
-  const canadaExtra = await c.env.DB.prepare(
+  const canadaExtraP = c.env.DB.prepare(
     `SELECT country_scope AS country, MAX(rate_pct) AS ratePct, MIN(source_url) AS sourceUrl
      FROM tariff_overlays WHERE program = 'sec338_canada' AND ${activeOverlay} GROUP BY country_scope`
   ).all<{ country: string; ratePct: number; sourceUrl: string }>();
-  const metalsCap = await c.env.DB.prepare(
+  const metalsCapP = c.env.DB.prepare(
     `SELECT country_scope AS country, rate_pct AS ratePct, source_url AS sourceUrl
      FROM tariff_overlays WHERE program = 'sec232_metals_country_cap' AND ${activeOverlay}
      ORDER BY country_scope`
   ).all<{ country: string; ratePct: number; sourceUrl: string }>();
-  const metalsBaseline = await c.env.DB.prepare(
+  const metalsBaselineP = c.env.DB.prepare(
     `SELECT MAX(rate_pct) AS n FROM tariff_overlays
      WHERE program IN ('sec232_steel','sec232_aluminum','sec232_copper') AND country_scope IS NULL AND ${activeOverlay}`
   ).first<{ n: number | null }>();
+
+  const [
+    trend,
+    trend90,
+    leadingTag,
+    total,
+    newMeasures,
+    agencyBreakdown,
+    countryBreakdown,
+    openForComment,
+    forcedLabor,
+    canadaExtra,
+    metalsCap,
+    metalsBaseline,
+  ] = await Promise.all([
+    trendP,
+    trend90P,
+    leadingTagP,
+    totalP,
+    newMeasuresP,
+    agencyBreakdownP,
+    countryBreakdownP,
+    openForCommentP,
+    forcedLaborP,
+    canadaExtraP,
+    metalsCapP,
+    metalsBaselineP,
+  ]);
 
   const last30 = trend?.last_30d ?? 0;
   const prior30 = trend?.prior_30d ?? 0;
@@ -294,87 +385,140 @@ pulseRoute.get('/country/:code', async (c) => {
   const countryName = c.req.query('name') || null;
   const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
 
-  const actions = await c.env.DB.prepare(
-    `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
-     ORDER BY publication_date DESC, document_number DESC LIMIT 200`
-  )
-    .bind(code)
-    .all<PulseAction>()
-    .catch(() => ({ results: [] as PulseAction[] }));
+  // Every section below is an independent read (dutyStack/coverage/sanctions
+  // already run their own internal steps concurrently) -- fetched together
+  // with Promise.all instead of one D1 round trip at a time, since none of
+  // these sections depends on another's result.
+  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
+       ORDER BY publication_date DESC, document_number DESC LIMIT 200`
+    )
+      .bind(code)
+      .all<PulseAction>()
+      .catch(() => ({ results: [] as PulseAction[] })),
 
-  const tempo = await c.env.DB.prepare(
-    `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
-     FROM trade_policy_actions, json_each(countries) je
-     WHERE je.value = ?1 GROUP BY month ORDER BY month`
-  )
-    .bind(code)
-    .all<TempoPoint>()
-    .catch(() => ({ results: [] as TempoPoint[] }));
+    c.env.DB.prepare(
+      `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
+       FROM trade_policy_actions, json_each(countries) je
+       WHERE je.value = ?1 GROUP BY month ORDER BY month`
+    )
+      .bind(code)
+      .all<TempoPoint>()
+      .catch(() => ({ results: [] as TempoPoint[] })),
 
-  const forcedLabor = await c.env.DB.prepare(
-    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, data_as_of AS asOf, legal_basis AS legalBasis
-     FROM tariff_overlays WHERE program = 'sec301_forced_labor' AND country_scope = ?1 AND ${activeOverlay}`
-  )
-    .bind(code)
-    .first<{ ratePct: number; sourceUrl: string; asOf: string; legalBasis: string }>()
-    .catch(() => null);
-  const extra = await c.env.DB.prepare(
-    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
-     FROM tariff_overlays WHERE program = 'sec338_canada' AND country_scope = ?1 AND ${activeOverlay}`
-  )
-    .bind(code)
-    .all<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
-    .catch(() => ({ results: [] }));
-  const capped = await c.env.DB.prepare(
-    `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
-     FROM tariff_overlays WHERE program = 'sec232_metals_country_cap' AND country_scope = ?1 AND ${activeOverlay}`
-  )
-    .bind(code)
-    .first<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
-    .catch(() => null);
-  const metalsBaseline = await c.env.DB.prepare(
-    `SELECT MAX(rate_pct) AS n FROM tariff_overlays
-     WHERE program IN ('sec232_steel','sec232_aluminum','sec232_copper') AND country_scope IS NULL AND ${activeOverlay}`
-  )
-    .first<{ n: number | null }>()
-    .catch(() => null);
+    c.env.DB.prepare(
+      `SELECT rate_pct AS ratePct, source_url AS sourceUrl, data_as_of AS asOf, legal_basis AS legalBasis
+       FROM tariff_overlays WHERE program = 'sec301_forced_labor' AND country_scope = ?1 AND ${activeOverlay}`
+    )
+      .bind(code)
+      .first<{ ratePct: number; sourceUrl: string; asOf: string; legalBasis: string }>()
+      .catch(() => null),
 
-  const dutyStack = await Promise.all(
-    REPRESENTATIVE_HTS.map(async ({ htsno, label }) => {
-      try {
-        const hts = await getRateBearingHtsLine(c.env, htsno);
-        if (!hts) return { htsno, label, description: null, totalPct: null, lines: [], error: 'This HTS line is not in the loaded schedule.' };
-        const overlays = await getApplicableOverlays(c.env, htsno, code);
-        const result = buildDutyStack(hts, code, null, overlays);
-        return { htsno, label, description: hts.description, totalPct: result.totalPct, lines: result.lines, error: null };
-      } catch {
-        return { htsno, label, description: null, totalPct: null, lines: [], error: 'Could not compute this line right now.' };
-      }
-    })
-  );
+    c.env.DB.prepare(
+      `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
+       FROM tariff_overlays WHERE program = 'sec338_canada' AND country_scope = ?1 AND ${activeOverlay}`
+    )
+      .bind(code)
+      .all<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
+      .catch(() => ({ results: [] })),
 
-  const coverage = await getCountryCoverage(c.env, code).catch(() => null);
-  const chartRows = coverage ? await getCountryChartRows(c.env, code).catch(() => []) : [];
+    c.env.DB.prepare(
+      `SELECT rate_pct AS ratePct, source_url AS sourceUrl, legal_basis AS legalBasis, data_as_of AS asOf
+       FROM tariff_overlays WHERE program = 'sec232_metals_country_cap' AND country_scope = ?1 AND ${activeOverlay}`
+    )
+      .bind(code)
+      .first<{ ratePct: number; sourceUrl: string; legalBasis: string; asOf: string }>()
+      .catch(() => null),
 
-  const sanctions = countryName
-    ? await (async () => {
-        const [sdn, csl] = await Promise.all([
-          c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`)
-            .bind(countryName)
-            .first<{ n: number }>()
-            .catch(() => null),
-          c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`)
-            .bind(countryName)
-            .first<{ n: number }>()
-            .catch(() => null),
-        ]);
-        return {
-          sdnCount: sdn?.n ?? null,
-          cslCount: csl?.n ?? null,
-          note: 'Text match on the OFAC/BIS address field, not a normalized country code -- see the full sanctions list for exact hits.',
-        };
-      })()
-    : { sdnCount: null, cslCount: null, note: 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.' };
+    c.env.DB.prepare(
+      `SELECT MAX(rate_pct) AS n FROM tariff_overlays
+       WHERE program IN ('sec232_steel','sec232_aluminum','sec232_copper') AND country_scope IS NULL AND ${activeOverlay}`
+    )
+      .first<{ n: number | null }>()
+      .catch(() => null),
+
+    Promise.all(
+      REPRESENTATIVE_HTS.map(async ({ htsno, label }) => {
+        try {
+          const hts = await getRateBearingHtsLine(c.env, htsno);
+          if (!hts) return { htsno, label, description: null, totalPct: null, lines: [], error: 'This HTS line is not in the loaded schedule.' };
+          const overlays = await getApplicableOverlays(c.env, htsno, code);
+          const result = buildDutyStack(hts, code, null, overlays);
+          return { htsno, label, description: hts.description, totalPct: result.totalPct, lines: result.lines, error: null };
+        } catch {
+          return { htsno, label, description: null, totalPct: null, lines: [], error: 'Could not compute this line right now.' };
+        }
+      })
+    ),
+
+    (async () => {
+      const coverage = await getCountryCoverage(c.env, code).catch(() => null);
+      const chartRows = coverage ? await getCountryChartRows(c.env, code).catch(() => []) : [];
+      return { coverage, chartRows };
+    })(),
+
+    countryName
+      ? (async () => {
+          const [sdn, csl] = await Promise.all([
+            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`)
+              .bind(countryName)
+              .first<{ n: number }>()
+              .catch(() => null),
+            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`)
+              .bind(countryName)
+              .first<{ n: number }>()
+              .catch(() => null),
+          ]);
+          return {
+            sdnCount: sdn?.n ?? null,
+            cslCount: csl?.n ?? null,
+            note: 'Text match on the OFAC/BIS address field, not a normalized country code -- see the full sanctions list for exact hits.',
+          };
+        })()
+      : Promise.resolve({ sdnCount: null, cslCount: null, note: 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.' }),
+
+    countryName
+      ? (async () => {
+          const [{ results }, total] = await Promise.all([
+            c.env.DB.prepare(
+              `SELECT intervention_id, state_act_title, intervention_url, gta_evaluation, intervention_type, date_announced
+               FROM gta_interventions
+               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)
+               ORDER BY date_announced DESC LIMIT 10`
+            )
+              .bind(countryName)
+              .all()
+              .catch(() => ({ results: [] })),
+            c.env.DB.prepare(
+              `SELECT COUNT(*) AS n FROM gta_interventions
+               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)`
+            )
+              .bind(countryName)
+              .first<{ n: number }>()
+              .catch(() => null),
+          ]);
+          return { rows: results, total: total?.n ?? 0 };
+        })()
+      : Promise.resolve({ rows: [], total: 0 }),
+
+    (async () => {
+      const [{ results }, total] = await Promise.all([
+        c.env.DB.prepare(
+          `SELECT id, effective_date, merchandise, order_type, status, entity, remarks
+           FROM wro_findings WHERE country_code = ?1 ORDER BY effective_date DESC LIMIT 20`
+        )
+          .bind(code)
+          .all()
+          .catch(() => ({ results: [] })),
+        c.env.DB.prepare(`SELECT COUNT(*) AS n FROM wro_findings WHERE country_code = ?1`)
+          .bind(code)
+          .first<{ n: number }>()
+          .catch(() => null),
+      ]);
+      return { rows: results, total: total?.n ?? 0 };
+    })(),
+  ]);
 
   return c.json({
     code,
@@ -394,6 +538,16 @@ pulseRoute.get('/country/:code', async (c) => {
       rows: chartRows,
     },
     sanctions,
+    retaliatoryMeasures: {
+      ...retaliatoryMeasures,
+      note: countryName
+        ? 'Independent research data from Global Trade Alert (globaltradealert.org), not a U.S. government source -- measures this country has taken that GTA evaluates as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years. Matched on GTA\'s own jurisdiction name, which can differ slightly from this country\'s display name.'
+        : 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.',
+    },
+    forcedLaborEnforcement: {
+      ...wroFindings,
+      note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) naming this country -- a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk. Includes historical as well as active orders; check the status on each.',
+    },
   });
 });
 
@@ -409,19 +563,21 @@ pulseRoute.get('/country/:code', async (c) => {
 pulseRoute.get('/tariffs', async (c) => {
   const program = c.req.query('program') || null;
   const country = c.req.query('country') || null;
-  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50) || 50, 1), 200);
-  const offset = Math.max(Number(c.req.query('offset') ?? 0) || 0, 0);
+  const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
 
   const where = `(?1 IS NULL OR program = ?1) AND (?2 IS NULL OR country_scope = ?2)`;
-  const { results } = await c.env.DB.prepare(
-    `SELECT program, hts_pattern, country_scope, rate_pct, rate_type, legal_basis, effective_date, expiration_date, source_url, source_tier, data_as_of
-     FROM tariff_overlays WHERE ${where}
-     ORDER BY program, country_scope, hts_pattern LIMIT ?3 OFFSET ?4`
-  )
-    .bind(program, country, limit, offset)
-    .all();
-  const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM tariff_overlays WHERE ${where}`).bind(program, country).first<{ n: number }>();
-  const programs = await c.env.DB.prepare(`SELECT DISTINCT program FROM tariff_overlays ORDER BY program`).all<{ program: string }>();
+  const [{ results }, total, programs] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT program, hts_pattern, country_scope, rate_pct, rate_type, legal_basis, effective_date, expiration_date, source_url, source_tier, data_as_of
+       FROM tariff_overlays WHERE ${where}
+       ORDER BY program, country_scope, hts_pattern LIMIT ?3 OFFSET ?4`
+    )
+      .bind(program, country, limit, offset)
+      .all(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM tariff_overlays WHERE ${where}`).bind(program, country).first<{ n: number }>(),
+    c.env.DB.prepare(`SELECT DISTINCT program FROM tariff_overlays ORDER BY program`).all<{ program: string }>(),
+  ]);
 
   return c.json({ rows: results, total: total?.n ?? 0, limit, offset, programs: programs.results.map((r) => r.program) });
 });
@@ -432,44 +588,51 @@ pulseRoute.get('/sanctions', async (c) => {
   // normalized ISO code, so this matches a full country name, not a code.
   const countryName = c.req.query('country') || null;
   const list = c.req.query('list'); // 'sdn' | 'csl' | omitted = both
-  const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 50) || 50, 1), 200);
-  const offset = Math.max(Number(c.req.query('offset') ?? 0) || 0, 0);
+  const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
 
   const sdnWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
   const cslWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
   const bind = countryName ? [countryName] : [];
 
-  const sdn =
+  // SDN and CSL are two independent lists (and each list's own rows/total
+  // queries are independent of each other too) -- run all of it concurrently
+  // rather than up to 4 D1 round trips in sequence.
+  const [sdn, csl] = await Promise.all([
     !list || list === 'sdn'
-      ? await (async () => {
-          const { results } = await c.env.DB.prepare(
-            `SELECT id, primary_name AS name, entity_type, programs, addresses, source_url FROM sdn_entries ${sdnWhere}
-             ORDER BY primary_name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
-          )
-            .bind(...bind, limit, offset)
-            .all();
-          const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries ${sdnWhere}`)
-            .bind(...bind)
-            .first<{ n: number }>();
+      ? (async () => {
+          const [{ results }, total] = await Promise.all([
+            c.env.DB.prepare(
+              `SELECT id, primary_name AS name, entity_type, programs, addresses, source_url FROM sdn_entries ${sdnWhere}
+               ORDER BY primary_name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
+            )
+              .bind(...bind, limit, offset)
+              .all(),
+            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries ${sdnWhere}`)
+              .bind(...bind)
+              .first<{ n: number }>(),
+          ]);
           return { rows: results.map((r) => ({ ...r, list: 'SDN' as const })), total: total?.n ?? 0 };
         })()
-      : { rows: [], total: 0 };
+      : Promise.resolve({ rows: [], total: 0 }),
 
-  const csl =
     !list || list === 'csl'
-      ? await (async () => {
-          const { results } = await c.env.DB.prepare(
-            `SELECT id, name, source_list, license_requirement, addresses, source_url FROM csl_entries ${cslWhere}
-             ORDER BY name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
-          )
-            .bind(...bind, limit, offset)
-            .all();
-          const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries ${cslWhere}`)
-            .bind(...bind)
-            .first<{ n: number }>();
+      ? (async () => {
+          const [{ results }, total] = await Promise.all([
+            c.env.DB.prepare(
+              `SELECT id, name, source_list, license_requirement, addresses, source_url FROM csl_entries ${cslWhere}
+               ORDER BY name LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
+            )
+              .bind(...bind, limit, offset)
+              .all(),
+            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries ${cslWhere}`)
+              .bind(...bind)
+              .first<{ n: number }>(),
+          ]);
           return { rows: results.map((r) => ({ ...r, list: 'CSL' as const })), total: total?.n ?? 0 };
         })()
-      : { rows: [], total: 0 };
+      : Promise.resolve({ rows: [], total: 0 }),
+  ]);
 
   return c.json({
     sdn: { rows: sdn.rows, total: sdn.total },
@@ -480,6 +643,36 @@ pulseRoute.get('/sanctions', async (c) => {
       ? 'Text match on the OFAC/BIS address field, not a normalized country code.'
       : 'No country filter applied -- showing entries in name order.',
   });
+});
+
+// NATO defense expenditure (% of GDP) -- a small, manually-curated,
+// once-a-year reference dataset (see migrations/0018's header comment),
+// stored in the same generic market_series tables as every live-fetched
+// series but never auto-refreshed. Full history, same reasoning as /cofer.
+pulseRoute.get('/nato-defense', async (c) => {
+  const [series, meta] = await Promise.all([
+    c.env.DB.prepare(`SELECT series_id, obs_date, value FROM market_series WHERE series_id LIKE 'NATO_DEFENSE_PCT:%' ORDER BY series_id, obs_date`).all<{
+      series_id: string;
+      obs_date: string;
+      value: number;
+    }>(),
+    c.env.DB.prepare(`SELECT series_id, source, source_url, last_fetched_at FROM market_series_meta WHERE series_id LIKE 'NATO_DEFENSE_PCT:%'`).all<{
+      series_id: string;
+      source: string;
+      source_url: string;
+      last_fetched_at: string;
+    }>(),
+  ]);
+  const byCountry: Record<string, { points: [string, number][]; source: string; sourceUrl: string; asOf: string }> = {};
+  for (const m of meta.results) {
+    const code = m.series_id.split(':')[1];
+    byCountry[code] = { points: [], source: m.source, sourceUrl: m.source_url, asOf: m.last_fetched_at };
+  }
+  for (const s of series.results) {
+    const code = s.series_id.split(':')[1];
+    byCountry[code]?.points.push([s.obs_date, s.value]);
+  }
+  return c.json({ countries: byCountry });
 });
 
 // Full history, not the 430-day window /markets caps everything else to --
@@ -499,6 +692,78 @@ pulseRoute.get('/export-control-chart', async (c) => {
     c.env.DB.prepare(`SELECT * FROM country_chart_coverage ORDER BY country_name`).all(),
   ]);
   return c.json({ rows: rows.results, coverage: coverage.results });
+});
+
+// Browsable list of Global Trade Alert interventions -- foreign governments'
+// own trade-restrictive measures affecting the U.S. (see globalTradeAlert.ts
+// for the exact ingestion scope). `country` matches GTA's own jurisdiction
+// name exactly (e.g. "China", "Republic of Korea") -- a text match against a
+// separately-curated name field, same disclosed-limitation pattern as
+// /sanctions' address-text match, not a normalized code lookup.
+pulseRoute.get('/gta', async (c) => {
+  const countryName = c.req.query('country') || null;
+  const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+
+  const where = countryName
+    ? `WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)`
+    : '';
+  const bind = countryName ? [countryName] : [];
+
+  const [{ results }, total] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT intervention_id, state_act_title, intervention_url, state_act_url, gta_evaluation, implementing_jurisdictions,
+              implementing_jurisdiction_groups, intervention_type, mast_chapter, date_announced, date_implemented, date_removed, is_in_force
+       FROM gta_interventions ${where}
+       ORDER BY date_announced DESC LIMIT ?${bind.length + 1} OFFSET ?${bind.length + 2}`
+    )
+      .bind(...bind, limit, offset)
+      .all(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM gta_interventions ${where}`)
+      .bind(...bind)
+      .first<{ n: number }>(),
+  ]);
+
+  return c.json({
+    rows: results,
+    total: total?.n ?? 0,
+    limit,
+    offset,
+    note: 'Independent research data from Global Trade Alert (globaltradealert.org), not a U.S. government source. Limited to measures evaluated as harmful or likely-harmful to foreign commercial interests, affecting the United States, announced in roughly the last 3 years.',
+  });
+});
+
+// Browsable list of CBP Withhold Release Orders & Findings (Section 307
+// forced-labor enforcement) -- see migrations/0017's header comment for why
+// this, not the newer DHS UFLPA Entity List, is what this app ingests in
+// bulk. `country` matches the ISO alpha-2 code CBP's own CSV already uses,
+// same code this app uses everywhere else -- no name-matching caveat needed
+// here, unlike /gta.
+pulseRoute.get('/wro', async (c) => {
+  const country = c.req.query('country')?.toUpperCase() || null;
+  const status = c.req.query('status') || null; // 'Active' | omitted = all
+  const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+
+  const where = `(?1 IS NULL OR country_code = ?1) AND (?2 IS NULL OR status = ?2)`;
+  const [{ results }, total] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT id, effective_date, country_code, country, merchandise, order_type, industry, status, entity, remarks, source_url
+       FROM wro_findings WHERE ${where}
+       ORDER BY effective_date DESC LIMIT ?3 OFFSET ?4`
+    )
+      .bind(country, status, limit, offset)
+      .all(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM wro_findings WHERE ${where}`).bind(country, status).first<{ n: number }>(),
+  ]);
+
+  return c.json({
+    rows: results,
+    total: total?.n ?? 0,
+    limit,
+    offset,
+    note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) -- a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk (see dhs.gov/uflpa-entity-list for that specific list).',
+  });
 });
 
 const FX_TTL_MS = 30 * 60_000;
@@ -533,7 +798,7 @@ pulseRoute.get('/markets', async (c) => {
   // How many daily points each tile's chart series carries -- default (70,
   // ~3 months) is unchanged for every existing caller; a range selector on
   // the frontend can request more, up to as much as market_series retains.
-  const days = Math.min(Math.max(Number(c.req.query('days') ?? 70) || 70, 30), 430);
+  const days = clampInt(c.req.query('days'), { default: 70, min: 30, max: 430 });
   const load = () =>
     c.env.DB.prepare(
       `SELECT series_id, obs_date, value FROM market_series
@@ -640,7 +905,7 @@ pulseRoute.get('/markets', async (c) => {
 const NEWS_CATEGORIES = ['Trade & Supply Chain', 'Markets & Currency', 'Elections & Politics', 'Official'];
 
 pulseRoute.get('/news', async (c) => {
-  const limit = Math.min(Number(c.req.query('limit') ?? 30) || 30, 60);
+  const limit = clampInt(c.req.query('limit'), { default: 30, min: 1, max: 60 });
   const requested = c.req.query('category') || null;
   const category = requested && NEWS_CATEGORIES.includes(requested) ? requested : null;
 
@@ -796,7 +1061,10 @@ pulseRoute.get('/home', async (c) => {
 
 // ---------------------------------------------------------------------------
 // RSS 2.0 feed of U.S. trade actions -- the no-account way to "get alerts":
-// paste the URL into any feed reader. Same filters as /feed (tag, country).
+// paste the URL into any feed reader. Same filters as /feed (tag, country,
+// q), each accepting a comma-separated list via csvParam() so "Section 301
+// and Section 232, for these three countries" is one subscribable link
+// instead of something only possible with a saved search behind a login.
 // Title, agency, document type and the Federal Register's own abstract only.
 // ---------------------------------------------------------------------------
 const xmlEscape = (v: unknown) =>
@@ -807,25 +1075,85 @@ const xmlEscape = (v: unknown) =>
     .replace(/"/g, '&quot;');
 
 pulseRoute.get('/rss', async (c) => {
-  const limit = Math.min(Number(c.req.query('limit') ?? 30) || 30, 50);
-  const tag = c.req.query('tag') || null;
-  const country = c.req.query('country') || null;
+  const limit = clampInt(c.req.query('limit'), { default: 30, min: 1, max: 50 });
+  const tags = csvParam(c.req.query('tag'));
+  const keywords = csvParam(c.req.query('q'));
+  const countries = csvParam(c.req.query('country'));
   const { results } = await c.env.DB.prepare(
     `SELECT document_number, title, abstract, agency, doc_type, tag, publication_date, html_url FROM trade_policy_actions
-     WHERE (?1 IS NULL OR tag = ?1) AND (?2 IS NULL OR countries LIKE '%"' || ?2 || '"%')
-     ORDER BY publication_date DESC, document_number DESC LIMIT ?3`
+     WHERE (?1 = '[]' OR EXISTS (SELECT 1 FROM json_each(?1) je WHERE tag = je.value))
+       AND (?2 = '[]' OR EXISTS (SELECT 1 FROM json_each(?2) je WHERE title LIKE '%' || je.value || '%' OR abstract LIKE '%' || je.value || '%'))
+       AND (?3 = '[]' OR EXISTS (SELECT 1 FROM json_each(?3) je WHERE countries LIKE '%"' || je.value || '"%'))
+     ORDER BY publication_date DESC, document_number DESC LIMIT ?4`
   )
-    .bind(tag, country, limit)
+    .bind(JSON.stringify(tags), JSON.stringify(keywords), JSON.stringify(countries), limit)
     .all<{ document_number: string; title: string; abstract: string | null; agency: string; doc_type: string; tag: string; publication_date: string; html_url: string }>();
 
   const origin = new URL(c.req.url).origin;
-  const label = [tag, country].filter(Boolean).join(', ');
+  const label = [...tags, ...keywords, ...countries].join(', ');
   const items = results
     .map((r) => {
       const desc = `${r.doc_type} (${r.tag}) from ${r.agency.split(', ').slice(0, 2).join(', ')}.${r.abstract ? ` ${r.abstract.slice(0, 300)}${r.abstract.length > 300 ? '…' : ''}` : ''}`;
       return `<item><title>${xmlEscape(r.title)}</title><link>${xmlEscape(r.html_url)}</link><guid isPermaLink="false">${xmlEscape(r.document_number)}</guid><pubDate>${new Date(`${r.publication_date}T12:00:00Z`).toUTCString()}</pubDate><category>${xmlEscape(r.tag)}</category><description>${xmlEscape(desc)}</description></item>`;
     })
     .join('');
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${xmlEscape(`Trade Policy Pulse: U.S. trade actions${label ? ` (${label})` : ''}`)}</title><link>${xmlEscape(origin)}/</link><description>New U.S. tariff, sanctions, export-control and trade-agreement actions from the Federal Register.</description><language>en-us</language><atom:link href="${xmlEscape(c.req.url)}" rel="self" type="application/rss+xml"/>${items}</channel></rss>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${xmlEscape(`Aex Terminal: U.S. trade actions${label ? ` (${label})` : ''}`)}</title><link>${xmlEscape(origin)}/</link><description>New U.S. tariff, sanctions, export-control and trade-agreement actions from the Federal Register.</description><language>en-us</language><atom:link href="${xmlEscape(c.req.url)}" rel="self" type="application/rss+xml"/>${items}</channel></rss>`;
   return new Response(xml, { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+});
+
+// Citable snapshots -- see migrations/0021_schema_pulse_snapshots.sql's header
+// for why this is its own frozen-copy table rather than reusing any
+// existing last_updated/data_as_of column. Already covered by index.ts's
+// blanket /api/pulse/* rate limit (120/min/IP), same as every other route
+// here -- no extra limiter needed just for the write.
+const SNAPSHOT_CHART_TYPES = new Set(['tempo', 'markets', 'cofer']);
+const MAX_SNAPSHOT_JSON_BYTES = 200_000; // generous for chart data (a few hundred points), well under D1's 100KB-per-value column limit headroom when combined with the rest of the row
+
+pulseRoute.post('/snapshots', async (c) => {
+  const body = await c.req
+    .json<{ chart_type?: string; title?: string; params?: unknown; data?: unknown; source_note?: string }>()
+    .catch(() => null);
+  if (!body) return c.json({ error: 'Invalid JSON body.' }, 400);
+  const { chart_type, title, params, data, source_note } = body;
+
+  if (!chart_type || !SNAPSHOT_CHART_TYPES.has(chart_type)) {
+    return c.json({ error: `chart_type must be one of: ${[...SNAPSHOT_CHART_TYPES].join(', ')}` }, 400);
+  }
+  if (!title || typeof title !== 'string') return c.json({ error: 'title is required.' }, 400);
+  if (!source_note || typeof source_note !== 'string') return c.json({ error: 'source_note is required.' }, 400);
+  if (data === undefined) return c.json({ error: 'data is required.' }, 400);
+
+  const paramsJson = JSON.stringify(params ?? {});
+  const dataJson = JSON.stringify(data);
+  if (dataJson.length > MAX_SNAPSHOT_JSON_BYTES) {
+    return c.json({ error: 'Snapshot data is too large.' }, 400);
+  }
+
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO pulse_snapshots (id, chart_type, title, params_json, data_json, source_note, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+  )
+    .bind(id, chart_type, title, paramsJson, dataJson, source_note, createdAt)
+    .run();
+
+  return c.json({ id, created_at: createdAt });
+});
+
+pulseRoute.get('/snapshots/:id', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare(`SELECT * FROM pulse_snapshots WHERE id = ?1`)
+    .bind(id)
+    .first<{ id: string; chart_type: string; title: string; params_json: string; data_json: string; source_note: string; created_at: string }>();
+  if (!row) return c.json({ error: 'Snapshot not found.' }, 404);
+
+  return c.json({
+    id: row.id,
+    chart_type: row.chart_type,
+    title: row.title,
+    params: JSON.parse(row.params_json),
+    data: JSON.parse(row.data_json),
+    source_note: row.source_note,
+    created_at: row.created_at,
+  });
 });

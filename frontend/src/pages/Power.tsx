@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseCoferHistory, getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
+import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, syncPulse, type NatoDefenseCountry } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
 import { PowerGuide } from '../components/PowerGuide';
 import { PowerHero } from '../components/PowerHero';
 import { PowerCoferChart } from '../components/PowerCoferChart';
+import { CiteThisButton } from '../components/CiteThisButton';
 import { PowerTabs, POWER_TABS, type PowerTabId } from '../components/PowerTabs';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
@@ -18,9 +19,10 @@ import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { agoText, plainSummary } from '../lib/pulsePlain';
+import { SITE } from '../lib/site';
 import type { ActiveMeasure, NewsItem, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
-// A third lens on the same real Trade Policy Pulse data (see PowerGuide for
+// A third lens on the same real Aex Terminal data (see PowerGuide for
 // exactly what's reused vs. new): hard power = the same tariff/sanctions/
 // export tools Influence's Pressure tab already tracks; soft power = the
 // dollar's reach Influence's Reach tab already tracks, PLUS one genuinely
@@ -46,6 +48,7 @@ export function Power() {
   const [news, setNews] = useState<PulseNewsResponse | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
   const [coferPoints, setCoferPoints] = useState<[string, number][]>([]);
+  const [natoDefense, setNatoDefense] = useState<Record<string, NatoDefenseCountry>>({});
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -63,22 +66,32 @@ export function Power() {
     if (reveal) requestAnimationFrame(() => document.getElementById('power-tabs')?.scrollIntoView({ block: 'start' }));
   };
 
+  // Guards against a slower, earlier range request resolving after a faster,
+  // later one and overwriting it with stale data (e.g. clicking "6mo" then
+  // quickly "2yr").
+  const tempoRequestId = useRef(0);
   const handleTempoRangeChange = useCallback(async (id: TempoRangeId) => {
     setTempoRange(id);
     const range = TEMPO_RANGES.find((r) => r.id === id);
     if (!range) return;
+    const reqId = ++tempoRequestId.current;
     const { months: pts } = await getPulseTempo(range.months);
-    setMonths(pts);
+    if (reqId === tempoRequestId.current) setMonths(pts);
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [home, cofer] = await Promise.all([getPulseHome(), getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] }))]);
+    const [home, cofer, natoDef] = await Promise.all([
+      getPulseHome(),
+      getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] })),
+      getNatoDefenseSpending().catch(() => ({ countries: {} as Record<string, NatoDefenseCountry> })),
+    ]);
     if (home.tempo) setMonths(home.tempo.months);
     if (home.overlays) setOverlays(home.overlays.overlays);
     if (home.summary) setSummary(home.summary);
     if (home.recent) setRecentAll(home.recent.actions);
     setPolicyChecked(home.status?.policy ?? null);
     setCoferPoints(cofer.points);
+    setNatoDefense(natoDef.countries);
     if (home.markets) {
       setMarkets(home.markets);
       setMarketsFailed(false);
@@ -218,7 +231,7 @@ export function Power() {
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
                 Every figure above and on the tabs below is a real, sourced number -- most of it the same data behind{' '}
                 <Link to="/" className="text-accent hover:underline">
-                  Trade Policy Pulse
+                  {SITE.name}
                 </Link>{' '}
                 and{' '}
                 <Link to="/influence" className="text-accent hover:underline">
@@ -291,7 +304,7 @@ export function Power() {
                   </PulsePanel>
                 </div>
               </div>
-              {seeAll('Full detail on Trade Policy Pulse', 'overview')}
+              {seeAll(`Full detail on ${SITE.name}`, 'overview')}
             </div>
           )}
 
@@ -312,7 +325,22 @@ export function Power() {
                   help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings -- not a prediction about what replaces it."
                   subtitle="Quarterly since 1999."
                 >
-                  {coferPoints.length === 0 ? loadingBlock : <PowerCoferChart points={coferPoints} />}
+                  {coferPoints.length === 0 ? (
+                    loadingBlock
+                  ) : (
+                    <>
+                      <PowerCoferChart points={coferPoints} />
+                      <div className="mt-3">
+                        <CiteThisButton
+                          chartType="cofer"
+                          title="U.S. dollar's share of world FX reserves"
+                          params={{}}
+                          data={{ points: coferPoints }}
+                          sourceNote="International Monetary Fund, COFER (data.imf.org), quarterly, share of allocated reserves."
+                        />
+                      </div>
+                    </>
+                  )}
                 </PulsePanel>
               </section>
 
@@ -391,6 +419,31 @@ export function Power() {
               ) : (
                 <InfluenceBlocs breakdown={summary?.countryBreakdown ?? []} activeCountry={activeCountry} onSelect={setActiveCountry} />
               )}
+
+              {Object.keys(natoDefense).length > 0 && (
+                <PulsePanel
+                  title="NATO defense spending, % of GDP"
+                  subtitle="NATO's own published estimates, not a live feed -- re-verified by hand roughly once a year."
+                  help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. The United States is shown as the comparison baseline this panel exists to provide, not because it needs to meet its own guideline. NATO's own target is 2% of GDP on core defense (raised in 2025 to a path toward 5% by 2035, split 3.5% core / 1.5% related spending)."
+                >
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {Object.entries(natoDefense)
+                      .map(([code, d]) => ({ code, latest: d.points[d.points.length - 1] }))
+                      .filter((r) => r.latest)
+                      .sort((a, b) => b.latest[1] - a.latest[1])
+                      .map(({ code, latest }) => (
+                        <li key={code} className="flex items-center justify-between gap-3 border-b border-hairline pb-2 last:border-0 last:pb-0">
+                          <span className="text-ink">{COUNTRY_LABELS[code] ?? code}</span>
+                          <span className="tabular-nums">
+                            <span className={`font-semibold ${latest[1] >= 2 ? 'text-ink' : 'text-review'}`}>{latest[1].toFixed(2)}%</span>{' '}
+                            <span className="text-xs text-ink-faint">({latest[0].slice(0, 4)})</span>
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </PulsePanel>
+              )}
+
               {activeCountry && (
                 <p className="text-sm text-ink-muted">
                   Selected: <span className="text-ink">{COUNTRY_LABELS[activeCountry] ?? activeCountry}</span>. See its{' '}
@@ -412,11 +465,11 @@ export function Power() {
 
         <div className="card mt-10 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-[15px] font-semibold text-ink">Trade Policy Pulse</h2>
+            <h2 className="text-[15px] font-semibold text-ink">{SITE.name}</h2>
             <p className="mt-0.5 text-sm text-ink-muted">The full tariff, sanctions, export-control and markets feed this page's numbers are drawn from.</p>
           </div>
           <Link to="/" className="btn shrink-0">
-            Open Trade Policy Pulse
+            Open {SITE.name}
           </Link>
         </div>
       </div>

@@ -1,11 +1,11 @@
-# Trade Compliance Copilot
+# Aex Terminal
 
 A portfolio web app that walks a product and a proposed cross-border
 transaction (import or export) through four connected trade-compliance
 modules — classification, USMCA origin, denied-party screening, and final
 determination — the way a trade compliance analyst would, and produces one
-coherent compliance report. A separate live dashboard, **Trade Policy
-Pulse** (`/pulse`), turns the same real-data-only philosophy into a
+coherent compliance report. A separate live dashboard, the **Pulse** feed
+(`/pulse`), turns the same real-data-only philosophy into a
 continuously-updated feed of actual U.S. trade-policy actions rather than a
 static essay — see [Refreshing the data](#refreshing-the-data). **Influence**
 (`/influence`) reframes that same real data (plus one new static reference
@@ -205,6 +205,10 @@ tests/                    golden-cases.json + the accuracy-test runner
 | `schedule_b_lines` | [Census AES Filer concordance CSV](https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt) | 1 | Full schedule, 97 chapters, 9,746 lines |
 | `sdn_entries` / `sdn_aliases` | [OFAC Sanctions List Service](https://sanctionslistservice.ofac.treas.gov) | 1 | Full SDN list, 19,393 entries, 24,628 aliases |
 | `csl_entries` / `csl_aliases` | [trade.gov Consolidated Screening List](https://www.trade.gov/consolidated-screening-list) | 1 | Full CSL minus the SDN sub-list (already covered above), 6,753 entries |
+| `un_sanctions_entries` / `un_sanctions_aliases` | [UN Security Council Consolidated Sanctions List](https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list) | 1 | Full list, ~1,011 individuals/entities, ~2,767 aliases |
+| `uk_sanctions_entries` / `uk_sanctions_aliases` | [UK Sanctions List (OFSI)](https://sanctionslist.fcdo.gov.uk) | 1 | Full list, ~5,134 designations, ~13,500 aliases |
+| `gta_interventions` | [Global Trade Alert](https://www.globaltradealert.org) | 2 (CC BY-NC 4.0, third-party, not U.S. government) | Scoped to U.S.-affecting measures by ~14 major trading partners, weekly |
+| `wro_findings` | [CBP Withhold Release Orders & Findings](https://www.cbp.gov/document/stats/withhold-release-orders-findings) | 1 | Full list, Section 307 forced-labor actions |
 | `usmca_rules` | HTSUS General Note 11 / USMCA Annex 4-B, curated | 1 | Chapters 84, 85, 87, 61, 62, 63 — **partial by design**, see below |
 | `country_chart` / `country_chart_coverage` | 15 CFR 738 Supp. 1 / Part 746, curated | 1 | 6 allied destinations + 4 comprehensive embargoes + Russia/Belarus — **deliberately partial**, see below |
 | `eccn_entries` | 15 CFR 774 Supp. 1, curated | 1/3 | 8 representative entries across CCL Categories 1, 3, 4, 5, 6 + EAR99 |
@@ -294,35 +298,62 @@ worse for a compliance tool than disclosing them. All of the following are
   can't, instead of a blank page. The quota itself resets at midnight UTC;
   there is no code fix for the underlying cap, only Workers Paid (see
   "Before you launch" below).
+- **Global Trade Alert's free API key caps output at 1,000 entries per
+  24-hour window across all calls, account-wide** — discovered by exhausting
+  it during live testing (a second, smaller test call got HTTP 429 after an
+  earlier unfiltered call had already used the full quota). No code fix for
+  this either; `src/lib/pulse/globalTradeAlert.ts` scopes ingestion to the
+  ~14 major trading partners this app already tracks, well under the cap for
+  a weekly refresh, and a 429 is logged and skipped rather than crashing the
+  rest of the Monday refresh batch.
+- **A denied-party screening true match is scored by list, not uniformly**:
+  BIS Entity List/Denied Persons List and a true UN Security Council
+  Consolidated Sanctions List match are both treated as a hard stop on an
+  export transaction (`src/routes/screening.ts`); a true match against the
+  BIS Military End User List or the UK Sanctions List (OFSI) is a caution,
+  not an automatic hard stop, since each covers end-use controls or several
+  distinct sanctions regimes with different legal effects rather than a
+  single binding denial. This tiering is a judgment call made explicit in
+  code comments, not a finding from legal counsel — treat any true match as
+  requiring human compliance review regardless of tier.
+- **UN/UK sanctions list name matching has the same limitations as
+  SDN/CSL**: fuzzy string matching against a name and its known aliases, not
+  an identity-verification system. A common name with no corroborating DOB
+  or address on record is flagged `inconclusive`, never silently cleared.
 
 ## Refreshing the data
 
-The four bulk government tables (HTS, Schedule B, OFAC SDN, BIS/State CSL)
-refresh **automatically** once deployed, via Cloudflare Cron Triggers defined
-in `wrangler.jsonc` and dispatched from `src/scheduled.ts`:
+The bulk government/reference tables (HTS, Schedule B, OFAC SDN, BIS/State
+CSL, UN Security Council sanctions, UK Sanctions List, CBP WRO/Findings,
+Global Trade Alert) refresh **automatically** once deployed, via Cloudflare
+Cron Triggers defined in `wrangler.jsonc` and dispatched from
+`src/scheduled.ts`:
 
 | Schedule | Source | Job |
 |---|---|---|
-| Daily, 05:00 UTC | Trade Policy Pulse (Federal Register) | `src/lib/pulse/sync.ts` |
-| Weekly, Mon 06:00 UTC | OFAC SDN, then BIS/State CSL | `src/lib/refresh/sdn.ts`, `src/lib/refresh/csl.ts` (same trigger, run in sequence — see below) |
+| Daily, 05:00 UTC | Pulse feed (Federal Register) | `src/lib/pulse/sync.ts` |
+| Weekly, Mon 06:00 UTC | OFAC SDN, BIS/State CSL, UN Security Council sanctions, UK Sanctions List (OFSI), Global Trade Alert, CBP WRO/Findings | `src/lib/refresh/sdn.ts`, `csl.ts`, `unSanctions.ts`, `ukSanctions.ts`, `src/lib/pulse/globalTradeAlert.ts`, `src/lib/refresh/wroFindings.ts` (same trigger, run in sequence — see below) |
 | Weekly, Mon 07:00 UTC | HTS | `src/lib/refresh/hts.ts` |
 | Weekly, Mon 07:30 UTC | Schedule B | `src/lib/refresh/scheduleB.ts` |
 | Weekly, Mon 08:00 UTC | HTS↔Schedule B cross-reference | `src/lib/refresh/xref.ts` (rebuilt from the two above via a plain SQL join, staggered to run after both) |
 
 That's exactly 5 cron triggers — Workers Free caps an account at 5 total,
-and adding Pulse's daily sync meant something had to give: SDN and CSL
-(previously 15 minutes apart) now share one trigger, with
-`src/scheduled.ts` running both in sequence and logging each to
-`data_refresh_log` separately, rather than this app needing a 6th slot or a
-plan upgrade. SDN/CSL were originally daily — a stale sanctions or
-entity-list hit is a real compliance risk, not just a freshness nicety —
-but each job does a full `DELETE` + full re-`INSERT` of its table (see the
-safety-design note below), and D1's free-tier plan caps writes at 100,000
-rows/day account-wide. Full daily reloads of SDN (entries + aliases) and CSL
-combined routinely exceed that on their own, independent of any other
-traffic, and block **all** D1 writes app-wide until the quota resets. Weekly
-keeps this app on the free tier; **if you need daily sanctions-list
-freshness, move `src/scheduled.ts`'s SDN/CSL entries to their own daily cron
+and adding Pulse's daily sync meant something had to give: SDN, CSL, UN
+sanctions, UK sanctions, Global Trade Alert and CBP WRO/Findings (six
+independent jobs) all share one Monday trigger, with `src/scheduled.ts`
+running each in sequence and logging every one to `data_refresh_log`
+separately — one job's failure (e.g. Global Trade Alert's 1000-entries/24h
+rate limit, see "Known limitations") doesn't block the others. SDN/CSL were
+originally daily — a stale sanctions or entity-list hit is a real compliance
+risk, not just a freshness nicety — but each full-reload job does a full
+`DELETE` + full re-`INSERT` of its table (see the safety-design note below),
+and D1's free-tier plan caps writes at 100,000 rows/day account-wide. Full
+daily reloads of SDN (entries + aliases) and CSL combined already routinely
+exceeded that on their own, independent of any other traffic, and block
+**all** D1 writes app-wide until the quota resets; UN/UK sanctions add
+roughly another 22,000 rows to this same Monday run. Weekly keeps this app
+on the free tier; **if you need daily sanctions-list freshness, move the
+affected entries in `src/scheduled.ts`'s job array to their own daily cron
 and upgrade to the Workers Paid plan** ($5/mo minimum, includes 50M rows
 written/month and 1,000 cron triggers — trivial headroom for this workload).
 
@@ -361,7 +392,7 @@ Node-script-based manual refresh (`npm run seed:hts`, etc.) — useful for
 local dev, for a data source that isn't on the automatic schedule, or as a
 fallback if a Cron Trigger is failing on CPU-time limits.
 
-**Trade Policy Pulse** (`/pulse`) is a different kind of table from the rest
+**The Pulse feed** (`/pulse`) is a different kind of table from the rest
 of this section, worth calling out explicitly: `trade_policy_actions` is a
 **live, never-curated** feed of Federal Register documents (10 keyword terms
 across USTR/BIS/OFAC/CBP, tagged Tariff/Sanctions/Export Control/Trade
@@ -397,7 +428,7 @@ Beyond the Federal Register feed, Pulse shows non-tariff context. None of it is 
 
 Things only the site's owner can decide or set. Everything else in this list is already handled in the code.
 
-1. **Custom domain.** Attach one under Workers, Settings, Domains & Routes, then replace `trade-compliance-copilot.ceo-ae4.workers.dev` in `frontend/index.html` (canonical, `og:url`, `og:image`, `twitter:image`), `frontend/public/sitemap.xml` and `frontend/public/robots.txt`.
+1. ~~**Custom domain.**~~ Done -- `aexterminal.com` is attached under Workers, Settings, Domains & Routes, and `frontend/index.html` (canonical, `og:url`, `og:image`, `twitter:image`), `frontend/public/sitemap.xml` and `frontend/public/robots.txt` all point at it.
 2. **Contact address.** Set `contactEmail` in `frontend/src/lib/site.ts`. While it is empty the About and Privacy pages and the footer simply omit it; nothing is invented.
 3. **Workers plan.** The Free plan allows 100,000 Worker requests a day and 5 cron triggers (all in use), and D1's free tier caps daily row reads account-wide — see "Known limitations" above for what happens if that's hit (degrades, doesn't crash) and how it was found. A page view now costs about two API calls (one `/api/pulse/home` plus the filtered feed) and static files are free, so Free is fine for a soft launch, but a traffic spike or link on a big site could exhaust either quota. Workers Paid (about $5 a month) removes that risk and allows more cron triggers.
 4. **Third-party terms if the site is or becomes commercial.** Yahoo Finance's chart data is an unofficial endpoint intended for personal use, and the news feeds and photos are provided for non-commercial use. Two switches in `wrangler.jsonc` turn these off without code changes: `MARKET_QUOTES` (`"off"` hides the stock/commodity tiles; ECB currencies stay) and `NEWS_IMAGES` (`"off"` hides publisher photos). For a commercial product, license market data from a provider and news from the publishers or an aggregator.

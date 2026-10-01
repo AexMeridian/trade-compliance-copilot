@@ -70,7 +70,7 @@
   // Free caps an account at 5 cron triggers total, so SDN and CSL share the
   // "0 6 * * 1" slot (src/scheduled.ts dispatches both from one trigger)
   // rather than this app needing a 6th slot or a plan upgrade just to add
-  // Trade Policy Pulse's daily sync. Pulse (live Federal Register feed,
+  // Aex Terminal's daily sync. Pulse (live Federal Register feed,
   // src/lib/pulse/sync.ts) is the only daily job -- it's a small incremental
   // upsert, not a full-table reload, so it doesn't carry the D1 write-quota
   // risk below. The bulk government reference tables (HTS, Schedule B,

@@ -9,7 +9,7 @@ import type { RefreshResult } from '../refresh/types.js';
 import { parseRss } from './rss.js';
 import { NEWS_FEEDS, tagNews } from './newsTag.js';
 
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 const REQUEST_TIMEOUT_MS = 10_000;
 const NEWS_MAX_AGE_DAYS = 14;
 const NEWS_RETENTION_DAYS = 30;
@@ -42,25 +42,36 @@ export async function refreshNews(env: Env): Promise<NewsRefreshResult> {
   if (failed.length === fetched.length) throw new Error(`All news feeds failed: ${failed.join(', ')}`);
 
   const now = new Date().toISOString();
-  const seen = new Set<string>();
-  const rows: string[] = [];
   let considered = 0;
 
+  // First pass: cheap, synchronous filtering only (age + relevance tagging).
+  // Hashing is the one async step per item, so it's batched afterward via
+  // Promise.all instead of one crypto.subtle.digest await per item in the
+  // loop -- order is preserved so the existing "first occurrence wins" dedup
+  // below behaves identically.
+  const candidates: { feed: (typeof fetched)[number]['feed']; item: (typeof fetched)[number]['items'][number]; tagged: NonNullable<ReturnType<typeof tagNews>> }[] = [];
   for (const { feed, items } of fetched) {
     for (const item of items) {
       if (Date.parse(item.publishedAt) < cutoff) continue;
       considered++;
       const tagged = tagNews(feed, item.title, item.summary);
       if (!tagged) continue;
-      const id = await sha1Hex(item.link);
-      if (seen.has(id)) continue; // same story surfaced by two feeds (e.g. BBC World and Politics)
-      seen.add(id);
-      rows.push(
-        `(${sqlString(id)}, ${sqlString(item.title)}, ${sqlString(item.summary)}, ${sqlString(item.link)}, ${sqlString(feed.source)}, ` +
-          `${sqlString(tagged.category)}, ${sqlJson(tagged.countries)}, ${sqlString(item.publishedAt)}, ${sqlString(now)}, ${sqlString(item.imageUrl)})`
-      );
+      candidates.push({ feed, item, tagged });
     }
   }
+  const ids = await Promise.all(candidates.map((cand) => sha1Hex(cand.item.link)));
+
+  const seen = new Set<string>();
+  const rows: string[] = [];
+  candidates.forEach(({ feed, item, tagged }, i) => {
+    const id = ids[i];
+    if (seen.has(id)) return; // same story surfaced by two feeds (e.g. BBC World and Politics)
+    seen.add(id);
+    rows.push(
+      `(${sqlString(id)}, ${sqlString(item.title)}, ${sqlString(item.summary)}, ${sqlString(item.link)}, ${sqlString(feed.source)}, ` +
+        `${sqlString(tagged.category)}, ${sqlJson(tagged.countries)}, ${sqlString(item.publishedAt)}, ${sqlString(now)}, ${sqlString(item.imageUrl)})`
+    );
+  });
 
   const retentionEdge = new Date(Date.now() - NEWS_RETENTION_DAYS * 86_400_000).toISOString();
   await env.DB.batch([

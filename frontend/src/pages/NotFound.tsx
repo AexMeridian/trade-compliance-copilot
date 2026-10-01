@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SITE } from '../lib/site';
 
 export function NotFound() {
   return (
@@ -8,7 +9,7 @@ export function NotFound() {
       <ul className="mt-4 space-y-2 text-sm">
         <li>
           <Link to="/" className="text-accent">
-            Trade Policy Pulse
+            {SITE.name}
           </Link>
           <span className="text-ink-faint">: what's changing in world trade today</span>
         </li>

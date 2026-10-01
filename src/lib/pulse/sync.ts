@@ -1,4 +1,4 @@
-// Incremental sync for Trade Policy Pulse -- shared verbatim by the daily
+// Incremental sync for Aex Terminal -- shared verbatim by the daily
 // cron job (src/scheduled.ts) and the manual POST /api/pulse/sync route
 // (src/routes/pulse.ts). Unlike the other refresh jobs (hts.ts, sdn.ts, ...)
 // this is NOT a full delete+reinsert: it only asks the Federal Register API

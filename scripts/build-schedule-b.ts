@@ -16,7 +16,7 @@ import { sqlString, buildBatchedInserts } from './lib/sql.js';
 const OUT_DIR = 'scripts/seed-sql/schedule_b';
 const SOURCE_URL = 'https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt';
 const TODAY = new Date().toISOString().slice(0, 10);
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });

@@ -12,7 +12,7 @@ import type { Env } from '../../types/env.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
 
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 const CHAPTERS = Array.from({ length: 97 }, (_, i) => i + 1).filter((c) => c !== 77);
 
 interface HtsApiRow {

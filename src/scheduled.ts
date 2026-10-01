@@ -1,5 +1,5 @@
 // Cron-triggered auto-refresh for the bulk government reference tables (HTS,
-// Schedule B, OFAC SDN, BIS/State CSL) and Trade Policy Pulse's live Federal
+// Schedule B, OFAC SDN, BIS/State CSL) and Aex Terminal's live Federal
 // Register feed -- see wrangler.jsonc's `triggers.crons` for the schedule
 // and src/lib/refresh/*.ts / src/lib/pulse/sync.ts for each job. Curated
 // legal content (USMCA rules, tariff overlays, country chart, ECCN) is
@@ -16,11 +16,15 @@ import { refreshScheduleB } from './lib/refresh/scheduleB.js';
 import { refreshXref } from './lib/refresh/xref.js';
 import { refreshSdn } from './lib/refresh/sdn.js';
 import { refreshCsl } from './lib/refresh/csl.js';
+import { refreshUnSanctions } from './lib/refresh/unSanctions.js';
+import { refreshUkSanctions } from './lib/refresh/ukSanctions.js';
+import { refreshWroFindings } from './lib/refresh/wroFindings.js';
 import { runPulseSync } from './lib/pulse/sync.js';
 import { refreshFx, refreshQuotes } from './lib/pulse/markets.js';
 import { refreshMacro } from './lib/pulse/macro.js';
 import { refreshCofer } from './lib/pulse/cofer.js';
 import { refreshNews } from './lib/pulse/news.js';
+import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { logRefresh } from './lib/refresh/log.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
@@ -61,6 +65,10 @@ const CRON_JOBS: Record<string, RefreshJob[]> = {
   '0 6 * * 1': [
     { source: 'sdn', run: refreshSdn },
     { source: 'csl', run: refreshCsl },
+    { source: 'un_sanctions', run: refreshUnSanctions },
+    { source: 'uk_sanctions', run: refreshUkSanctions },
+    { source: 'gta', run: refreshGlobalTradeAlert },
+    { source: 'wro_findings', run: refreshWroFindings },
   ],
   '0 7 * * 1': [{ source: 'hts', run: refreshHts }],
   '30 7 * * 1': [{ source: 'schedule_b', run: refreshScheduleB }],

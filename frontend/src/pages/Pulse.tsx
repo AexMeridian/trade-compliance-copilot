@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTempo, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
@@ -17,6 +17,7 @@ import { PulseTabs, PULSE_TABS, type PulseTabId } from '../components/PulseTabs'
 import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars, MARKET_RANGES, type MarketRangeId } from '../components/PulseCharts';
+import { CiteThisButton } from '../components/CiteThisButton';
 import { PulseNews } from '../components/PulseNews';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseSignalStrip } from '../components/PulseSignalStrip';
@@ -151,9 +152,18 @@ export function Pulse() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // Request-sequence guards: an in-flight fetch that resolves after a newer
+  // one (e.g. clicking "Tariff" then "Sanctions", or "6mo" then "2yr" before
+  // the first response lands) must not overwrite the newer, already-applied
+  // result with stale data.
+  const feedRequestId = useRef(0);
+  const tempoRequestId = useRef(0);
+  const marketsRequestId = useRef(0);
+
   const loadFeed = useCallback(async (tag: PulseTag | null, country: string | null, q: string) => {
+    const id = ++feedRequestId.current;
     const { actions } = await getPulseFeed(30, tag ?? undefined, { country: country ?? undefined, search: q || undefined });
-    setActions(actions);
+    if (id === feedRequestId.current) setActions(actions);
   }, []);
 
   // /home's bundled /tempo call always returns the 24-month default; picking
@@ -163,16 +173,18 @@ export function Pulse() {
     setTempoRange(id);
     const range = TEMPO_RANGES.find((r) => r.id === id);
     if (!range) return;
+    const reqId = ++tempoRequestId.current;
     const { months: pts } = await getPulseTempo(range.months);
-    setMonths(pts);
+    if (reqId === tempoRequestId.current) setMonths(pts);
   }, []);
 
   const handleMarketsRangeChange = useCallback(async (id: MarketRangeId) => {
     setMarketsRange(id);
     const range = MARKET_RANGES.find((r) => r.id === id);
     if (!range) return;
+    const reqId = ++marketsRequestId.current;
     const data = await getPulseMarkets(range.days);
-    setMarkets(data);
+    if (reqId === marketsRequestId.current) setMarkets(data);
   }, []);
 
   // Every number and ranking on this page comes from plain SQL aggregation
@@ -310,14 +322,20 @@ export function Pulse() {
   );
 
   const custom = !isDefaultPrefs(prefs);
-  const myActions = recentAll.filter((a) => actionMatches(a, prefs));
-  const topAction = rankSignals(myActions, 1)[0] ?? null;
-  const myNewsItems = (news?.items ?? []).filter((n) => newsMatches(n, prefs));
-  const myNews = news && { ...news, items: myNewsItems };
+  // These four derive from recentAll/news + prefs, not from unrelated state
+  // like searchInput -- memoized so a keystroke in the (separate) feed search
+  // box doesn't re-run this filtering/ranking on every render.
+  const myActions = useMemo(() => recentAll.filter((a) => actionMatches(a, prefs)), [recentAll, prefs]);
+  const topAction = useMemo(() => rankSignals(myActions, 1)[0] ?? null, [myActions]);
+  const myNewsItems = useMemo(() => (news?.items ?? []).filter((n) => newsMatches(n, prefs)), [news, prefs]);
+  const myNews = useMemo(() => news && { ...news, items: myNewsItems }, [news, myNewsItems]);
   const headline = myNewsItems.find((n) => n.category === 'Trade & Supply Chain') ?? myNewsItems[0] ?? null;
   const newsCatsShown = (prefs.newsCats.length ? NEWS_TOPICS.filter((c) => prefs.newsCats.includes(c)) : [...NEWS_TOPICS]) as NewsCategory[];
   const activeNewsCat = newsCategory && newsCatsShown.includes(newsCategory) ? newsCategory : null;
-  const shownNews = myNews && { ...myNews, items: activeNewsCat ? myNewsItems.filter((n) => n.category === activeNewsCat) : myNewsItems };
+  const shownNews = useMemo(
+    () => myNews && { ...myNews, items: activeNewsCat ? myNewsItems.filter((n) => n.category === activeNewsCat) : myNewsItems },
+    [myNews, activeNewsCat, myNewsItems]
+  );
   const feedLabel = describePrefs(prefs, (c) => COUNTRY_LABELS[c] ?? c);
   const tileById = (id: string) => markets?.tiles.find((t) => t.id === id);
   const tilesIn = (group: string) => (markets?.tiles ?? []).filter((t) => t.group === group);
@@ -348,7 +366,13 @@ export function Pulse() {
   const commoditySeries = seriesFor(['CL=F', 'NG=F', 'GC=F', 'HG=F'], { 'CL=F': 'Oil (WTI)', 'NG=F': 'Natural gas', 'GC=F': 'Gold', 'HG=F': 'Copper' });
   const bellwetherMovers = tilesIn('Trade bellwethers').flatMap((t) => {
     const first = t.points[0]?.[1];
-    return first ? [{ key: t.id, label: t.label, pct: ((t.points[t.points.length - 1][1] - first) / first) * 100 }] : [];
+    // Distinguish "no data" (first is undefined) from "opened at exactly 0"
+    // (first === 0) -- a plain truthy check on `first` treats both the same,
+    // silently dropping a tile that legitimately opened at zero. The latter
+    // is still excluded here, but because a percent change from zero is
+    // undefined, not because it looks like missing data.
+    if (first === undefined || first === 0) return [];
+    return [{ key: t.id, label: t.label, pct: ((t.points[t.points.length - 1][1] - first) / first) * 100 }];
   });
   const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
   const seeAll = (label: string, to: PulseTabId) => (
@@ -628,7 +652,18 @@ export function Pulse() {
                     {loadingPanels ? (
                       loadingBlock
                     ) : (
-                      <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} range={tempoRange} onRangeChange={handleTempoRangeChange} />
+                      <>
+                        <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} range={tempoRange} onRangeChange={handleTempoRangeChange} />
+                        <div className="mt-3">
+                          <CiteThisButton
+                            chartType="tempo"
+                            title="Policy tempo: U.S. trade-policy actions per month"
+                            params={{ range: tempoRange }}
+                            data={{ months, trendPct: summary?.trendPct ?? null }}
+                            sourceNote="Federal Register (federalregister.gov), monthly count of tracked trade-policy actions."
+                          />
+                        </div>
+                      </>
                     )}
                   </PulsePanel>
                 </div>
@@ -675,6 +710,15 @@ export function Pulse() {
                         subtitle={`The U.S., Europe, Japan and Hong Kong, last ${MARKET_RANGES.find((r) => r.id === marketsRange)?.label ?? '3mo'}. Hover for exact values.`}
                       >
                         <PulseLineChart series={worldSeries} range={marketsRange} onRangeChange={handleMarketsRangeChange} />
+                        <div className="mt-3">
+                          <CiteThisButton
+                            chartType="markets"
+                            title="World stock markets, indexed to 100"
+                            params={{ range: marketsRange, group: 'World stocks' }}
+                            data={{ series: worldSeries }}
+                            sourceNote="Yahoo Finance, daily closes indexed to 100 at the start of the captured window."
+                          />
+                        </div>
                       </PulsePanel>
                     )}
                     {group === 'Trade bellwethers' && (
@@ -693,6 +737,15 @@ export function Pulse() {
                         subtitle={`Oil, gas, gold and copper, last ${MARKET_RANGES.find((r) => r.id === marketsRange)?.label ?? '3mo'}.`}
                       >
                         <PulseLineChart series={commoditySeries} range={marketsRange} onRangeChange={handleMarketsRangeChange} />
+                        <div className="mt-3">
+                          <CiteThisButton
+                            chartType="markets"
+                            title="Commodity prices, indexed to 100"
+                            params={{ range: marketsRange, group: 'Commodities' }}
+                            data={{ series: commoditySeries }}
+                            sourceNote="Yahoo Finance, daily closes indexed to 100 at the start of the captured window."
+                          />
+                        </div>
                       </PulsePanel>
                     )}
                   </section>

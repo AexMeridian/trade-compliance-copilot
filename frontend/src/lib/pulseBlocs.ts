@@ -44,6 +44,15 @@ export const BLOC_MEMBERS: Record<Bloc, string[]> = {
   USMCA: ['CA', 'MX'],
 };
 
+// NATO's own "partners across the globe" program (nato.int) -- a real,
+// named relationship, but a different kind of fact than formal membership
+// above, so it gets its own array rather than being forced into the Bloc
+// union. As of 2026-10-01: Australia, Colombia, Iraq, Japan, New Zealand,
+// Pakistan, Republic of Korea. NATO's own list also includes Mongolia (not
+// in this app's country label maps, so left out) and Afghanistan (NATO's
+// own page notes that partnership is currently suspended).
+export const PARTNER_COUNTRIES: string[] = ['AU', 'CO', 'IQ', 'JP', 'NZ', 'PK', 'KR'];
+
 const BLOCS: Bloc[] = ['NATO', 'G7', 'G20', 'BRICS', 'USMCA'];
 
 // A country can belong to several blocs at once (Canada is in all five here).

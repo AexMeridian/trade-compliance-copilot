@@ -17,7 +17,7 @@ import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
 
 const SOURCE_URL = 'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML';
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 interface AkaItem {
   type?: string;

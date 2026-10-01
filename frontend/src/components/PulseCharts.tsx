@@ -6,7 +6,7 @@ import { PulseDelta } from './PulseDelta';
 // stored observation (or a plain percent change between two of them) -- no
 // smoothing, forecasting or model output.
 
-export type Point = [string, number]; // [ISO date, value], oldest first
+type Point = [string, number]; // [ISO date, value], oldest first
 
 // ---------- Sparkline ----------
 
@@ -222,7 +222,7 @@ const CURRENCY_NAMES: Record<string, string> = {
   KRW: 'South Korean won',
 };
 
-export interface Mover {
+interface Mover {
   key: string;
   label: string;
   pct: number;

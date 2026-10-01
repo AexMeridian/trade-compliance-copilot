@@ -9,12 +9,16 @@ import { Power } from './pages/Power';
 import { CountryDetail } from './pages/CountryDetail';
 import { About } from './pages/About';
 import { Privacy } from './pages/Privacy';
+import { Accessibility } from './pages/Accessibility';
+import { CountryCompare } from './pages/CountryCompare';
+import { Snapshot } from './pages/Snapshot';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
+import { ThemeToggle } from './components/ThemeToggle';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
-const KNOWN_PATHS = ['/', '/calculator', '/influence', '/power', '/about', '/privacy'];
+const KNOWN_PATHS = ['/', '/calculator', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -29,7 +33,10 @@ function usePageMeta(pathname: string, tab: string | null) {
     else if (pathname === '/power') title = `American power: hard and soft | ${SITE.name}`;
     else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
+    else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
+    else if (pathname === '/compare') title = `Compare countries | ${SITE.name}`;
     else if (pathname.startsWith('/case/')) title = `Compliance case | ${SITE.name}`;
+    else if (pathname.startsWith('/snapshot/')) title = `Cited snapshot | ${SITE.name}`;
     else if (pathname.startsWith('/country/')) {
       const code = pathname.slice('/country/'.length).toUpperCase();
       const name = TARIFF_COUNTRY_LABELS[code] ?? code;
@@ -75,10 +82,18 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Visually hidden until focused -- the first tab stop on every page, so a
+          keyboard or screen-reader user isn't forced through the header nav
+          (and, on pages with a tab bar, isn't forced through that too) before
+          reaching the content. */}
+      <a href="#main" className="skip-link no-print">
+        Skip to content
+      </a>
       {/* border-b so the sticky nav reads as its own bar rather than bleeding
           into the hero below -- both use bg-bar, so without a seam they were
-          one indistinguishable black area. */}
-      <header className="sticky top-0 z-10 border-b border-white/15 bg-bar text-white">
+          one indistinguishable black area. no-print: a printed case report
+          (Report.tsx) has its own print-only header, not this site chrome. */}
+      <header className="no-print sticky top-0 z-10 border-b border-white/15 bg-bar text-white">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           {/* Below sm, the full wordmark doesn't fit next to all four nav
               links without truncating mid-word -- the mark alone (it's
@@ -113,11 +128,12 @@ export default function App() {
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
             </NavLink>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
 
-      <div className="flex-1">
+      <div id="main" className="flex-1">
         <Routes>
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
@@ -128,11 +144,14 @@ export default function App() {
           <Route path="/case/:id/report" element={<Report />} />
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/compare" element={<CountryCompare />} />
+          <Route path="/snapshot/:id" element={<Snapshot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
 
-      <footer className="mt-16 bg-bar text-[#b4b4bc]">
+      <footer className="no-print mt-16 bg-bar text-[#b4b4bc]">
         <div className="mx-auto max-w-7xl px-4 py-10 text-sm">
           <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
             <p className="max-w-xl text-[13px] leading-relaxed">
@@ -147,6 +166,9 @@ export default function App() {
               <Link to="/power" className="text-white no-underline hover:underline">
                 American power
               </Link>
+              <Link to="/compare" className="text-white no-underline hover:underline">
+                Compare countries
+              </Link>
               <Link to="/about" className="text-white no-underline hover:underline">
                 About and sources
               </Link>
@@ -155,6 +177,9 @@ export default function App() {
               </Link>
               <Link to="/privacy" className="text-white no-underline hover:underline">
                 Privacy
+              </Link>
+              <Link to="/accessibility" className="text-white no-underline hover:underline">
+                Accessibility
               </Link>
               <a href="/api/pulse/rss" className="text-white no-underline hover:underline">
                 RSS feed

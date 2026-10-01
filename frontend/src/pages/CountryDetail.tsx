@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseHome } from '../lib/api';
 import { COUNTRY_TABS, CountryTabs, type CountryTabId } from '../components/CountryTabs';
+import { CountryGuide } from '../components/CountryGuide';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseTempoChart } from '../components/PulseTempoChart';
 import { PulseFeedList } from '../components/PulseFeedList';
@@ -11,6 +12,8 @@ import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { parseCountries } from '../lib/pulseCountries';
 import { blocsFor, BLOC_FULL_NAMES } from '../lib/pulseBlocs';
+import { freightNoteFor } from '../lib/freightNotes';
+import { SITE } from '../lib/site';
 import type { PulseCountryDetail, PulseMarkets, NewsItem } from '../types/pulse';
 
 // A country doesn't have its own attributed exchange rate unless the U.S.
@@ -64,17 +67,28 @@ export function CountryDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // React Router reuses this component instance across /country/:code
+  // navigations (only `code` changes), so a fetch for the previous country
+  // that resolves after a newer one must not overwrite the newer country's
+  // data -- e.g. opening China's page then quickly navigating to Mexico's.
+  const requestId = useRef(0);
   useEffect(() => {
+    const reqId = ++requestId.current;
     setLoading(true);
     setError(null);
     Promise.all([getPulseCountry(code, name), getPulseHome()])
       .then(([detail, home]) => {
+        if (reqId !== requestId.current) return;
         setData(detail);
         if (home.markets) setMarkets(home.markets);
         if (home.news) setNews(home.news.items);
       })
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (reqId === requestId.current) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (reqId === requestId.current) setLoading(false);
+      });
   }, [code, name]);
 
   const blocs = blocsFor(code);
@@ -102,7 +116,7 @@ export function CountryDetail() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <Link to="/" className="text-sm text-ink-faint no-underline hover:text-accent">
-        &larr; Trade Policy Pulse
+        &larr; {SITE.name}
       </Link>
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="display text-4xl text-ink sm:text-5xl">{name}</h1>
@@ -116,6 +130,9 @@ export function CountryDetail() {
         Everything this app tracks about {name} in one place: U.S. policy actions naming it, the real tariff rates it faces, a sample duty-stack breakdown,
         export-control status, and a sanctioned-entity count. See the Guide on the main page for what each of these does and doesn't mean.
       </p>
+      <Link to={`/compare?countries=${code},${code === 'MX' ? 'CN' : 'MX'}`} className="mt-2 inline-block text-sm text-accent hover:underline">
+        Compare {name} with another country &rarr;
+      </Link>
 
       <CountryTabs active={tab} onChange={setTab} />
 
@@ -182,6 +199,34 @@ export function CountryDetail() {
             <PulsePanel title={`All ${data.actions.length} actions naming ${name}`}>
               <PulseFeedList actions={data.actions} />
             </PulsePanel>
+            <PulsePanel
+              title={`${name}'s own actions affecting the U.S.`}
+              subtitle="Independent research data (Global Trade Alert), not a U.S. government source."
+              help={data.retaliatoryMeasures.note}
+            >
+              {data.retaliatoryMeasures.rows.length === 0 ? (
+                <p className="text-sm text-ink-faint">None matched in roughly the last 3 years, or not yet tracked for this country.</p>
+              ) : (
+                <ul className="flex flex-col gap-3 text-sm">
+                  {data.retaliatoryMeasures.rows.map((m) => (
+                    <li key={m.intervention_id} className="border-l-2 border-hairline-strong pl-3">
+                      <a href={m.intervention_url} target="_blank" rel="noreferrer" className="text-ink hover:text-accent">
+                        {m.state_act_title}
+                      </a>
+                      <p className="mt-0.5 text-xs text-ink-faint">
+                        {m.intervention_type} &middot; evaluated <span className={m.gta_evaluation === 'Red' ? 'text-stop' : 'text-review'}>{m.gta_evaluation}</span>
+                        {m.date_announced ? ` · announced ${m.date_announced}` : ''}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {data.retaliatoryMeasures.total > data.retaliatoryMeasures.rows.length && (
+                <p className="mt-3 text-xs text-ink-faint">
+                  Showing the {data.retaliatoryMeasures.rows.length} most recent of {data.retaliatoryMeasures.total} total.
+                </p>
+              )}
+            </PulsePanel>
           </div>
         )}
 
@@ -223,6 +268,18 @@ export function CountryDetail() {
                 )}
               </ul>
             </PulsePanel>
+
+            {freightNoteFor(code) && (
+              <PulsePanel
+                title="Typical shipping lane"
+                help="A general industry rule of thumb for a standard commercial routing to major U.S. ports -- not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
+              >
+                <p className="text-sm text-ink">
+                  <span className="font-semibold">{freightNoteFor(code)!.mode}, typically {freightNoteFor(code)!.transitRange}.</span>{' '}
+                  <span className="text-ink-muted">{freightNoteFor(code)!.note}</span>
+                </p>
+              </PulsePanel>
+            )}
 
             <PulsePanel
               title="Sample duty-stack breakdown"
@@ -289,24 +346,60 @@ export function CountryDetail() {
         )}
 
         {tab === 'sanctions' && (
-          <PulsePanel title="OFAC / BIS sanctioned entities">
-            {sanctions.sdnCount !== null ? (
-              <>
-                <p className="text-sm text-ink-muted">
-                  <span className="font-semibold text-ink">{sanctions.sdnCount}</span> entries on OFAC's Specially Designated Nationals list and{' '}
-                  <span className="font-semibold text-ink">{sanctions.cslCount}</span> on the Commerce/State Consolidated Screening List have an address
-                  naming {name}.
-                </p>
-                <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
-                <Link to={`/influence?tab=sanctions&country=${encodeURIComponent(name)}`} className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
-                  Browse these entries &rarr;
-                </Link>
-              </>
-            ) : (
-              <p className="text-sm text-ink-faint">{sanctions.note}</p>
-            )}
-          </PulsePanel>
+          <div className="flex flex-col gap-6">
+            <PulsePanel title="OFAC / BIS sanctioned entities">
+              {sanctions.sdnCount !== null ? (
+                <>
+                  <p className="text-sm text-ink-muted">
+                    <span className="font-semibold text-ink">{sanctions.sdnCount}</span> entries on OFAC's Specially Designated Nationals list and{' '}
+                    <span className="font-semibold text-ink">{sanctions.cslCount}</span> on the Commerce/State Consolidated Screening List have an address
+                    naming {name}.
+                  </p>
+                  <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
+                  <Link to={`/influence?tab=sanctions&country=${encodeURIComponent(name)}`} className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+                    Browse these entries &rarr;
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-ink-faint">{sanctions.note}</p>
+              )}
+            </PulsePanel>
+
+            <PulsePanel
+              title="Forced-labor enforcement (CBP Section 307)"
+              subtitle={`${data.forcedLaborEnforcement.total} Withhold Release Order${data.forcedLaborEnforcement.total === 1 ? '' : 's'}/Findings naming ${name}, active and historical.`}
+              help={data.forcedLaborEnforcement.note}
+            >
+              {data.forcedLaborEnforcement.rows.length === 0 ? (
+                <p className="text-sm text-ink-faint">None on file for {name}.</p>
+              ) : (
+                <ul className="flex flex-col gap-3 text-sm">
+                  {data.forcedLaborEnforcement.rows.map((w) => (
+                    <li key={w.id} className="border-l-2 border-hairline-strong pl-3">
+                      <p className="text-ink">
+                        {w.entity} <span className={w.status === 'Active' ? 'text-stop' : 'text-ink-faint'}>({w.status})</span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-ink-faint">
+                        {w.order_type} &middot; {w.merchandise}
+                        {w.effective_date ? ` · effective ${w.effective_date}` : ''}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-3 text-xs text-ink-faint">
+                DHS separately maintains a{' '}
+                <a href="https://www.dhs.gov/uflpa-entity-list" target="_blank" rel="noreferrer" className="text-accent">
+                  UFLPA Entity List
+                </a>{' '}
+                of specific named importers/suppliers presumed to use forced labor -- a narrower, newer list than the one above, published only as a web
+                page with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
+              </p>
+            </PulsePanel>
+          </div>
         )}
+
+        {tab === 'guide' && <CountryGuide />}
 
         {tab === 'markets' && (
           <div className="flex flex-col gap-6">

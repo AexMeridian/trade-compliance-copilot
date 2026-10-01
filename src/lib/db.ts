@@ -25,6 +25,13 @@ export function toFtsQuery(text: string): string {
   return terms.map((t) => `"${t}"`).join(' OR ');
 }
 
+/** Builds a D1 numbered-placeholder list ("?1,?2,...") for an IN(...) clause.
+ * Every call site is already responsible for keeping `ids.length` at or under
+ * D1's bind-param ceiling (?1..?100) -- documented at each call site. */
+function inClause(ids: unknown[]): string {
+  return ids.map((_, i) => `?${i + 1}`).join(',');
+}
+
 function ftsTerms(text: string): string[] {
   const terms = text
     .toLowerCase()
@@ -98,10 +105,15 @@ async function mergedFtsCandidateIds(
     }
   };
 
-  addAll(await ftsMatchIds(env, ftsTable, whereExtra, toFtsQuery(query), limit));
-  for (const term of ftsTerms(query)) {
-    addAll(await ftsMatchIds(env, ftsTable, whereExtra, `"${term}"`, perTermLimit));
-  }
+  // The combined query and every per-term query are fully independent MATCH
+  // lookups against the same FTS table -- run them concurrently rather than
+  // paying for the sum of their round trips one at a time.
+  const [combined, ...perTerm] = await Promise.all([
+    ftsMatchIds(env, ftsTable, whereExtra, toFtsQuery(query), limit),
+    ...ftsTerms(query).map((term) => ftsMatchIds(env, ftsTable, whereExtra, `"${term}"`, perTermLimit)),
+  ]);
+  addAll(combined);
+  for (const ids of perTerm) addAll(ids);
   // A generous safety ceiling only, not a tight budget -- each per-term slice
   // must keep its own full headroom (e.g. reaching a distinctive term's 13th-
   // ranked match) rather than lose it to an early term's results filling a
@@ -114,11 +126,10 @@ async function mergedFtsCandidateIds(
 export async function searchHts(env: Env, query: string, limit = 25): Promise<HtsCandidateRow[]> {
   const ids = await mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit);
   if (ids.length === 0) return [];
-  const placeholders = ids.map((_, i) => `?${i + 1}`).join(',');
   const { results } = await env.DB.prepare(
     `SELECT id, htsno, description, indent, superior_id, units, general_rate, special_rate,
             other_rate, footnotes, chapter, revision, source_url, source_tier, last_updated, 0 as score
-     FROM hts_lines WHERE id IN (${placeholders})`
+     FROM hts_lines WHERE id IN (${inClause(ids)})`
   )
     .bind(...ids)
     .all<HtsCandidateRow>();
@@ -157,11 +168,10 @@ async function expandWithChildren(env: Env, rows: HtsCandidateRow[], cap: number
   if (groupIds.size === 0) return rows;
 
   const idList = [...groupIds].slice(0, 90); // D1 bind-param ceiling (?1..?100)
-  const placeholders = idList.map((_, i) => `?${i + 1}`).join(',');
   const { results: related } = await env.DB.prepare(
     `SELECT id, htsno, description, indent, superior_id, units, general_rate, special_rate,
             other_rate, footnotes, chapter, revision, source_url, source_tier, last_updated, 0 as score
-     FROM hts_lines WHERE superior_id IN (${placeholders}) AND htsno != ''`
+     FROM hts_lines WHERE superior_id IN (${inClause(idList)}) AND htsno != ''`
   )
     .bind(...idList)
     .all<HtsCandidateRow>();
@@ -186,7 +196,7 @@ export interface ScheduleBCandidateRow {
   score: number;
 }
 
-export async function getHtsLineByCode(env: Env, htsno: string): Promise<HtsCandidateRow | null> {
+async function getHtsLineByCode(env: Env, htsno: string): Promise<HtsCandidateRow | null> {
   const row = await env.DB.prepare(`SELECT *, 0 as score FROM hts_lines WHERE htsno = ?1`).bind(htsno).first<HtsCandidateRow>();
   return row ?? null;
 }
@@ -230,19 +240,14 @@ export async function getRateBearingHtsLine(env: Env, htsno: string): Promise<Ht
  * for the other's terser text at the same HS-6 level -- not a fabrication.
  */
 export async function searchScheduleB(env: Env, query: string, limit = 25): Promise<ScheduleBCandidateRow[]> {
-  const directIds = await mergedFtsCandidateIds(
-    env,
-    'schedule_b_search',
-    'JOIN schedule_b_lines s ON s.id = schedule_b_search.rowid',
-    query,
-    limit
-  );
-
-  const htsIds = await mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit);
+  // Independent lookups against two different FTS tables -- fetched concurrently.
+  const [directIds, htsIds] = await Promise.all([
+    mergedFtsCandidateIds(env, 'schedule_b_search', 'JOIN schedule_b_lines s ON s.id = schedule_b_search.rowid', query, limit),
+    mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit),
+  ]);
   let hs6ViaHts: string[] = [];
   if (htsIds.length > 0) {
-    const placeholders = htsIds.map((_, i) => `?${i + 1}`).join(',');
-    const { results: htsRows } = await env.DB.prepare(`SELECT htsno FROM hts_lines WHERE id IN (${placeholders})`)
+    const { results: htsRows } = await env.DB.prepare(`SELECT htsno FROM hts_lines WHERE id IN (${inClause(htsIds)})`)
       .bind(...htsIds)
       .all<{ htsno: string }>();
     hs6ViaHts = [...new Set(htsRows.map((r) => r.htsno.replace(/\./g, '').slice(0, 6)).filter((h) => h.length === 6))];
@@ -253,13 +258,12 @@ export async function searchScheduleB(env: Env, query: string, limit = 25): Prom
   // FTS matches alone can already fill such a shared cap (Schedule B has
   // plenty of low-relevance matches on common terms), which would starve the
   // hs6 cross-pollination of any room at all regardless of where the cap is set.
-  const directPlaceholders = directIds.map((_, i) => `?${i + 1}`).join(',');
   const directRows =
     directIds.length > 0
       ? (
           await env.DB.prepare(
             `SELECT id, code, description, hs6, chapter, edition, source_url, source_tier, last_updated, 0 as score
-             FROM schedule_b_lines WHERE id IN (${directPlaceholders})`
+             FROM schedule_b_lines WHERE id IN (${inClause(directIds)})`
           )
             .bind(...directIds)
             .all<ScheduleBCandidateRow>()
@@ -268,10 +272,9 @@ export async function searchScheduleB(env: Env, query: string, limit = 25): Prom
 
   const byId = new Map(directRows.map((r) => [r.id, r]));
   if (hs6ViaHts.length > 0) {
-    const placeholders = hs6ViaHts.map((_, i) => `?${i + 1}`).join(',');
     const { results: xrefRows } = await env.DB.prepare(
       `SELECT id, code, description, hs6, chapter, edition, source_url, source_tier, last_updated, 0 as score
-       FROM schedule_b_lines WHERE hs6 IN (${placeholders})`
+       FROM schedule_b_lines WHERE hs6 IN (${inClause(hs6ViaHts)})`
     )
       .bind(...hs6ViaHts)
       .all<ScheduleBCandidateRow>();
@@ -364,11 +367,10 @@ export interface EccnCandidateRow {
 export async function searchEccn(env: Env, query: string, limit = 15): Promise<EccnCandidateRow[]> {
   const ids = await mergedFtsCandidateIds(env, 'eccn_search', 'JOIN eccn_entries e ON e.id = eccn_search.rowid', query, limit);
   if (ids.length === 0) return [];
-  const placeholders = ids.map((_, i) => `?${i + 1}`).join(',');
   const { results } = await env.DB.prepare(
     `SELECT id, eccn, category, product_group, description, reasons_for_control,
             license_exceptions, citation, source_url, source_tier, last_updated, 0 as score
-     FROM eccn_entries WHERE id IN (${placeholders})`
+     FROM eccn_entries WHERE id IN (${inClause(ids)})`
   )
     .bind(...ids)
     .all<EccnCandidateRow>();
@@ -456,17 +458,17 @@ export async function getApplicableOverlays(
 }
 
 export interface PartyCandidateRow {
-  source: 'SDN' | 'CSL';
+  source: 'SDN' | 'CSL' | 'UN' | 'UK';
   entity_id: number;
   matched_via: 'primary_name' | 'alias';
   name: string;
   name_normalized: string;
 }
 
-/** FTS5-based candidate shortlist across SDN (entries + aliases) and CSL
- * (entries + aliases) for one input name, already normalized. This is the
- * pre-filter that keeps src/lib/fuzzyMatch.ts's scoring pass bounded -- see
- * the build plan's Workers CPU budget discussion. */
+/** FTS5-based candidate shortlist across SDN, CSL, UN and UK (each entries +
+ * aliases) for one input name, already normalized. This is the pre-filter
+ * that keeps src/lib/fuzzyMatch.ts's scoring pass bounded -- see the build
+ * plan's Workers CPU budget discussion. */
 export async function searchPartyCandidates(
   env: Env,
   normalizedName: string,
@@ -475,45 +477,83 @@ export async function searchPartyCandidates(
   const fts = toFtsQuery(normalizedName);
   const out: PartyCandidateRow[] = [];
 
-  const sdnPrimary = await env.DB.prepare(
-    `SELECT s.id, s.primary_name, s.name_normalized FROM sdn_name_search
-     JOIN sdn_entries s ON s.id = sdn_name_search.rowid
-     WHERE sdn_name_search MATCH ?1 ORDER BY bm25(sdn_name_search) LIMIT ?2`
-  )
-    .bind(fts, limit)
-    .all<{ id: number; primary_name: string; name_normalized: string }>();
+  // Eight independent FTS lookups (SDN/CSL/UN/UK x primary-name/alias) --
+  // none depends on another's result, so run them concurrently.
+  const [sdnPrimary, sdnAlias, cslPrimary, cslAlias, unPrimary, unAlias, ukPrimary, ukAlias] = await Promise.all([
+    env.DB.prepare(
+      `SELECT s.id, s.primary_name, s.name_normalized FROM sdn_name_search
+       JOIN sdn_entries s ON s.id = sdn_name_search.rowid
+       WHERE sdn_name_search MATCH ?1 ORDER BY bm25(sdn_name_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ id: number; primary_name: string; name_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT a.sdn_id, a.alias, a.alias_normalized FROM sdn_alias_search
+       JOIN sdn_aliases a ON a.id = sdn_alias_search.rowid
+       WHERE sdn_alias_search MATCH ?1 ORDER BY bm25(sdn_alias_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ sdn_id: number; alias: string; alias_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.name_normalized FROM csl_name_search
+       JOIN csl_entries c ON c.id = csl_name_search.rowid
+       WHERE csl_name_search MATCH ?1 ORDER BY bm25(csl_name_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ id: number; name: string; name_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT a.csl_id, a.alias, a.alias_normalized FROM csl_alias_search
+       JOIN csl_aliases a ON a.id = csl_alias_search.rowid
+       WHERE csl_alias_search MATCH ?1 ORDER BY bm25(csl_alias_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ csl_id: number; alias: string; alias_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT u.id, u.primary_name, u.name_normalized FROM un_name_search
+       JOIN un_sanctions_entries u ON u.id = un_name_search.rowid
+       WHERE un_name_search MATCH ?1 ORDER BY bm25(un_name_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ id: number; primary_name: string; name_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT a.un_id, a.alias, a.alias_normalized FROM un_alias_search
+       JOIN un_sanctions_aliases a ON a.id = un_alias_search.rowid
+       WHERE un_alias_search MATCH ?1 ORDER BY bm25(un_alias_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ un_id: number; alias: string; alias_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT k.id, k.primary_name, k.name_normalized FROM uk_name_search
+       JOIN uk_sanctions_entries k ON k.id = uk_name_search.rowid
+       WHERE uk_name_search MATCH ?1 ORDER BY bm25(uk_name_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ id: number; primary_name: string; name_normalized: string }>(),
+    env.DB.prepare(
+      `SELECT a.uk_id, a.alias, a.alias_normalized FROM uk_alias_search
+       JOIN uk_sanctions_aliases a ON a.id = uk_alias_search.rowid
+       WHERE uk_alias_search MATCH ?1 ORDER BY bm25(uk_alias_search) LIMIT ?2`
+    )
+      .bind(fts, limit)
+      .all<{ uk_id: number; alias: string; alias_normalized: string }>(),
+  ]);
+
   for (const r of sdnPrimary.results)
     out.push({ source: 'SDN', entity_id: r.id, matched_via: 'primary_name', name: r.primary_name, name_normalized: r.name_normalized });
-
-  const sdnAlias = await env.DB.prepare(
-    `SELECT a.sdn_id, a.alias, a.alias_normalized FROM sdn_alias_search
-     JOIN sdn_aliases a ON a.id = sdn_alias_search.rowid
-     WHERE sdn_alias_search MATCH ?1 ORDER BY bm25(sdn_alias_search) LIMIT ?2`
-  )
-    .bind(fts, limit)
-    .all<{ sdn_id: number; alias: string; alias_normalized: string }>();
   for (const r of sdnAlias.results)
     out.push({ source: 'SDN', entity_id: r.sdn_id, matched_via: 'alias', name: r.alias, name_normalized: r.alias_normalized });
-
-  const cslPrimary = await env.DB.prepare(
-    `SELECT c.id, c.name, c.name_normalized FROM csl_name_search
-     JOIN csl_entries c ON c.id = csl_name_search.rowid
-     WHERE csl_name_search MATCH ?1 ORDER BY bm25(csl_name_search) LIMIT ?2`
-  )
-    .bind(fts, limit)
-    .all<{ id: number; name: string; name_normalized: string }>();
   for (const r of cslPrimary.results)
     out.push({ source: 'CSL', entity_id: r.id, matched_via: 'primary_name', name: r.name, name_normalized: r.name_normalized });
-
-  const cslAlias = await env.DB.prepare(
-    `SELECT a.csl_id, a.alias, a.alias_normalized FROM csl_alias_search
-     JOIN csl_aliases a ON a.id = csl_alias_search.rowid
-     WHERE csl_alias_search MATCH ?1 ORDER BY bm25(csl_alias_search) LIMIT ?2`
-  )
-    .bind(fts, limit)
-    .all<{ csl_id: number; alias: string; alias_normalized: string }>();
   for (const r of cslAlias.results)
     out.push({ source: 'CSL', entity_id: r.csl_id, matched_via: 'alias', name: r.alias, name_normalized: r.alias_normalized });
+  for (const r of unPrimary.results)
+    out.push({ source: 'UN', entity_id: r.id, matched_via: 'primary_name', name: r.primary_name, name_normalized: r.name_normalized });
+  for (const r of unAlias.results)
+    out.push({ source: 'UN', entity_id: r.un_id, matched_via: 'alias', name: r.alias, name_normalized: r.alias_normalized });
+  for (const r of ukPrimary.results)
+    out.push({ source: 'UK', entity_id: r.id, matched_via: 'primary_name', name: r.primary_name, name_normalized: r.name_normalized });
+  for (const r of ukAlias.results)
+    out.push({ source: 'UK', entity_id: r.uk_id, matched_via: 'alias', name: r.alias, name_normalized: r.alias_normalized });
 
   return out;
 }
@@ -553,4 +593,44 @@ export interface CslEntryRow {
 
 export async function getCslEntry(env: Env, id: number): Promise<CslEntryRow | null> {
   return (await env.DB.prepare(`SELECT * FROM csl_entries WHERE id = ?1`).bind(id).first<CslEntryRow>()) ?? null;
+}
+
+export interface UnSanctionsEntryRow {
+  id: number;
+  uid: string;
+  entity_type: string;
+  primary_name: string;
+  un_list_type: string | null;
+  reference_number: string | null;
+  listed_on: string | null;
+  nationality: string | null;
+  addresses: string | null;
+  remarks: string | null;
+  source_url: string;
+  source_tier: number;
+  last_updated: string;
+}
+
+export async function getUnEntry(env: Env, id: number): Promise<UnSanctionsEntryRow | null> {
+  return (await env.DB.prepare(`SELECT * FROM un_sanctions_entries WHERE id = ?1`).bind(id).first<UnSanctionsEntryRow>()) ?? null;
+}
+
+export interface UkSanctionsEntryRow {
+  id: number;
+  uid: string;
+  group_id: string | null;
+  entity_type: string;
+  primary_name: string;
+  regime_name: string | null;
+  listing_type: string | null;
+  date_listed: string | null;
+  addresses: string | null;
+  statement_of_reasons: string | null;
+  source_url: string;
+  source_tier: number;
+  last_updated: string;
+}
+
+export async function getUkEntry(env: Env, id: number): Promise<UkSanctionsEntryRow | null> {
+  return (await env.DB.prepare(`SELECT * FROM uk_sanctions_entries WHERE id = ?1`).bind(id).first<UkSanctionsEntryRow>()) ?? null;
 }

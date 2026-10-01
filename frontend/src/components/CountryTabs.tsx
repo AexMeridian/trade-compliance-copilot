@@ -3,7 +3,7 @@
 // as its own small file rather than adding a fourth tab-id union to one of
 // the existing ones, since this page's sections don't map onto Pulse's or
 // Influence's section hues.
-export type CountryTabId = 'overview' | 'policy' | 'tariffs' | 'export' | 'sanctions' | 'markets';
+export type CountryTabId = 'overview' | 'policy' | 'tariffs' | 'export' | 'sanctions' | 'markets' | 'guide';
 
 export const COUNTRY_TABS: { id: CountryTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
@@ -12,6 +12,7 @@ export const COUNTRY_TABS: { id: CountryTabId; label: string; hint: string }[] =
   { id: 'export', label: 'Export controls', hint: 'Commerce Country Chart status' },
   { id: 'sanctions', label: 'Sanctions', hint: 'OFAC/BIS sanctioned-entity count' },
   { id: 'markets', label: 'Markets & news', hint: 'Currency and recent headlines, if applicable' },
+  { id: 'guide', label: 'Guide', hint: 'What each tab means and its real limits, for newcomers' },
 ];
 
 export function CountryTabs({ active, onChange }: { active: CountryTabId; onChange: (id: CountryTabId) => void }) {

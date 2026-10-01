@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
@@ -20,9 +20,10 @@ import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { agoText, plainSummary } from '../lib/pulsePlain';
+import { SITE } from '../lib/site';
 import type { ActiveMeasure, NewsItem, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
-// A second lens on the same real Trade Policy Pulse data (see InfluenceGuide
+// A second lens on the same real Aex Terminal data (see InfluenceGuide
 // for exactly what's reused vs. new): pressure = the tariff/sanctions/export
 // tools already tracked there; reach = the dollar's reach and
 // diplomatic/political news, already collected there too; alliances = one
@@ -63,12 +64,17 @@ export function Influence() {
     if (reveal) requestAnimationFrame(() => document.getElementById('influence-tabs')?.scrollIntoView({ block: 'start' }));
   };
 
+  // Guards against a slower, earlier range request resolving after a faster,
+  // later one and overwriting it with stale data (e.g. clicking "6mo" then
+  // quickly "2yr").
+  const tempoRequestId = useRef(0);
   const handleTempoRangeChange = useCallback(async (id: TempoRangeId) => {
     setTempoRange(id);
     const range = TEMPO_RANGES.find((r) => r.id === id);
     if (!range) return;
+    const reqId = ++tempoRequestId.current;
     const { months: pts } = await getPulseTempo(range.months);
-    setMonths(pts);
+    if (reqId === tempoRequestId.current) setMonths(pts);
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -215,7 +221,7 @@ export function Influence() {
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
                 Every figure above and on the tabs below is a real, sourced number -- the same data behind{' '}
                 <Link to="/" className="text-accent hover:underline">
-                  Trade Policy Pulse
+                  {SITE.name}
                 </Link>
                 , reframed as pressure and reach. See the Guide tab for exactly what that does and doesn't mean.
               </p>
@@ -279,7 +285,7 @@ export function Influence() {
                   </PulsePanel>
                 </div>
               </div>
-              {seeAll('Full detail on Trade Policy Pulse', 'overview')}
+              {seeAll(`Full detail on ${SITE.name}`, 'overview')}
             </div>
           )}
 
@@ -406,11 +412,11 @@ export function Influence() {
 
         <div className="card mt-10 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-[15px] font-semibold text-ink">Trade Policy Pulse</h2>
+            <h2 className="text-[15px] font-semibold text-ink">{SITE.name}</h2>
             <p className="mt-0.5 text-sm text-ink-muted">The full tariff, sanctions, export-control and markets feed this page's numbers are drawn from.</p>
           </div>
           <Link to="/" className="btn shrink-0">
-            Open Trade Policy Pulse
+            Open {SITE.name}
           </Link>
         </div>
       </div>

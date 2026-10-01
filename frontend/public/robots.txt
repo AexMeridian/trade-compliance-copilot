@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /case/
 
-Sitemap: https://trade-compliance-copilot.ceo-ae4.workers.dev/sitemap.xml
+Sitemap: https://aexterminal.com/sitemap.xml

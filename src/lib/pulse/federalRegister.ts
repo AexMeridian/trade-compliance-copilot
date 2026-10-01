@@ -1,10 +1,10 @@
-// Federal Register API client for Trade Policy Pulse -- free, public, no
+// Federal Register API client for Aex Terminal -- free, public, no
 // auth. Agency slugs below were resolved against a live GET of
 // /api/v1/agencies.json (473 agencies), not guessed -- a wrong slug silently
 // returns zero results instead of erroring, so these are pinned as constants
 // rather than re-derived at request time.
 const BASE = 'https://www.federalregister.gov/api/v1';
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 const REQUEST_TIMEOUT_MS = 10_000;
 
 // USTR/BIS/OFAC/CBP alone miss two entire regulatory domains this feed

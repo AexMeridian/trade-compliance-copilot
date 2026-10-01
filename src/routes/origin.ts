@@ -16,8 +16,18 @@ originRoute.post('/:id/origin', async (c) => {
     return c.json({ error: 'Module 1 (classification) must be complete before Module 2 (origin).' }, 409);
   }
 
-  const body = await c.req.json<{ components: OriginComponent[]; final_assembly_country: string }>();
+  const body = await c.req
+    .json<{ components?: OriginComponent[]; final_assembly_country?: string }>()
+    .catch(() => ({}) as { components?: OriginComponent[]; final_assembly_country?: string });
+  if (!Array.isArray(body.components) || typeof body.final_assembly_country !== 'string' || !body.final_assembly_country) {
+    return c.json({ error: 'components (array) and final_assembly_country are required to run origin determination.' }, 400);
+  }
   const code = caseFile.classification.selected_code!;
+  // Normalized once, here, so every downstream reader (this route's own
+  // storage below, and Module 4's country === 'CA' / 'MX' checks in
+  // dutyStack.ts/determination.ts) can compare against a known-uppercase
+  // value -- mirrors the export path's destination_country normalization.
+  const finalAssemblyCountry = (body.final_assembly_country ?? '').toUpperCase();
 
   const rule = await findUsmcaRule(c.env, code);
   await logCaseEvent(c.env, caseId, 'origin', 'candidate_set', { code, rule });
@@ -27,7 +37,7 @@ originRoute.post('/:id/origin', async (c) => {
       status: 'complete',
       applicable_rule: null,
       components: body.components,
-      final_assembly_country: body.final_assembly_country,
+      final_assembly_country: finalAssemblyCountry,
       tariff_shift_met: null,
       rvc_calculated_pct: null,
       rvc_threshold_pct: null,
@@ -53,7 +63,7 @@ originRoute.post('/:id/origin', async (c) => {
   try {
     output = await callClaudeTool<OriginToolOutput>(c.env, {
       system: ORIGIN_SYSTEM_PROMPT,
-      userContent: buildOriginUserContent(code, rule, body.components, body.final_assembly_country),
+      userContent: buildOriginUserContent(code, rule, body.components, finalAssemblyCountry),
       tool: buildOriginTool(),
     });
   } catch (err) {
@@ -65,7 +75,7 @@ originRoute.post('/:id/origin', async (c) => {
     status: 'complete',
     applicable_rule: { rule_id: rule.id, rule_type: rule.rule_type, citation: rule.citation },
     components: body.components,
-    final_assembly_country: body.final_assembly_country,
+    final_assembly_country: finalAssemblyCountry,
     tariff_shift_met: output.tariff_shift_met,
     rvc_calculated_pct: output.rvc_calculated_pct,
     rvc_threshold_pct: rule.rvc_threshold_pct,
@@ -86,7 +96,9 @@ originRoute.post('/:id/origin', async (c) => {
     caseFile.open_issues.push(`Origin: ${issue}`);
   }
   if (output.insufficient_facts) {
-    caseFile.open_issues.push('Origin: facts provided are insufficient to determine USMCA qualification -- flagged for manual review.');
+    caseFile.open_issues.push(
+      'Origin: facts provided are insufficient to determine USMCA qualification. Next step: gather more precise component origin/value data and re-run this step, or request a binding country-of-origin ruling from CBP (19 CFR Part 177) before relying on preferential treatment.'
+    );
   }
 
   await saveCaseFile(c.env, caseFile);

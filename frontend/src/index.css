@@ -31,6 +31,7 @@
   --color-hairline-strong: #8a8a94;
   --color-accent: #4338ca;
   --color-accent-soft: #eeefff;
+  --color-accent-hover: #322aa8;
 
   --color-clear: #0f7a45;
   --color-clear-soft: #e5f4ec;
@@ -53,6 +54,48 @@
   --color-hue-gray-ink: #47474e;
 
   --radius-control: 8px;
+}
+
+/*
+  Dark theme: every color above is a real CSS custom property (Tailwind v4
+  generates utilities like `.text-ink { color: var(--color-ink) }`), so a
+  second value for each token here is enough to repaint the whole app --
+  no component changes needed. The top bar, hero and the hero-only
+  components (PulseHero/PowerHero/InfluenceHero, PulseGlobe, PulseCountryCard,
+  PulseDelta's `onDark` branch, .btn-hero/.btn-hero-ghost) are deliberately
+  NOT reassigned here: this site's design already keeps that one zone black
+  in both themes ("the top bar and hero are black" -- see the comment at the
+  top of this file), so their hardcoded on-black colors are correct in both
+  themes, not a gap. `[data-theme="dark"]` is set by a small inline script in
+  index.html before first paint (see frontend/src/lib/theme.ts) -- there's no
+  `prefers-color-scheme` media query here because that script already
+  resolves system preference into an explicit attribute before CSS runs.
+*/
+:root[data-theme='dark'] {
+  --color-paper: #121214;
+  --color-paper-raised: #1b1b1f;
+  --color-ink: #f2f2f3;
+  --color-ink-muted: #b4b4bc;
+  --color-ink-faint: #8a8a94;
+  --color-hairline: #2a2a2f;
+  --color-hairline-strong: #45454d;
+  --color-accent: #818cf8;
+  --color-accent-soft: #1e1b4b;
+  --color-accent-hover: #a5b0fa;
+
+  --color-clear: #34d399;
+  --color-clear-soft: #0f2a1d;
+  --color-review: #fbbf24;
+  --color-review-soft: #3f2d05;
+  --color-stop: #f87171;
+  --color-stop-soft: #3b0a09;
+
+  --color-hue-orange-ink: #fb923c;
+  --color-hue-violet-ink: #a78bfa;
+  --color-hue-cyan-ink: #22d3ee;
+  --color-hue-pink-ink: #f472b6;
+  --color-hue-indigo-ink: #818cf8;
+  --color-hue-gray-ink: #c4c4cc;
 }
 
 @layer base {
@@ -97,10 +140,77 @@
   ::selection {
     background: #c7c9ff;
   }
+  :root[data-theme='dark'] ::selection {
+    background: #3730a3;
+  }
 
   *:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  /* Off-screen until focused (not display:none, so it's still reachable by
+     keyboard), then pinned above everything else including the sticky header. */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 8px;
+    z-index: 50;
+    background: var(--color-ink);
+    color: #fff;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius-control);
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    top: 8px;
+  }
+}
+
+/* A case report is the one page on this site someone would print or save as
+   PDF to hand to someone else -- strip the chrome that only makes sense on
+   screen, and force every collapsed disclosure open so the printed copy is
+   complete, not a page full of "Show analyst reasoning" buttons that go
+   nowhere on paper. Native <details> hides its body via a UA stylesheet rule
+   (details:not([open]) > *:not(summary) { display: none }), which an
+   !important author rule can override without any JS. */
+@media print {
+  /* A printed/saved-as-PDF report should always use the light, high-contrast
+     palette, regardless of which theme the browser tab was in -- otherwise
+     dark mode's light-colored ink would print as barely-visible text against
+     the white page forced below. Same selector + later in the cascade as
+     the dark-theme block above, so this wins on specificity + source order. */
+  :root[data-theme='dark'] {
+    --color-paper: #f5f5f6;
+    --color-paper-raised: #ffffff;
+    --color-ink: #0b0b0c;
+    --color-ink-muted: #47474e;
+    --color-ink-faint: #62626b;
+    --color-hairline: #e4e4e7;
+    --color-hairline-strong: #8a8a94;
+    --color-accent: #4338ca;
+    --color-accent-soft: #eeefff;
+  }
+  .no-print {
+    display: none !important;
+  }
+  details > *:not(summary) {
+    display: block !important;
+  }
+  details > summary {
+    list-style: none;
+  }
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
+  a {
+    color: inherit;
+    text-decoration: underline;
   }
 }
 
@@ -125,7 +235,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#322aa8] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   /* On the black hero. */

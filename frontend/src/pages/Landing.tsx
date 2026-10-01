@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { CaseFile, Direction, Verdict } from '../types/case';
 import { createCase, getReport, listSamples } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
+import { SITE } from '../lib/site';
 
 const SAMPLE_LABELS: Record<string, { title: string; note: string }> = {
   'ambiguous-classification': {
@@ -114,7 +115,7 @@ export function Landing() {
         <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-muted">
           Run a single shipment through classification, origin, party screening and duty determination. It uses the same trade data as{' '}
           <Link to="/" className="text-accent hover:underline">
-            Trade Policy Pulse
+            {SITE.name}
           </Link>
           , and every answer cites its source.
         </p>

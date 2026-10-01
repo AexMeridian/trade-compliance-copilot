@@ -30,7 +30,12 @@ export function PulseSanctionsBrowser({ initialCountry = '' }: { initialCountry?
   }, [country, list, page]);
 
   const total = totals.sdn + totals.csl;
-  const pages = Math.max(Math.ceil(Math.max(rows.sdn.length ? totals.sdn : 0, rows.csl.length ? totals.csl : 0) / PAGE_SIZE), 1);
+  // Page count comes straight from the fetched totals (whichever list needs
+  // more pages), not from the current page's own row counts -- deriving it
+  // from `rows.x.length` broke whenever a page legitimately came back with
+  // zero rows for one list, collapsing the page count to 1 regardless of the
+  // real total.
+  const pages = Math.max(Math.ceil(Math.max(totals.sdn, totals.csl) / PAGE_SIZE), 1);
   const combined = [...rows.sdn, ...rows.csl];
 
   return (

@@ -1,4 +1,4 @@
-import { BLOC_FULL_NAMES, BLOC_LABELS, BLOC_MEMBERS, type Bloc } from '../lib/pulseBlocs';
+import { BLOC_FULL_NAMES, BLOC_LABELS, BLOC_MEMBERS, PARTNER_COUNTRIES, type Bloc } from '../lib/pulseBlocs';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { BLOC_HUE } from '../lib/pulseColors';
 
@@ -58,6 +58,35 @@ export function InfluenceBlocs({
           );
         })}
       </div>
+      <div className="card p-4">
+        <h3 className="font-display text-base font-bold text-ink">NATO partners</h3>
+        <p className="mt-0.5 text-xs text-ink-faint">
+          A real, named NATO relationship ("partners across the globe") -- but not membership, and not the Article 5 mutual-defense commitment NATO members
+          have. Shown separately from the NATO card above on purpose.
+        </p>
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {PARTNER_COUNTRIES.map((c) => {
+            const n = counts.get(c) ?? 0;
+            const active = activeCountry === c;
+            return (
+              <li key={c}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(c)}
+                  aria-pressed={active}
+                  className={`border px-2 py-1 text-[12px] font-semibold ${
+                    active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+                  }`}
+                >
+                  {COUNTRY_LABELS[c] ?? c}
+                  {n > 0 && <span className="ml-1 tabular-nums opacity-70">{n}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       <p className="text-xs leading-relaxed text-ink-faint">
         Membership is public and factual (see the Guide tab for sources); it is not a measure of alignment or sentiment. A country can belong to more than one
         group above. Countries not shown in any card here simply aren't a member of a bloc tracked on this page.

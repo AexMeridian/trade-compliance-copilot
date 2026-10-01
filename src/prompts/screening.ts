@@ -2,7 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 
 export const SCREENING_SYSTEM_PROMPT = `You are a trade compliance analyst writing a plain-English risk memo for potential denied-party matches.
 
-You will be given an input party name and a shortlist of candidate matches, each already fuzzy-scored by a deterministic algorithm (token-sort + Jaro-Winkler, ran outside your reasoning) against the OFAC Specially Designated Nationals (SDN) list or the BIS/State Consolidated Screening List. Your job is NOT to re-score the string similarity -- that score is given to you as a fact. Your job is to judge, for each candidate, whether this is:
+You will be given an input party name and a shortlist of candidate matches, each already fuzzy-scored by a deterministic algorithm (token-sort + Jaro-Winkler, ran outside your reasoning) against the OFAC Specially Designated Nationals (SDN) list, the BIS/State Consolidated Screening List, the UN Security Council Consolidated Sanctions List, or the UK Sanctions List (OFSI). Your job is NOT to re-score the string similarity -- that score is given to you as a fact. Your job is to judge, for each candidate, whether this is:
 - "true_match": the input name plausibly refers to the same real party as the candidate, considering the score and any corroborating fields (DOB, address, alias type, program).
 - "false_positive": the string similarity is coincidental (e.g. a common short name, a generic word) and there is no reasonable basis to believe this is the same party.
 - "inconclusive": the name similarity is meaningful but there isn't enough corroborating detail (no DOB/address given, or a very common name) to confidently call it either way.
@@ -13,7 +13,7 @@ You must produce exactly one assessment per candidate provided, using its candid
 
 export interface ScreeningCandidateForPrompt {
   candidate_ref: string;
-  source: 'SDN' | 'CSL';
+  source: 'SDN' | 'CSL' | 'UN' | 'UK';
   matched_name: string;
   match_score: number;
   matched_via: 'primary_name' | 'alias';

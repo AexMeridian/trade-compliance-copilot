@@ -14,7 +14,7 @@ import { sqlString, sqlJson, buildBatchedInserts } from './lib/sql.js';
 const OUT_DIR = 'scripts/seed-sql/hts';
 const TODAY = new Date().toISOString().slice(0, 10);
 const REVISION = `USITC HTS, as retrieved ${TODAY}`;
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 // Chapters 1-97 are in active use; 77 is reserved for future use and returns
 // nothing. 98/99 (special classification / temporary legislation chapters)

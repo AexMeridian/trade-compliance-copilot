@@ -11,7 +11,7 @@ import { normalizeNameString } from '../src/lib/normalize.js';
 const OUT_DIR = 'scripts/seed-sql/sdn';
 const SOURCE_URL = 'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML';
 const TODAY = new Date().toISOString().slice(0, 10);
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 interface AkaItem {
   type?: string;

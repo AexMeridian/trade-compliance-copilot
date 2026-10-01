@@ -1,5 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
-import type { PulseHome, ActiveMeasure, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
+import type { PulseHome, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, TempoPoint } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -46,17 +46,17 @@ export function submitOrigin(id: string, components: OriginComponent[], finalAss
   });
 }
 
-export function submitScreening(id: string, parties: { role: PartyRole; name: string }[]) {
+export function submitScreening(id: string, parties: { role: PartyRole; name: string }[], deemedExportFlag?: boolean) {
   return request<{ screening: CaseFile['screening'] }>(`/cases/${id}/screening`, {
     method: 'POST',
-    body: JSON.stringify({ parties }),
+    body: JSON.stringify({ parties, deemed_export_flag: deemedExportFlag }),
   });
 }
 
-export function submitDetermination(id: string, destinationCountry?: string) {
+export function submitDetermination(id: string, opts: { destinationCountry?: string; declaredValueUsd?: number } = {}) {
   return request<{ determination: CaseFile['determination'] }>(`/cases/${id}/determination`, {
     method: 'POST',
-    body: JSON.stringify({ destination_country: destinationCountry }),
+    body: JSON.stringify({ destination_country: opts.destinationCountry, declared_value_usd: opts.declaredValueUsd }),
   });
 }
 
@@ -76,10 +76,6 @@ export function getPulseHome() {
 
 export function getPulseTempo(months?: number) {
   return request<{ months: TempoPoint[] }>(`/pulse/tempo${months ? `?months=${months}` : ''}`);
-}
-
-export function getPulseSummary() {
-  return request<PulseSummary>('/pulse/summary');
 }
 
 export function getPulseCountry(code: string, name?: string) {
@@ -156,8 +152,15 @@ export function getPulseCoferHistory() {
   return request<{ points: [string, number][] }>('/pulse/cofer');
 }
 
-export function getActiveMeasures() {
-  return request<{ overlays: ActiveMeasure[] }>('/pulse/active-measures');
+export interface NatoDefenseCountry {
+  points: [string, number][];
+  source: string;
+  sourceUrl: string;
+  asOf: string;
+}
+
+export function getNatoDefenseSpending() {
+  return request<{ countries: Record<string, NatoDefenseCountry> }>('/pulse/nato-defense');
 }
 
 export function syncPulse() {
@@ -175,4 +178,35 @@ export function getPulseNews(category?: string, limit = 30) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (category) params.set('category', category);
   return request<PulseNewsResponse>(`/pulse/news?${params}`);
+}
+
+export interface PulseCoverage {
+  federal_register: string | null;
+  news: string | null;
+  yahoo_finance: string | null;
+  ecb_fx: string | null;
+  bls: string | null;
+  imf_cofer: string | null;
+}
+
+export function getPulseCoverage() {
+  return request<PulseCoverage>('/pulse/coverage');
+}
+
+export interface PulseSnapshot<TData = unknown, TParams = unknown> {
+  id: string;
+  chart_type: 'tempo' | 'markets' | 'cofer';
+  title: string;
+  params: TParams;
+  data: TData;
+  source_note: string;
+  created_at: string;
+}
+
+export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer'; title: string; params: unknown; data: unknown; source_note: string }) {
+  return request<{ id: string; created_at: string }>('/pulse/snapshots', { method: 'POST', body: JSON.stringify(args) });
+}
+
+export function getSnapshot(id: string) {
+  return request<PulseSnapshot>(`/pulse/snapshots/${id}`);
 }

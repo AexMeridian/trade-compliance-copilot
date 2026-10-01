@@ -11,7 +11,7 @@ import type { RefreshResult } from './types.js';
 
 const SOURCE_URL = 'https://www.trade.gov/consolidated-screening-list';
 const CSV_URL = 'https://data.trade.gov/downloadable_consolidated_screening_list/v1/consolidated.csv';
-const UA = 'trade-compliance-copilot-research/1.0 (portfolio project data loader)';
+const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 
 const EXCLUDED_SOURCES = new Set(['Specially Designated Nationals (SDN) - Treasury Department']);
 

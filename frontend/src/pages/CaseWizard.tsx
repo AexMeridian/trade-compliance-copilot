@@ -3,8 +3,42 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { CaseFile, OriginComponent, PartyRole } from '../types/case';
 import { getCase, submitClassification, submitOrigin, submitScreening, submitDetermination } from '../lib/api';
 import { ReasoningPanel } from '../components/ReasoningPanel';
+import { ScreeningRedFlags } from '../components/ScreeningRedFlags';
+import { agoText } from '../lib/pulsePlain';
 
 const STEPS = ['Classification', 'Origin', 'Screening', 'Determination'] as const;
+
+// Landing.tsx's "How a case works" section explains the four modules before
+// someone ever starts a case; this is the piece Lee's audit found missing --
+// the actual step forms below use real trade-compliance jargon (RVC, ECCN,
+// EAR99, NLR) with nothing on the page explaining it, so a newcomer who
+// clicked straight through from a sample case link lands in the jargon with
+// no equivalent gentle landing.
+const JARGON: [string, string][] = [
+  ['HTS / Schedule B', 'The numeric codes that classify a product for import (HTS) or export (Schedule B) duty and statistics purposes.'],
+  ['RVC', 'Regional Value Content -- the percent of a good’s value that must originate in the USMCA region for it to qualify for preferential tariff treatment under certain rules.'],
+  ['Tariff shift', 'A USMCA origin rule met when a non-originating component’s HTS classification changes enough (e.g. a different chapter or heading) during production in the region.'],
+  ['ECCN', 'Export Control Classification Number -- the code that says which export controls (if any) apply to an item under the Commerce Control List.'],
+  ['EAR99', 'The default classification for items subject to the Export Administration Regulations but not listed under a specific ECCN -- usually no license is required.'],
+  ['NLR', 'No License Required -- the export can proceed without a BIS export license for the stated destination and end use.'],
+  ['De minimis (Section 321)', 'A shipment valued under $800 is often, but not always, exempt from duty -- see the determination step for this case’s own disclosed caveats.'],
+];
+
+function JargonGuide() {
+  return (
+    <details className="card mb-6 px-4 py-3 text-sm">
+      <summary className="cursor-pointer font-semibold text-ink">New to trade compliance terms? Start here</summary>
+      <dl className="mt-3 space-y-2">
+        {JARGON.map(([term, def]) => (
+          <div key={term}>
+            <dt className="font-medium text-ink">{term}</dt>
+            <dd className="text-ink-muted">{def}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
 
 export function CaseWizard() {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +129,7 @@ export function CaseWizard() {
       </nav>
 
       <div>
+        <JargonGuide />
         {error && <p className="mb-4 border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">{error}</p>}
         {activeStep === 0 && (
           <ClassificationStep
@@ -304,6 +339,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
           { role: 'buyer', name: '' },
         ],
   );
+  const [deemedExport, setDeemedExport] = useState(caseFile.screening.deemed_export_flagged);
   const [loading, setLoading] = useState(false);
   const s = caseFile.screening;
 
@@ -317,7 +353,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
     setLoading(true);
     onError(null);
     try {
-      const { screening } = await submitScreening(caseFile.id, filled);
+      const { screening } = await submitScreening(caseFile.id, filled, deemedExport);
       onDone({ ...caseFile, screening });
     } catch (e) {
       onError((e as Error).message);
@@ -357,12 +393,26 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
         </button>
       </div>
 
+      <label className="mt-4 flex items-start gap-2 text-sm text-ink-muted">
+        <input type="checkbox" checked={deemedExport} onChange={(e) => setDeemedExport(e.target.checked)} className="mt-0.5" />
+        <span>
+          This transaction may involve sharing controlled technology, source code or technical data with a foreign national employee or contractor -- a{' '}
+          <span className="text-ink">"deemed export"</span> under the EAR/ITAR, license-relevant even if nothing physically crosses a border.
+        </span>
+      </label>
+
       <button type="button" onClick={submit} disabled={loading} className="btn-primary mt-4">
-        {loading ? 'Screening…' : 'Screen parties'}
+        {loading ? 'Screening…' : s.status === 'complete' ? 'Re-screen parties' : 'Screen parties'}
       </button>
 
       {s.status === 'complete' && (
         <div className="mt-6 space-y-4 border-t border-hairline pt-4">
+          {s.screened_at && (
+            <p className="text-xs text-ink-faint">
+              Screened {agoText(s.screened_at)}. Watchlists change; if this case sits for a while before acting on it, re-screen rather than trust a stale
+              result.
+            </p>
+          )}
           {s.parties.map((p, i) => (
             <div key={i}>
               <div className="text-sm font-semibold text-ink">
@@ -380,11 +430,18 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
                       ({m.matched_list}, score {m.match_score.toFixed(2)})
                     </span>
                   </div>
+                  {m.token_sort_score !== undefined && m.jaro_winkler_score !== undefined && (
+                    <div className="text-xs text-ink-faint">
+                      Matched on {m.matched_via === 'alias' ? 'an alias' : 'the primary name'} -- token-sort {m.token_sort_score.toFixed(2)}, Jaro-Winkler{' '}
+                      {m.jaro_winkler_score.toFixed(2)}.
+                    </div>
+                  )}
                   <div className="text-sm text-ink-muted">{m.risk_memo}</div>
                 </div>
               ))}
             </div>
           ))}
+          <ScreeningRedFlags />
         </div>
       )}
     </StepShell>
@@ -394,6 +451,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
 function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDone: (c: CaseFile) => void; onError: (e: string | null) => void }) {
   const [loading, setLoading] = useState(false);
   const [destination, setDestination] = useState(caseFile.determination.destination_country ?? '');
+  const [declaredValue, setDeclaredValue] = useState(caseFile.determination.declared_value_usd?.toString() ?? '');
   const isExport = caseFile.direction === 'export';
 
   async function submit() {
@@ -401,7 +459,10 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
     setLoading(true);
     onError(null);
     try {
-      const { determination } = await submitDetermination(caseFile.id, isExport ? destination : undefined);
+      const { determination } = await submitDetermination(caseFile.id, {
+        destinationCountry: isExport ? destination : undefined,
+        declaredValueUsd: !isExport && declaredValue.trim() ? Number(declaredValue) : undefined,
+      });
       onDone({ ...caseFile, determination });
     } catch (e) {
       onError((e as Error).message);
@@ -425,6 +486,21 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
             placeholder="e.g. DE"
             className="mt-1.5 block w-24 border border-hairline-strong bg-paper-raised px-2 py-1.5 tabular-nums text-sm outline-none focus:border-accent"
           />
+        </label>
+      )}
+      {!isExport && (
+        <label className="mt-3 block text-sm text-ink-muted">
+          Declared value in USD (optional)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={declaredValue}
+            onChange={(e) => setDeclaredValue(e.target.value)}
+            placeholder="e.g. 4500.00"
+            className="mt-1.5 block w-40 border border-hairline-strong bg-paper-raised px-2 py-1.5 tabular-nums text-sm outline-none focus:border-accent"
+          />
+          <span className="mt-1 block text-xs text-ink-faint">Adds a dollar landed-cost figure and a Section 321 de minimis check. Leave blank for a percentage-only estimate.</span>
         </label>
       )}
       <button type="button" onClick={submit} disabled={loading || (isExport && !destination.trim())} className="btn-primary mt-3">

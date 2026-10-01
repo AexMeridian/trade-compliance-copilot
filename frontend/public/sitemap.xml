@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://trade-compliance-copilot.ceo-ae4.workers.dev/</loc>
+    <loc>https://aexterminal.com/</loc>
   </url>
   <url>
-    <loc>https://trade-compliance-copilot.ceo-ae4.workers.dev/calculator</loc>
+    <loc>https://aexterminal.com/calculator</loc>
   </url>
   <url>
-    <loc>https://trade-compliance-copilot.ceo-ae4.workers.dev/about</loc>
+    <loc>https://aexterminal.com/influence</loc>
   </url>
   <url>
-    <loc>https://trade-compliance-copilot.ceo-ae4.workers.dev/privacy</loc>
+    <loc>https://aexterminal.com/power</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/compare</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/about</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/accessibility</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/privacy</loc>
   </url>
 </urlset>

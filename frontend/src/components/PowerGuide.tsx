@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BLOC_FULL_NAMES, BLOC_LABELS, type Bloc } from '../lib/pulseBlocs';
 import { BLOC_HUE } from '../lib/pulseColors';
+import { SITE } from '../lib/site';
 
 const BLOCS: Bloc[] = ['USMCA', 'G7', 'NATO', 'BRICS', 'G20'];
 
@@ -32,7 +33,7 @@ const QA: [string, string][] = [
   ],
   [
     'Does it use AI?',
-    'No. Every number and grouping here comes from fixed rules and public reference data, the same as Trade Policy Pulse -- no model call, no summarization, no scoring.',
+    `No. Every number and grouping here comes from fixed rules and public reference data, the same as ${SITE.name} -- no model call, no summarization, no scoring.`,
   ],
 ];
 
@@ -46,7 +47,7 @@ export function PowerGuide() {
           power (the dollar's shrinking share of world reserves, plus its market reach and diplomatic headlines). Almost everything here is the same data
           already tracked by{' '}
           <Link to="/" className="text-accent hover:underline">
-            Trade Policy Pulse
+            {SITE.name}
           </Link>{' '}
           and{' '}
           <Link to="/influence" className="text-accent hover:underline">
@@ -62,7 +63,7 @@ export function PowerGuide() {
           trade for another country. The same real data as Pulse's U.S.-policy feed and Influence's Pressure tab, framed here as instruments of coercion rather
           than neutral policy tracking. See the full duty-stack and tariff-program detail on{' '}
           <Link to="/?tab=data" className="text-accent hover:underline">
-            Trade Policy Pulse's Data tab
+            {SITE.name}'s Data tab
           </Link>
           , or a specific country's exposure on its own{' '}
           <Link to="/country/cn" className="text-accent hover:underline">

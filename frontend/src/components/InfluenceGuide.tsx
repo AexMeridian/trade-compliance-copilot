@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BLOC_FULL_NAMES, BLOC_LABELS, type Bloc } from '../lib/pulseBlocs';
 import { BLOC_HUE } from '../lib/pulseColors';
+import { SITE } from '../lib/site';
 
 const BLOCS: Bloc[] = ['USMCA', 'G7', 'NATO', 'BRICS', 'G20'];
 
@@ -28,7 +29,7 @@ const QA: [string, string][] = [
   ],
   [
     'Does it use AI?',
-    'No. Every number and grouping here comes from fixed rules and public reference data, the same as Trade Policy Pulse -- no model call, no summarization, no scoring.',
+    `No. Every number and grouping here comes from fixed rules and public reference data, the same as ${SITE.name} -- no model call, no summarization, no scoring.`,
   ],
 ];
 
@@ -38,11 +39,11 @@ export function InfluenceGuide() {
       <div>
         <h2 className="display text-3xl text-ink">A short guide to this page</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-          This page reframes real Trade Policy Pulse data through a "pressure and reach" lens -- what tools the U.S. uses to apply pressure abroad, what gives
+          This page reframes real {SITE.name} data through a "pressure and reach" lens -- what tools the U.S. uses to apply pressure abroad, what gives
           the dollar and U.S. diplomacy reach, and who it's formally allied with. Nothing here is a new data source built just for this framing except the
           alliance list below; everything else is the same figures used on{' '}
           <Link to="/" className="text-accent hover:underline">
-            Trade Policy Pulse
+            {SITE.name}
           </Link>
           , read differently.
         </p>
@@ -95,7 +96,7 @@ export function InfluenceGuide() {
           rates), the U.S. Bureau of Labor Statistics (import/export prices), and BBC/The Guardian/NPR/ECB/Fed (news) -- the exact sources and freshness are
           listed on{' '}
           <Link to="/?tab=guide" className="text-accent hover:underline">
-            Trade Policy Pulse's own guide
+            {SITE.name}'s own guide
           </Link>
           . The alliance membership list is a static reference file in the app's source, dated and cited to each group's own published membership.
         </p>

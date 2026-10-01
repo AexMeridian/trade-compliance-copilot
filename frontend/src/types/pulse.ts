@@ -133,6 +133,40 @@ export interface CountryChartRow {
   last_updated: string;
 }
 
+// GTA ("Global Trade Alert") rows: a foreign government's own trade measure
+// affecting the U.S. -- independent research data, not a U.S. government
+// source (see CountryDetail.tsx's panel copy for the disclosure shown with
+// every one of these).
+export interface GtaInterventionRow {
+  intervention_id: number;
+  state_act_title: string;
+  intervention_url: string;
+  state_act_url?: string;
+  gta_evaluation: 'Red' | 'Amber' | 'Green';
+  implementing_jurisdictions?: { id: number; name: string; iso: string }[];
+  implementing_jurisdiction_groups?: { name: string }[] | null;
+  intervention_type: string;
+  mast_chapter?: string;
+  date_announced: string | null;
+  date_implemented?: string | null;
+  date_removed?: string | null;
+  is_in_force?: number;
+}
+
+// CBP Withhold Release Orders & Findings (Section 307 forced-labor
+// enforcement) rows naming this country -- a real CBP data feed, distinct
+// from the DHS UFLPA Entity List this app links to rather than ingests (see
+// CountryDetail.tsx's panel copy).
+export interface WroFindingRow {
+  id: number;
+  effective_date: string | null;
+  merchandise: string | null;
+  order_type: 'WRO' | 'Finding';
+  status: string;
+  entity: string | null;
+  remarks: string | null;
+}
+
 export interface PulseCountryDetail {
   code: string;
   actions: PulseAction[];
@@ -151,6 +185,8 @@ export interface PulseCountryDetail {
     rows: CountryChartRow[];
   };
   sanctions: { sdnCount: number | null; cslCount: number | null; note: string };
+  retaliatoryMeasures: { rows: GtaInterventionRow[]; total: number; note: string };
+  forcedLaborEnforcement: { rows: WroFindingRow[]; total: number; note: string };
 }
 
 export interface PulseHome {

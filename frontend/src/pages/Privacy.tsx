@@ -75,6 +75,10 @@ export function Privacy() {
         See also:{' '}
         <Link to="/about" className="text-accent">
           About and sources
+        </Link>{' '}
+        and{' '}
+        <Link to="/accessibility" className="text-accent">
+          Accessibility
         </Link>
         .
       </p>

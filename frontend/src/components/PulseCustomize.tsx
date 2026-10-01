@@ -71,11 +71,12 @@ export function CustomizePanel({
   const [copied, setCopied] = useState(false);
   const set = (patch: Partial<PulsePrefs>) => onChange({ ...prefs, ...patch });
   const shareUrl = `${window.location.origin}/${isDefaultPrefs(prefs) ? '' : `?${prefsToQuery(prefs)}`}`;
-  // The RSS feed can narrow by one topic and one country; with more than one
-  // chosen it stays broad rather than silently dropping choices.
+  // /api/pulse/rss accepts a comma-separated list per filter (any match
+  // keeps an item), so every topic and country chosen here carries straight
+  // through to the feed link instead of only the first one.
   const rss = new URLSearchParams();
-  if (prefs.tags.length === 1) rss.set('tag', prefs.tags[0]);
-  if (prefs.countries.length === 1) rss.set('country', prefs.countries[0]);
+  if (prefs.tags.length) rss.set('tag', prefs.tags.join(','));
+  if (prefs.countries.length) rss.set('country', prefs.countries.join(','));
   const rssHref = `/api/pulse/rss${rss.toString() ? `?${rss}` : ''}`;
   async function copyLink() {
     try {
@@ -188,7 +189,7 @@ export function CustomizePanel({
             {copied ? 'Link copied' : 'Copy a link to this feed'}
           </button>
           <a href={rssHref} target="_blank" rel="noreferrer" className="btn">
-            RSS feed of new U.S. actions{prefs.tags.length === 1 || prefs.countries.length === 1 ? ' (narrowed)' : ''}
+            RSS feed of new U.S. actions{prefs.tags.length || prefs.countries.length ? ' (narrowed)' : ''}
           </a>
         </Group>
 
