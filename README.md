@@ -436,3 +436,33 @@ Things only the site's owner can decide or set. Everything else in this list is 
 6. **Analytics (optional).** None is installed. If you enable Cloudflare Web Analytics, the Content-Security-Policy in `frontend/public/_headers` already allows its beacon; update the Privacy page to say so.
 7. **Monitoring.** Workers observability is on. Point an uptime monitor at `/api/health`, and check `data_refresh_log` and `pulse_feed_state` (D1) if a source looks stale.
 8. **Alerts by email.** Not built: it needs an email provider and a way to confirm and unsubscribe addresses. RSS (`/api/pulse/rss`, optional `?tag=` and `?country=`) is the no-account alternative.
+
+## Continuous deployment
+
+This repo deploys via **Cloudflare Workers Builds** -- Cloudflare's own Git
+integration, not a separate CI provider. Connect it once under the Worker's
+**Settings → Build** in the Cloudflare dashboard, pointed at this repo's
+`main` branch, with:
+
+- **Build command**: `npm run build:frontend`
+- **Deploy command**: `npx wrangler d1 migrations apply trade-compliance-db --remote && npx wrangler deploy`
+  (not the default `npx wrangler deploy` alone -- migrations run first so
+  new code never runs against a database still missing a table it expects)
+- **Root directory**: left at the repo root (`wrangler.jsonc` and the build
+  script both live there, not inside `frontend/`)
+
+Workers Builds auto-generates an API token for these runs, but its default
+permissions don't reliably include D1 -- use "Provide your own API token"
+instead, created from the **"Edit Cloudflare Workers"** template at
+[dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+(it bundles Workers Scripts + D1 + Workers KV edit, which both commands
+above need).
+
+Once connected, the full path from editor to production is: commit in VS
+Code (`.vscode/settings.json` sets `git.postCommitCommand: "push"`, so the
+Source Control panel's Commit button pushes immediately after committing)
+→ GitHub → Workers Builds picks up the push on `main` → migrate → deploy.
+No separate push step, no CI secrets to manage in GitHub.
+
+Manual deploys still work exactly as before if you'd rather not wait for a
+build: `npm run db:migrate:remote` then `npm run deploy`.

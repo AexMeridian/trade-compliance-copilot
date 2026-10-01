@@ -1,0 +1,7 @@
+{
+  // Makes VS Code's Source Control "Commit" button also push immediately
+  // after committing, so a commit here reaches GitHub (and from there,
+  // Cloudflare Workers Builds -- see README.md's "Continuous deployment"
+  // section) without a separate manual push step.
+  "git.postCommitCommand": "push"
+}
