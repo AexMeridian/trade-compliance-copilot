@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoOrthographic, geoPath } from 'd3-geo';
+import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo';
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { getCurrentTheme, THEME_CHANGE_EVENT, type Theme } from '../lib/theme';
@@ -222,6 +222,8 @@ export function PulseGlobe({
   const pointerRef = useRef<{ x: number; y: number } | null>(null); // where the cursor is, while it is over the globe
   const dragRef = useRef<{ x: number; y: number; r: [number, number]; moved: boolean } | null>(null);
   const hoverIdRef = useRef<number | null>(null);
+  const clockRef = useRef(performance.now()); // feeds the arc/ping animation phase; set every animation frame, read inside draw()
+  const [booted, setBooted] = useState(false); // flips true once, after the one-time boot-sweep plays (see .globe-boot, index.css)
 
   const counts = useMemo(() => new Map(breakdown.map((b) => [b.country, b.count])), [breakdown]);
   const max = Math.max(...breakdown.map((b) => b.count), 1);
@@ -252,6 +254,38 @@ export function PulseGlobe({
 
   const projection = useMemo(() => geoOrthographic().clipAngle(90), []);
   const graticule = useMemo(() => geoGraticule10(), []);
+
+  // Every country's centroid, computed once per world load -- feeds the
+  // trade-flow arcs below without re-walking geometry every frame.
+  const centroidFor = useMemo(() => {
+    const m = new Map<number, [number, number]>();
+    if (!world) return m;
+    for (const c of world.countries) m.set(c.id, geoCentroid(c));
+    return m;
+  }, [world]);
+
+  // "Where the action is": a great-circle line from the U.S. to each of this
+  // month's most-active countries, brightness matched to the same ramp as
+  // the dots. Capped at 4 so the globe doesn't turn into a cat's cradle --
+  // this is meant to read as "here's where it's hottest right now", not a
+  // map of every relationship. Real data only: a country only gets a line
+  // when it has at least one action this month and a drawable landmass.
+  const activeArcs = useMemo(() => {
+    const us = centroidFor.get(840);
+    if (!us) return [];
+    const palette = PALETTES[theme];
+    return breakdown
+      .filter((b) => b.country !== 'US' && b.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4)
+      .map((b) => {
+        const id = CODE_TO_ID.get(b.country);
+        const to = id === undefined ? undefined : centroidFor.get(id);
+        if (!to) return null;
+        return { code: b.country, from: us, to, color: palette.ramp[stepFor(b.count, max) - 1] };
+      })
+      .filter((a): a is { code: string; from: [number, number]; to: [number, number]; color: string } => a !== null);
+  }, [breakdown, centroidFor, theme, max]);
   // Every country is hoverable (so its real name always shows), except
   // Antarctica -- excluded from the dot grid above for the same reason, and
   // odd to single out with a "not tracked" message since it is never a
@@ -274,7 +308,7 @@ export function PulseGlobe({
       const n = counts.get(code) ?? 0;
       return n > 0 ? palette.ramp[stepFor(n, max) - 1] : palette.quiet;
     },
-    [counts, max, activeCountry, groupColorFor, theme]
+    [counts, max, activeCountry, groupColorFor, theme],
   );
 
   const draw = useCallback(() => {
@@ -366,18 +400,97 @@ export function PulseGlobe({
       ctx.fillStyle = color;
       ctx.fill();
     }
-  }, [world, size, projection, graticule, hittable, activeCountry, colorFor, theme]);
+
+    // Trade-flow arcs: a great circle from the U.S. to each hot country,
+    // clipped to the visible hemisphere the same way the dots are (a point's
+    // unit vector must face the camera), with a marching-dashes flow to read
+    // as live movement rather than a static line. Drawn over the dots, like
+    // telemetry overlaid on terrain.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clock = clockRef.current;
+    const near = (lng: number, lat: number): boolean => {
+      const la = (lat * Math.PI) / 180;
+      const lo = (lng * Math.PI) / 180;
+      const vx = Math.cos(la) * Math.cos(lo);
+      const vy = Math.cos(la) * Math.sin(lo);
+      const vz = Math.sin(la);
+      return vx * cx + vy * cy + vz * cz > 0.02;
+    };
+    const STEPS = 48;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.1, size / 420);
+    ctx.setLineDash(reducedMotion ? [] : [5, 6]);
+    ctx.lineDashOffset = reducedMotion ? 0 : -((clock / 45) % 11);
+    ctx.globalAlpha = 0.85;
+    for (const arc of activeArcs) {
+      const interp = geoInterpolate(arc.from, arc.to);
+      ctx.strokeStyle = arc.color;
+      ctx.shadowColor = arc.color;
+      ctx.shadowBlur = size / 55;
+      ctx.beginPath();
+      let drawing = false;
+      for (let i = 0; i <= STEPS; i++) {
+        const [lng, lat] = interp(i / STEPS);
+        const p = near(lng, lat) ? projection([lng, lat]) : null;
+        if (p) {
+          if (drawing) ctx.lineTo(p[0], p[1]);
+          else {
+            ctx.moveTo(p[0], p[1]);
+            drawing = true;
+          }
+        } else if (drawing) {
+          ctx.stroke();
+          ctx.beginPath();
+          drawing = false;
+        }
+      }
+      if (drawing) ctx.stroke();
+    }
+    ctx.restore();
+
+    // One radar ping on the single hottest country -- "here's where it's
+    // busiest right now". Deliberately just one, not one per arc: the point
+    // is to draw the eye to a focal moment, not to turn the globe into a
+    // light show.
+    if (!reducedMotion && activeArcs[0]) {
+      const [lng, lat] = activeArcs[0].to;
+      const p = near(lng, lat) ? projection([lng, lat]) : null;
+      if (p) {
+        const period = 1700;
+        const phase = (clock % period) / period;
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], dotR * 1.6 + phase * size * 0.065, 0, 2 * Math.PI);
+        ctx.strokeStyle = activeArcs[0].color;
+        ctx.shadowColor = activeArcs[0].color;
+        ctx.shadowBlur = size / 40;
+        ctx.globalAlpha = Math.max(0, 1 - phase) * 0.85;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+    }
+  }, [world, size, projection, graticule, hittable, activeCountry, colorFor, theme, activeArcs]);
 
   // Redraw whenever the data, size or selection changes.
   useEffect(() => draw(), [draw]);
 
-  // Turn slowly until the visitor touches it or picks a country (never, if they asked for less motion).
+  // Turn slowly until the visitor touches it or picks a country (never, if
+  // they asked for less motion) -- and, regardless of rotation, keep the
+  // clock advancing and the canvas redrawing every frame so the trade-flow
+  // arcs and radar ping (drawn inside draw()) keep animating even while a
+  // country is selected or the globe is being dragged.
   useEffect(() => {
     if (!world || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      if (!dragRef.current && !activeCountry && !document.hidden) {
+      if (document.hidden) {
+        last = now;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (!dragRef.current && !activeCountry) {
         // Slower under the cursor so a country can be read and pressed as it passes.
         const speed = pointerRef.current ? 0.0028 : 0.008;
         rotation.current = [rotation.current[0] + (now - last) * speed, rotation.current[1]];
@@ -389,8 +502,9 @@ export function PulseGlobe({
             setHoverId(id);
           }
         }
-        draw();
       }
+      clockRef.current = now;
+      draw();
       last = now;
       raf = requestAnimationFrame(tick);
     };
@@ -399,6 +513,14 @@ export function PulseGlobe({
     // hitTestId is stable enough for this loop; the loop restarts when the world or selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world, activeCountry, draw]);
+
+  // The boot-sweep (index.css's .globe-boot) plays once, right after the
+  // globe first has real data to show -- not on every re-render.
+  useEffect(() => {
+    if (!world || booted || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = setTimeout(() => setBooted(true), 950);
+    return () => clearTimeout(t);
+  }, [world, booted]);
 
   // Bring a chosen country to the front (from the list, or after pressing it).
   useEffect(() => {
@@ -458,52 +580,60 @@ export function PulseGlobe({
 
   return (
     <div className="min-w-0">
-      <div ref={wrap} className="mx-auto w-full min-w-0 max-w-[760px]">
-        <canvas
-          ref={canvas}
-          role="img"
-          aria-label={ariaLabel ?? 'Globe of every country, coloured by how many U.S. actions named it in the last 30 days. Use the country list below to choose one.'}
-          style={{ width: size, height: size, cursor: hoverIsPressable ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
-          className="mx-auto block select-none"
-          onPointerLeave={() => {
-            pointerRef.current = null;
-            dragRef.current = null;
-            hoverIdRef.current = null;
-            setHoverId(null);
-            draw();
-          }}
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            dragRef.current = { x: e.clientX, y: e.clientY, r: [...rotation.current], moved: false };
-          }}
-          onPointerMove={(e) => {
-            const d = dragRef.current;
-            if (d && e.buttons !== 0) {
-              const dx = e.clientX - d.x;
-              const dy = e.clientY - d.y;
-              if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
-              rotation.current = [d.r[0] + dx * 0.4, Math.max(-80, Math.min(80, d.r[1] - dy * 0.4))];
+      <div className="relative mx-auto w-full max-w-[760px]">
+        {/* The atmosphere behind the sphere (index.css's .globe-halo) -- sized
+            a bit larger than the globe and blurred, so it reads as a glow
+            the globe sits inside rather than a flat circle on the page. */}
+        <div className="globe-halo pointer-events-none absolute -inset-[22%] -z-10 rounded-full blur-3xl" aria-hidden="true" />
+        <div ref={wrap} className={`relative w-full min-w-0 rounded-full ${!booted ? 'globe-boot' : ''}`}>
+          <canvas
+            ref={canvas}
+            role="img"
+            aria-label={
+              ariaLabel ?? 'Globe of every country, coloured by how many U.S. actions named it in the last 30 days. Use the country list below to choose one.'
+            }
+            style={{ width: size, height: size, cursor: hoverIsPressable ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
+            className="globe-ring-glow mx-auto block select-none"
+            onPointerLeave={() => {
+              pointerRef.current = null;
+              dragRef.current = null;
+              hoverIdRef.current = null;
+              setHoverId(null);
               draw();
-              return;
-            }
-            pointerRef.current = { x: e.clientX, y: e.clientY };
-            const id = hitTestId(e.clientX, e.clientY);
-            if (id !== hoverIdRef.current) {
-              hoverIdRef.current = id;
-              setHoverId(id);
-              draw(); // repaint the wash at once, even when the globe is standing still
-            }
-          }}
-          onPointerUp={(e) => {
-            const d = dragRef.current;
-            dragRef.current = null;
-            if (d && !d.moved) {
+            }}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dragRef.current = { x: e.clientX, y: e.clientY, r: [...rotation.current], moved: false };
+            }}
+            onPointerMove={(e) => {
+              const d = dragRef.current;
+              if (d && e.buttons !== 0) {
+                const dx = e.clientX - d.x;
+                const dy = e.clientY - d.y;
+                if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
+                rotation.current = [d.r[0] + dx * 0.4, Math.max(-80, Math.min(80, d.r[1] - dy * 0.4))];
+                draw();
+                return;
+              }
+              pointerRef.current = { x: e.clientX, y: e.clientY };
               const id = hitTestId(e.clientX, e.clientY);
-              const code = id !== null ? codeFor(id) : null;
-              if (code) onSelect(code);
-            }
-          }}
-        />
+              if (id !== hoverIdRef.current) {
+                hoverIdRef.current = id;
+                setHoverId(id);
+                draw(); // repaint the wash at once, even when the globe is standing still
+              }
+            }}
+            onPointerUp={(e) => {
+              const d = dragRef.current;
+              dragRef.current = null;
+              if (d && !d.moved) {
+                const id = hitTestId(e.clientX, e.clientY);
+                const code = id !== null ? codeFor(id) : null;
+                if (code) onSelect(code);
+              }
+            }}
+          />
+        </div>
       </div>
       <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink">
         {shownMessage ?? (world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…')}

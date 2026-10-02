@@ -72,6 +72,8 @@
   --color-hero-btn-text: #eef2f8;
   --color-hero-btn-hover: #1b2a4a;
   --hero-mask-rgb: 238, 242, 248; /* matches --color-hero-bg, for the headline's radial fade */
+  --hero-glow-rgb: 6, 182, 212; /* --color-hue-cyan, the globe's own hue -- the atmosphere glow behind it */
+  --hero-glow-alpha: 0.22; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
 }
@@ -105,6 +107,7 @@
   --color-hero-btn-text: #0b0b0c;
   --color-hero-btn-hover: #e4e4e7;
   --hero-mask-rgb: 10, 10, 11;
+  --hero-glow-alpha: 0.48;
 
   --color-paper: #121214;
   --color-paper-raised: #1b1b1f;
@@ -284,6 +287,74 @@
      fades to whichever --color-hero-bg is currently active instead of always
      fading to black (see PulseHero.tsx's comment on why this exists at all). */
   .hero-mask {
-    background: radial-gradient(ellipse 70% 85% at 50% 15%, rgba(var(--hero-mask-rgb), 0.94) 0%, rgba(var(--hero-mask-rgb), 0.7) 45%, rgba(var(--hero-mask-rgb), 0) 78%);
+    background: radial-gradient(
+      ellipse 70% 85% at 50% 15%,
+      rgba(var(--hero-mask-rgb), 0.94) 0%,
+      rgba(var(--hero-mask-rgb), 0.7) 45%,
+      rgba(var(--hero-mask-rgb), 0) 78%
+    );
+  }
+
+  /* The globe's atmosphere -- a soft cyan bloom behind the sphere so it reads
+     as a lit object in space rather than a flat circle sitting on the page.
+     Sized larger than the globe itself and blurred; pointer-events-none so it
+     never steals the drag/hover the canvas needs. */
+  .globe-halo {
+    background: radial-gradient(circle, rgba(var(--hero-glow-rgb), var(--hero-glow-alpha)) 0%, rgba(var(--hero-glow-rgb), 0.08) 55%, rgba(var(--hero-glow-rgb), 0) 72%);
+  }
+
+  /* A crisp rim-light right at the sphere's own edge, layered on top of the
+     soft .globe-halo bloom behind it -- the difference between "a circle
+     with a blurry smudge behind it" and "a lit sphere". Lives on the canvas
+     itself so it tracks the circle exactly. */
+  .globe-ring-glow {
+    border-radius: 9999px;
+    box-shadow:
+      0 0 2px 1px rgba(var(--hero-glow-rgb), calc(var(--hero-glow-alpha) + 0.25)),
+      0 0 46px 6px rgba(var(--hero-glow-rgb), var(--hero-glow-alpha)),
+      0 0 120px 26px rgba(var(--hero-glow-rgb), calc(var(--hero-glow-alpha) * 0.5));
+  }
+}
+
+/* The globe's one-time "boot" reveal -- a bright scanline sweeps down across
+   it as it fades and scales in on first mount, like an instrument powering
+   on. Deliberately a single orchestrated moment (not a per-element fade-in
+   pattern repeated around the page) and only plays once; PulseGlobe.tsx adds
+   .is-ready after the sweep's duration so the globe doesn't replay it on
+   later re-renders. Skipped entirely under reduced motion -- the globe simply
+   appears at its resting state. */
+@media (prefers-reduced-motion: no-preference) {
+  .globe-boot {
+    animation: globe-boot-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .globe-boot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(var(--hero-glow-rgb), 0.9) 48%, transparent 58%);
+    mix-blend-mode: screen;
+    animation: globe-sweep 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    pointer-events: none;
+  }
+  @keyframes globe-boot-in {
+    from {
+      opacity: 0;
+      transform: scale(0.88);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes globe-sweep {
+    from {
+      transform: translateY(-100%);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(100%);
+      opacity: 0;
+    }
   }
 }
