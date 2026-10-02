@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getPulseCountry } from '../lib/api';
+import { getPulseCountry, getNatoDefenseSpending, type NatoDefenseCountry } from '../lib/api';
 import type { NewsCategory, NewsItem, PulseAction, PulseCountryDetail, PulseMarkets, PulseSummary } from '../types/pulse';
-import { COUNTRY_LABELS, CURRENCY_FOR, STATUS_LABEL, parseCountries } from '../lib/pulseCountries';
+import { COUNTRY_LABELS, CURRENCY_FOR, MARKET_TILE_FOR, STATUS_LABEL, parseCountries } from '../lib/pulseCountries';
 import { NEWS_HUE, TAG_HUE } from '../lib/pulseColors';
-import { friendlyDate } from '../lib/pulsePlain';
+import { friendlyDate, usdCompact } from '../lib/pulsePlain';
 import { timeAgo } from './PulseNews';
-import { blocsFor, BLOC_LABELS } from '../lib/pulseBlocs';
+import { blocsFor, BLOC_LABELS, PARTNER_COUNTRIES } from '../lib/pulseBlocs';
+import { freightNoteFor } from '../lib/freightNotes';
 import { PulseTempoChart } from './PulseTempoChart';
 import { PulseSpark } from './PulseCharts';
 
@@ -24,6 +25,19 @@ const NEWS_CATEGORY_ORDER: NewsCategory[] = ['Trade & Supply Chain', 'Markets & 
 // re-querying D1 every time someone reopens a country they already looked at.
 const countryDetailCache = new Map<string, PulseCountryDetail>();
 
+// NATO defense spending (Power.tsx's own Alliances-tab source, see its
+// header comment for citation/caveats) covers all ~32 NATO members in one
+// response -- fetched at most once per page load, the first time a NATO
+// member is pressed, and shared by every later click rather than refetched
+// or pulled in for the ~40 non-NATO countries that would never use it.
+let natoDefensePromise: Promise<Record<string, NatoDefenseCountry>> | null = null;
+function loadNatoDefense(): Promise<Record<string, NatoDefenseCountry>> {
+  natoDefensePromise ??= getNatoDefenseSpending()
+    .then((r) => r.countries)
+    .catch(() => ({}));
+  return natoDefensePromise;
+}
+
 // What the globe shows after a country is pressed: a real snapshot, not just
 // trade headlines -- this month's U.S. actions, the latest news (tagged by
 // its own real category, so politics/markets/trade read as distinct rather
@@ -32,10 +46,15 @@ const countryDetailCache = new Map<string, PulseCountryDetail>();
 // costs no extra request), its formal alliance memberships, and -- fetched
 // on demand the moment a country is pressed, since this is the one piece
 // that isn't already sitting in page state -- its sanctioned-entity count,
-// export-control status and its own measures against the U.S. A "full
-// country page" link stays the way into the exhaustive versions of all of
-// this (the full duty stack, the full sanctions list, the full policy
-// history) -- this card is the at-a-glance version, not a replacement.
+// export-control status, its own measures against the U.S., and a baseline
+// region/income/population/GDP snapshot (migration 0022, World Bank) that
+// exists for every country the globe can select, not just the ones with
+// U.S. trade-policy history -- this is what keeps a country with zero
+// tracked actions from reading as an empty/broken card rather than a
+// genuinely quiet one. A "full country page" link stays the way into the
+// exhaustive versions of all of this (the full duty stack, the full
+// sanctions list, the full policy history) -- this card is the at-a-glance
+// version, not a replacement.
 //
 // 'US' is a special case, not a real value of `code`: no action or headline
 // is ever tagged with it (see lib/pulseCountries.ts), since the feed's
@@ -86,9 +105,17 @@ export function PulseCountryCard({
   const homeCount = summary?.last30 ?? 0;
 
   const blocs = isHome ? [] : blocsFor(code);
+  const isNato = blocs.includes('NATO');
+  const isNatoPartner = !isHome && PARTNER_COUNTRIES.includes(code);
 
   const currency = CURRENCY_FOR[code];
   const fxRow = !isHome && currency ? (markets?.currencies.find((c) => c.quote === currency) ?? null) : null;
+
+  // A country's own stock index or notable public company -- the
+  // private-sector signal, distinct from the FX rate (a government/central-
+  // bank number) above it.
+  const marketTileId = !isHome ? MARKET_TILE_FOR[code] : undefined;
+  const marketTile = marketTileId ? (markets?.tiles.find((t) => t.id === marketTileId) ?? null) : null;
 
   // The single most significant country-specific tariff program, if any --
   // forced-labor first (it applies across nearly the whole tariff schedule,
@@ -144,6 +171,26 @@ export function PulseCountryCard({
       });
   }, [code, isHome, name]);
 
+  const [natoDefense, setNatoDefense] = useState<Record<string, NatoDefenseCountry> | null>(null);
+  useEffect(() => {
+    if (!isNato) return;
+    let live = true;
+    loadNatoDefense().then((d) => {
+      if (live) setNatoDefense(d);
+    });
+    return () => {
+      live = false;
+    };
+  }, [isNato]);
+  const natoDefenseLatest = natoDefense?.[code]?.points.length ? natoDefense[code].points[natoDefense[code].points.length - 1] : null;
+
+  // A general industry rule of thumb for ocean/air transit to major U.S.
+  // ports -- logistics, not policy. A country-specific lane where this app
+  // has one (lib/freightNotes.ts), else a wider regional generalization
+  // keyed on the detail fetch's own World Bank region (disclosed as such in
+  // the JSX below, not shown as if it were as precise as the ten real lanes).
+  const freightNote = !isHome ? freightNoteFor(code, detail?.snapshot?.region) : null;
+
   return (
     <section ref={ref} aria-label={`Details for ${name}`} className="mt-4 rounded-xl border border-hero-border bg-hero-card-bg p-4 text-left">
       <div className="flex items-start justify-between gap-3">
@@ -169,14 +216,51 @@ export function PulseCountryCard({
               'No U.S. actions named it in the last 30 days.'
             )}
           </p>
-          {blocs.length > 0 && (
-            <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-hero-ink-faint">
-              Member of
-              {blocs.map((b) => (
-                <span key={b} className="rounded-full border border-hero-border px-2 py-0.5 font-semibold text-hero-ink">
-                  {BLOC_LABELS[b]}
+          {detail?.snapshot && (
+            <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-hero-ink-faint">
+              <span>{detail.snapshot.region}</span>
+              {detail.snapshot.capitalCity && (
+                <span>
+                  <span className="font-semibold text-hero-ink">Capital:</span> {detail.snapshot.capitalCity}
                 </span>
-              ))}
+              )}
+              <span>
+                <span className="font-semibold text-hero-ink">{detail.snapshot.incomeLevel}</span>
+              </span>
+              {detail.snapshot.population !== null && (
+                <span>
+                  <span className="font-semibold text-hero-ink">Pop.</span> {detail.snapshot.population.toLocaleString('en-US')}
+                  {detail.snapshot.populationYear ? ` (${detail.snapshot.populationYear})` : ''}
+                </span>
+              )}
+              {detail.snapshot.gdpUsd !== null && (
+                <span>
+                  <span className="font-semibold text-hero-ink">GDP</span> {usdCompact(detail.snapshot.gdpUsd)}
+                  {detail.snapshot.gdpYear ? ` (${detail.snapshot.gdpYear})` : ''}
+                </span>
+              )}
+            </p>
+          )}
+          {(blocs.length > 0 || isNatoPartner) && (
+            <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-hero-ink-faint">
+              {blocs.length > 0 && (
+                <>
+                  Member of
+                  {blocs.map((b) => (
+                    <span key={b} className="rounded-full border border-hero-border px-2 py-0.5 font-semibold text-hero-ink">
+                      {BLOC_LABELS[b]}
+                    </span>
+                  ))}
+                </>
+              )}
+              {isNatoPartner && (
+                <span
+                  title="A named NATO 'partner across the globe' relationship -- not membership, and not the Article 5 mutual-defense commitment NATO members have."
+                  className="rounded-full border border-dashed border-hero-border px-2 py-0.5 font-semibold text-hero-ink"
+                >
+                  NATO partner
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -185,7 +269,7 @@ export function PulseCountryCard({
         </button>
       </div>
 
-      {(fxRow || tariffFact) && (
+      {(fxRow || marketTile || tariffFact || natoDefenseLatest) && (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {fxRow && (
             <div className="rounded-lg bg-hero-bg p-2.5">
@@ -212,17 +296,54 @@ export function PulseCountryCard({
               </div>
             </div>
           )}
+          {marketTile && (
+            <div className="rounded-lg bg-hero-bg p-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs text-hero-ink-faint">{marketTile.label}</p>
+                  <p className="text-sm font-semibold text-hero-ink">
+                    {marketTile.value.toLocaleString('en-US', { maximumFractionDigits: marketTile.value < 10 ? 2 : 0 })}
+                    {marketTile.changePct !== null && (
+                      <span className={`ml-1.5 font-normal ${marketTile.changePct >= 0 ? 'text-clear' : 'text-stop'}`}>
+                        {marketTile.changePct >= 0 ? '▲' : '▼'} {Math.abs(marketTile.changePct).toFixed(1)}%
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {marketTile.points.length > 1 && (
+                  <div className="w-20 shrink-0">
+                    <PulseSpark values={marketTile.points.map((p) => p[1])} height={28} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {tariffFact && (
             <div className="rounded-lg bg-hero-bg p-2.5">
               <p className="text-xs text-hero-ink-faint">{tariffFact.label}</p>
               <p className="text-sm font-semibold text-hero-ink">{tariffFact.ratePct}%</p>
             </div>
           )}
+          {natoDefenseLatest && (
+            <div className="rounded-lg bg-hero-bg p-2.5">
+              <p className="text-xs text-hero-ink-faint">NATO defense spending, % of GDP</p>
+              <p className="text-sm font-semibold text-hero-ink">
+                {natoDefenseLatest[1].toFixed(2)}% <span className="font-normal text-hero-ink-faint">({natoDefenseLatest[0].slice(0, 4)})</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
+      {freightNote && (
+        <p className="mt-2 text-xs text-hero-ink-faint">
+          <span className="font-semibold text-hero-ink">{freightNote.fromRegion ? 'Typical shipping lane for this region:' : 'Typical shipping lane:'}</span>{' '}
+          {freightNote.mode}, {freightNote.transitRange}. {freightNote.note}
+        </p>
+      )}
+
       {!isHome && (detailLoading || detail) && (
-        <div className="mt-3 grid grid-cols-1 gap-2 border-t border-hero-divider pt-3 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 border-t border-hero-divider pt-3 sm:grid-cols-2 lg:grid-cols-4">
           {detailLoading && !detail ? (
             <p className="col-span-full text-xs text-hero-ink-faint">Checking sanctions, export-control and policy detail…</p>
           ) : (
@@ -242,6 +363,12 @@ export function PulseCountryCard({
                   <p className="text-xs text-hero-ink-faint">{name}'s own measures vs. the U.S.</p>
                   <p className="text-sm font-semibold text-hero-ink">
                     {detail.retaliatoryMeasures.total > 0 ? `${detail.retaliatoryMeasures.total} on record` : 'None on record'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-hero-ink-faint">Forced-labor enforcement (CBP)</p>
+                  <p className="text-sm font-semibold text-hero-ink">
+                    {detail.forcedLaborEnforcement.total > 0 ? `${detail.forcedLaborEnforcement.total} on record` : 'None on record'}
                   </p>
                 </div>
               </>

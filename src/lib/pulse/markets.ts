@@ -18,7 +18,16 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const FX_UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
 const REQUEST_TIMEOUT_MS = 10_000;
 
-export const FX_QUOTES = ['EUR', 'CNY', 'JPY', 'MXN', 'CAD', 'GBP', 'INR', 'KRW'] as const;
+// Every currency Frankfurter/the ECB actually publishes a reference rate
+// for (verified live against api.frankfurter.dev/v1/currencies) except USD
+// itself, the base -- not an arbitrary subset. A country without a currency
+// here simply has none (it isn't on the ECB's reference-rate list, shares
+// another currency, or Frankfurter doesn't carry it), same honest-omission
+// rule as everywhere else in this app.
+export const FX_QUOTES = [
+  'EUR', 'CNY', 'JPY', 'MXN', 'CAD', 'GBP', 'INR', 'KRW',
+  'AUD', 'BRL', 'CHF', 'CZK', 'DKK', 'HKD', 'HUF', 'IDR', 'ILS', 'ISK', 'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB', 'TRY', 'ZAR',
+] as const;
 
 export interface SeriesMeta {
   id: string;
@@ -74,6 +83,9 @@ export const MARKET_META: MarketMeta[] = [
   quote('^FTSE', 'FTSE 100 (U.K.)', 'index points', 'World stocks'),
   quote('^HSI', 'Hang Seng (Hong Kong)', 'index points', 'World stocks'),
   quote('000001.SS', 'Shanghai Composite', 'index points', 'World stocks'),
+  quote('^KS11', 'KOSPI (South Korea)', 'index points', 'World stocks'),
+  quote('^NSEI', 'NIFTY 50 (India)', 'index points', 'World stocks'),
+  quote('^BVSP', 'Bovespa (Brazil)', 'index points', 'World stocks'),
   quote('FDX', 'FedEx', 'USD per share', 'Trade bellwethers'),
   quote('UPS', 'UPS', 'USD per share', 'Trade bellwethers'),
   quote('ZIM', 'ZIM (container shipping)', 'USD per share', 'Trade bellwethers'),

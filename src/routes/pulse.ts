@@ -389,7 +389,7 @@ pulseRoute.get('/country/:code', async (c) => {
   // already run their own internal steps concurrently) -- fetched together
   // with Promise.all instead of one D1 round trip at a time, since none of
   // these sections depends on another's result.
-  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings] = await Promise.all([
+  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings, snapshot] = await Promise.all([
     c.env.DB.prepare(
       `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
        ORDER BY publication_date DESC, document_number DESC LIMIT 200`
@@ -518,6 +518,31 @@ pulseRoute.get('/country/:code', async (c) => {
       ]);
       return { rows: results, total: total?.n ?? 0 };
     })(),
+
+    // Baseline region/income/capital/population/GDP facts (migration
+    // 0022) -- the one section of this response that exists for every
+    // country this app's globe can select, not just the ones with U.S.
+    // trade-policy history. Missing for a handful of codes the World Bank
+    // itself has no entry for (Taiwan, a few small/disputed territories);
+    // null here, same as every other "not available" field in this route.
+    c.env.DB.prepare(
+      `SELECT region, income_level AS incomeLevel, capital_city AS capitalCity, population, population_year AS populationYear,
+              gdp_usd AS gdpUsd, gdp_year AS gdpYear, source_url AS sourceUrl, last_updated AS lastUpdated
+       FROM country_snapshot WHERE country_code = ?1`
+    )
+      .bind(code)
+      .first<{
+        region: string;
+        incomeLevel: string;
+        capitalCity: string | null;
+        population: number | null;
+        populationYear: string | null;
+        gdpUsd: number | null;
+        gdpYear: string | null;
+        sourceUrl: string;
+        lastUpdated: string;
+      }>()
+      .catch(() => null),
   ]);
 
   return c.json({
@@ -548,6 +573,19 @@ pulseRoute.get('/country/:code', async (c) => {
       ...wroFindings,
       note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) naming this country -- a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk. Includes historical as well as active orders; check the status on each.',
     },
+    snapshot: snapshot
+      ? {
+          region: snapshot.region,
+          incomeLevel: snapshot.incomeLevel,
+          capitalCity: snapshot.capitalCity,
+          population: snapshot.population,
+          populationYear: snapshot.populationYear,
+          gdpUsd: snapshot.gdpUsd,
+          gdpYear: snapshot.gdpYear,
+          sourceUrl: snapshot.sourceUrl,
+          lastUpdated: snapshot.lastUpdated,
+        }
+      : null,
   });
 });
 

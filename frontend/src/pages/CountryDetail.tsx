@@ -11,6 +11,7 @@ import { ProvenanceBadge } from '../components/ProvenanceBadge';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { parseCountries, CURRENCY_FOR, STATUS_LABEL } from '../lib/pulseCountries';
+import { usdCompact } from '../lib/pulsePlain';
 import { blocsFor, BLOC_FULL_NAMES } from '../lib/pulseBlocs';
 import { freightNoteFor } from '../lib/freightNotes';
 import { SITE } from '../lib/site';
@@ -88,6 +89,7 @@ export function CountryDetail() {
   }
 
   const { tariffs, dutyStack, exportControl, sanctions } = data;
+  const freightNote = freightNoteFor(code, data.snapshot?.region);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -111,6 +113,34 @@ export function CountryDetail() {
       <div role="tabpanel" id="country-tabpanel" className="mt-6">
         {tab === 'overview' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {data.snapshot && (
+              <PulsePanel
+                title="Country snapshot"
+                subtitle={`${data.snapshot.region}, ${data.snapshot.incomeLevel.toLowerCase()}`}
+                help="Region, income classification, capital, population and GDP from the World Bank's own country data -- the baseline this app can show for every country, independent of whether the U.S. has taken any trade action naming it."
+              >
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                  {data.snapshot.capitalCity && (
+                    <div>
+                      <dt className="text-ink-faint">Capital</dt>
+                      <dd className="font-semibold text-ink">{data.snapshot.capitalCity}</dd>
+                    </div>
+                  )}
+                  {data.snapshot.population !== null && (
+                    <div>
+                      <dt className="text-ink-faint">Population{data.snapshot.populationYear ? ` (${data.snapshot.populationYear})` : ''}</dt>
+                      <dd className="font-semibold tabular-nums text-ink">{data.snapshot.population.toLocaleString('en-US')}</dd>
+                    </div>
+                  )}
+                  {data.snapshot.gdpUsd !== null && (
+                    <div>
+                      <dt className="text-ink-faint">GDP{data.snapshot.gdpYear ? ` (${data.snapshot.gdpYear})` : ''}</dt>
+                      <dd className="font-semibold tabular-nums text-ink">{usdCompact(data.snapshot.gdpUsd)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </PulsePanel>
+            )}
             <PulsePanel title="U.S. policy actions naming it">
               <p className="text-3xl font-bold tabular-nums text-ink">{data.actions.length}</p>
               <p className="mt-1 text-sm text-ink-faint">In the full Federal Register history this app tracks.</p>
@@ -242,16 +272,20 @@ export function CountryDetail() {
               </ul>
             </PulsePanel>
 
-            {freightNoteFor(code) && (
+            {freightNote && (
               <PulsePanel
-                title="Typical shipping lane"
-                help="A general industry rule of thumb for a standard commercial routing to major U.S. ports -- not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
+                title={freightNote.fromRegion ? 'Typical shipping lane for this region' : 'Typical shipping lane'}
+                help={
+                  freightNote.fromRegion
+                    ? "A general industry rule of thumb for a standard commercial routing to major U.S. ports, generalized across this country's whole World Bank region rather than measured for this specific country -- this app doesn't have a country-specific lane for it. Wider range than a country-specific entry on purpose; use it to gauge whether this is fundamentally a short hop or a multi-week ocean crossing, not to plan an actual ship date."
+                    : "A general industry rule of thumb for a standard commercial routing to major U.S. ports -- not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
+                }
               >
                 <p className="text-sm text-ink">
                   <span className="font-semibold">
-                    {freightNoteFor(code)!.mode}, typically {freightNoteFor(code)!.transitRange}.
+                    {freightNote.mode}, typically {freightNote.transitRange}.
                   </span>{' '}
-                  <span className="text-ink-muted">{freightNoteFor(code)!.note}</span>
+                  <span className="text-ink-muted">{freightNote.note}</span>
                 </p>
               </PulsePanel>
             )}

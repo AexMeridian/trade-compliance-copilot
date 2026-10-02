@@ -1,21 +1,31 @@
 // Real, public alliance/bloc membership -- not derived from any feed data,
 // not fabricated. Facts, not opinions: each list is who is formally a member,
-// as of the date below, cited to its own founding/joining document. A short
-// list of blocs relevant to U.S. influence abroad, limited to countries this
-// app already tracks in lib/pulseCountries.ts (COUNTRY_LABELS) -- a country
-// absent from a bloc here is simply not a member of it, not "opposed" to it;
-// there is no invented "rival bloc" or score, only membership.
+// as of the date below, cited to its own founding/joining document. Every
+// country the globe can select (lib/worldCountries.ts) has a code to use
+// here now, so these lists are no longer constrained by which countries this
+// app happens to have U.S. trade-policy data for -- a country absent from a
+// bloc here is simply not a member of it, not "opposed" to it; there is no
+// invented "rival bloc" or score, only membership. 'US' is left out of every
+// list on purpose, same convention as COUNTRY_LABELS: it is never one of the
+// "other countries" this app tags, so it's never a code here either, even
+// where the U.S. is a real member (G7, G20, NATO, USMCA).
 //
 // As of: 2026-09-26.
-//   NATO -- 32 members since Sweden's March 2024 accession (nato.int).
+//   NATO -- 32 members since Sweden's March 2024 accession (nato.int); 31
+//     listed here plus the always-implicit US.
 //   G7 -- Canada, France, Germany, Italy, Japan, UK, US; the EU also
 //     participates in every G7 summit without being a member state (g7.org).
-//   G20 -- the 19 member countries plus the EU and African Union (g20.org).
+//   G20 -- the 19 member countries plus the EU (g20.org). The African Union
+//     joined as a member in 2023, but has no ISO country code of its own and
+//     is commonly abbreviated "AU" -- the same code this app already uses
+//     for Australia -- so it's left out rather than risk that collision;
+//     there is no synthetic marker for it the way 'EU' is for the European
+//     Union.
 //   BRICS -- founding five (Brazil, Russia, India, China, South Africa,
-//     2010); South Africa is not in COUNTRY_LABELS, so only 4 of 5 show here.
-//     The 2024 expansion (Egypt, Ethiopia, Iran, UAE, Saudi Arabia) is left
-//     out to avoid disputed/partial membership as of this date -- Iran and
-//     the UAE are tracked countries but not counted as BRICS members here.
+//     2010). The 2024 expansion (Egypt, Ethiopia, Iran, UAE, Saudi Arabia) is
+//     left out to avoid disputed/partial membership as of this date -- Iran
+//     and the UAE are tracked countries but not counted as BRICS members
+//     here.
 //   USMCA -- the U.S.-Mexico-Canada Agreement, in force since 2020, the
 //     successor to NAFTA (ustr.gov).
 export type Bloc = 'NATO' | 'G7' | 'G20' | 'BRICS' | 'USMCA';
@@ -37,21 +47,23 @@ export const BLOC_FULL_NAMES: Record<Bloc, string> = {
 };
 
 export const BLOC_MEMBERS: Record<Bloc, string[]> = {
-  NATO: ['CA', 'GB', 'FR', 'DE', 'IT', 'TR'],
+  NATO: [
+    'AL', 'BE', 'BG', 'CA', 'HR', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IT', 'LV', 'LT', 'LU', 'ME',
+    'NL', 'MK', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'TR', 'GB',
+  ],
   G7: ['CA', 'FR', 'DE', 'IT', 'JP', 'GB', 'EU'],
-  G20: ['BR', 'CA', 'CN', 'FR', 'DE', 'IN', 'ID', 'IT', 'JP', 'MX', 'RU', 'SA', 'KR', 'TR', 'GB', 'EU'],
-  BRICS: ['BR', 'RU', 'IN', 'CN'],
+  G20: ['AR', 'AU', 'BR', 'CA', 'CN', 'FR', 'DE', 'IN', 'ID', 'IT', 'JP', 'MX', 'RU', 'SA', 'ZA', 'KR', 'TR', 'GB', 'EU'],
+  BRICS: ['BR', 'RU', 'IN', 'CN', 'ZA'],
   USMCA: ['CA', 'MX'],
 };
 
 // NATO's own "partners across the globe" program (nato.int) -- a real,
 // named relationship, but a different kind of fact than formal membership
 // above, so it gets its own array rather than being forced into the Bloc
-// union. As of 2026-10-01: Australia, Colombia, Iraq, Japan, New Zealand,
-// Pakistan, Republic of Korea. NATO's own list also includes Mongolia (not
-// in this app's country label maps, so left out) and Afghanistan (NATO's
-// own page notes that partnership is currently suspended).
-export const PARTNER_COUNTRIES: string[] = ['AU', 'CO', 'IQ', 'JP', 'NZ', 'PK', 'KR'];
+// union. As of 2026-10-01: Australia, Colombia, Iraq, Japan, Mongolia, New
+// Zealand, Pakistan, Republic of Korea. Afghanistan is left out: NATO's own
+// page notes that partnership is currently suspended.
+export const PARTNER_COUNTRIES: string[] = ['AU', 'CO', 'IQ', 'JP', 'MN', 'NZ', 'PK', 'KR'];
 
 const BLOCS: Bloc[] = ['NATO', 'G7', 'G20', 'BRICS', 'USMCA'];
 

@@ -2,64 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo';
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { WORLD_CODE_TO_ID, WORLD_ID_TO_CODE } from '../lib/worldCountries';
 import { getCurrentTheme, THEME_CHANGE_EVENT, type Theme } from '../lib/theme';
 
-// A wireframe, dotted globe you can turn and press. Every country the feed
-// can name is coloured by how many U.S. actions named it in the last 30 days
-// (the same count as the "Activity by country" panel); every OTHER country in
-// the world is still drawn, outlined and hoverable -- with its real name
-// (read straight from the bundled map data, not this file's own curated
-// list) and an honest "not tracked individually" note -- rather than left as
-// dead, uncoloured land. Pressing a country only filters the feed when it is
-// one this app actually tags (see lib/pulse/country.ts); pressing anywhere
-// else is a no-op, and the cursor reflects that. The United States itself is
-// shaded its own "home" colour rather than counted, but just as hoverable and
-// pressable, and pressing it opens a card about the feed as a whole instead
-// of a per-country count. Country outlines are Natural Earth 1:110m
-// public-domain data from the `world-atlas` package, bundled with the app
-// (nothing is fetched from another site) and loaded only when this component
-// first appears.
+// A wireframe, dotted globe you can turn and press. Every country is
+// pressable and opens a card -- coloured by how many U.S. actions named it
+// in the last 30 days (the same count as the "Activity by country" panel)
+// when it has any, or the same neutral "no actions on record" shade as a
+// tracked country with zero actions when it doesn't. The United States
+// itself is shaded its own "home" colour rather than counted, but just as
+// hoverable and pressable, and pressing it opens a card about the feed as a
+// whole instead of a per-country count. Country outlines are Natural Earth
+// 1:110m public-domain data from the `world-atlas` package, bundled with the
+// app (nothing is fetched from another site) and loaded only when this
+// component first appears.
 
-// ISO 3166-1 numeric id (as used by world-atlas) -> the code the feed uses.
-// 'US' is a code no action or headline is ever tagged with (see
-// lib/pulseCountries.ts) -- it exists only so the globe can single out the
-// reporting country itself, the same way it does any other place.
-const ID_TO_CODE: Record<number, string> = {
-  156: 'CN',
-  704: 'VN',
-  410: 'KR',
-  484: 'MX',
-  124: 'CA',
-  356: 'IN',
-  360: 'ID',
-  458: 'MY',
-  512: 'OM',
-  380: 'IT',
-  392: 'JP',
-  276: 'DE',
-  76: 'BR',
-  158: 'TW',
-  764: 'TH',
-  792: 'TR',
-  804: 'UA',
-  643: 'RU',
-  364: 'IR',
-  408: 'KP',
-  192: 'CU',
-  760: 'SY',
-  862: 'VE',
-  112: 'BY',
-  104: 'MM',
-  4: 'AF',
-  826: 'GB',
-  250: 'FR',
-  756: 'CH',
-  376: 'IL',
-  682: 'SA',
-  784: 'AE',
-  840: 'US',
-};
-const CODE_TO_ID = new Map<string, number>(Object.entries(ID_TO_CODE).map(([id, code]) => [code, Number(id)]));
+// ISO 3166-1 numeric id (as used by world-atlas) -> the ISO alpha-2 code
+// every per-country table in this app keys on -- see worldCountries.ts.
+// Pressing any of them opens PulseCountryCard, which already renders a
+// correct (if thin) card for a code with no U.S. trade-action history: it
+// isn't a special case here, just the default for most of the globe.
+const ID_TO_CODE: Record<number, string> = WORLD_ID_TO_CODE;
+const CODE_TO_ID = WORLD_CODE_TO_ID;
 
 // The feed's 'EU' code means a document said "the European Union" itself, not
 // any one member state -- distinct from a document naming, say, Germany by

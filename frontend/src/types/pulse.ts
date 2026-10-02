@@ -187,6 +187,22 @@ export interface PulseCountryDetail {
   sanctions: { sdnCount: number | null; cslCount: number | null; note: string };
   retaliatoryMeasures: { rows: GtaInterventionRow[]; total: number; note: string };
   forcedLaborEnforcement: { rows: WroFindingRow[]; total: number; note: string };
+  // Region/income/capital/population/GDP baseline (migration 0022, World
+  // Bank) -- null only for the handful of codes the World Bank itself has
+  // no entry for (see that migration's comment), never fabricated.
+  snapshot: CountrySnapshot | null;
+}
+
+export interface CountrySnapshot {
+  region: string;
+  incomeLevel: string;
+  capitalCity: string | null;
+  population: number | null;
+  populationYear: string | null;
+  gdpUsd: number | null;
+  gdpYear: string | null;
+  sourceUrl: string;
+  lastUpdated: string;
 }
 
 export interface PulseHome {

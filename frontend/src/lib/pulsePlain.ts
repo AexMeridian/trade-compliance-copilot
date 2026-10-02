@@ -9,6 +9,13 @@ import { COUNTRY_LABELS, parseCountries } from './pulseCountries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// "290794361542.11" -> "$290.8B". Used for a country snapshot's GDP figure
+// (PulseCountryCard.tsx, CountryDetail.tsx) -- shared so both places always
+// round the same way.
+export function usdCompact(n: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(n);
+}
+
 // "2026-09-23" -> "Sep 23" (with the year only when it isn't this year).
 // Parsed by hand so a date never shifts a day with the visitor's time zone.
 export function friendlyDate(iso: string | null | undefined): string {
