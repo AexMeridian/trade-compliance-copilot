@@ -145,6 +145,7 @@ export function Power() {
     <div>
       <PowerHero
         summary={summary}
+        markets={markets}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}
         onClearCountry={() => setActiveCountry(null)}

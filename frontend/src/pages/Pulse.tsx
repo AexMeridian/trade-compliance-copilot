@@ -408,6 +408,7 @@ export function Pulse() {
     <div>
       <PulseHero
         summary={summary}
+        markets={markets}
         activeMeasures={loadingPanels ? null : overlays.length}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}

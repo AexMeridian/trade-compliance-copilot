@@ -10,41 +10,17 @@ import { DutyStackTable } from '../components/DutyStackTable';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
-import { parseCountries } from '../lib/pulseCountries';
+import { parseCountries, CURRENCY_FOR, STATUS_LABEL } from '../lib/pulseCountries';
 import { blocsFor, BLOC_FULL_NAMES } from '../lib/pulseBlocs';
 import { freightNoteFor } from '../lib/freightNotes';
 import { SITE } from '../lib/site';
 import type { PulseCountryDetail, PulseMarkets, NewsItem } from '../types/pulse';
-
-// A country doesn't have its own attributed exchange rate unless the U.S.
-// tracks a direct pair against it (see lib/pulse/markets.ts's FX_META) --
-// Eurozone countries share the EUR pair rather than each having their own,
-// which is disclosed in the panel copy, not hidden.
-const CURRENCY_FOR: Record<string, string> = {
-  DE: 'EUR',
-  FR: 'EUR',
-  IT: 'EUR',
-  CN: 'CNY',
-  JP: 'JPY',
-  MX: 'MXN',
-  CA: 'CAD',
-  GB: 'GBP',
-  IN: 'INR',
-  KR: 'KRW',
-};
 
 // The HTS source data's description field carries its own inline markup
 // (e.g. "<il>4.75 mm</il>" for italics) meant for USITC's own renderer, not
 // plain text -- this is the first place in the app that shows this field
 // directly to a reader, so it needs stripping rather than passing it through.
 const stripHtsMarkup = (s: string) => s.replace(/<\/?[a-z]+>/gi, '');
-
-const STATUS_LABEL: Record<PulseCountryDetail['exportControl']['status'], string> = {
-  curated: 'Verified export-control status',
-  comprehensive_embargo: 'Comprehensively embargoed',
-  broad_restriction_746_5: 'Near-comprehensive license requirement',
-  not_curated: 'Not yet verified by this app',
-};
 
 export function CountryDetail() {
   const { code: rawCode } = useParams<{ code: string }>();
@@ -120,11 +96,7 @@ export function CountryDetail() {
       </Link>
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="display text-4xl text-ink sm:text-5xl">{name}</h1>
-        {blocs.length > 0 && (
-          <p className="text-sm text-ink-faint">
-            {blocs.map((b) => BLOC_FULL_NAMES[b]).join(' · ')}
-          </p>
-        )}
+        {blocs.length > 0 && <p className="text-sm text-ink-faint">{blocs.map((b) => BLOC_FULL_NAMES[b]).join(' · ')}</p>}
       </div>
       <p className="mt-2 max-w-2xl text-sm text-ink-muted">
         Everything this app tracks about {name} in one place: U.S. policy actions naming it, the real tariff rates it faces, a sample duty-stack breakdown,
@@ -162,10 +134,10 @@ export function CountryDetail() {
             <PulsePanel title="Sanctioned entities (OFAC/BIS)">
               {sanctions.sdnCount !== null ? (
                 <>
-                  <p className="text-3xl font-bold tabular-nums text-ink">
-                    {sanctions.sdnCount + (sanctions.cslCount ?? 0)}
+                  <p className="text-3xl font-bold tabular-nums text-ink">{sanctions.sdnCount + (sanctions.cslCount ?? 0)}</p>
+                  <p className="mt-1 text-sm text-ink-faint">
+                    {sanctions.sdnCount} SDN, {sanctions.cslCount} CSL. {sanctions.note}
                   </p>
-                  <p className="mt-1 text-sm text-ink-faint">{sanctions.sdnCount} SDN, {sanctions.cslCount} CSL. {sanctions.note}</p>
                 </>
               ) : (
                 <p className="text-sm text-ink-faint">{sanctions.note}</p>
@@ -214,7 +186,8 @@ export function CountryDetail() {
                         {m.state_act_title}
                       </a>
                       <p className="mt-0.5 text-xs text-ink-faint">
-                        {m.intervention_type} &middot; evaluated <span className={m.gta_evaluation === 'Red' ? 'text-stop' : 'text-review'}>{m.gta_evaluation}</span>
+                        {m.intervention_type} &middot; evaluated{' '}
+                        <span className={m.gta_evaluation === 'Red' ? 'text-stop' : 'text-review'}>{m.gta_evaluation}</span>
                         {m.date_announced ? ` · announced ${m.date_announced}` : ''}
                       </p>
                     </li>
@@ -275,7 +248,9 @@ export function CountryDetail() {
                 help="A general industry rule of thumb for a standard commercial routing to major U.S. ports -- not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
               >
                 <p className="text-sm text-ink">
-                  <span className="font-semibold">{freightNoteFor(code)!.mode}, typically {freightNoteFor(code)!.transitRange}.</span>{' '}
+                  <span className="font-semibold">
+                    {freightNoteFor(code)!.mode}, typically {freightNoteFor(code)!.transitRange}.
+                  </span>{' '}
                   <span className="text-ink-muted">{freightNoteFor(code)!.note}</span>
                 </p>
               </PulsePanel>
@@ -290,7 +265,11 @@ export function CountryDetail() {
                 {dutyStack.map((h) => (
                   <div key={h.htsno}>
                     <h3 className="text-sm font-semibold text-ink">
-                      {h.label} <span className="font-normal text-ink-faint">HTS {h.htsno}{h.description ? ` -- ${stripHtsMarkup(h.description)}` : ''}</span>
+                      {h.label}{' '}
+                      <span className="font-normal text-ink-faint">
+                        HTS {h.htsno}
+                        {h.description ? ` -- ${stripHtsMarkup(h.description)}` : ''}
+                      </span>
                     </h3>
                     {h.error ? (
                       <p className="mt-1 text-sm text-ink-faint">{h.error}</p>
@@ -310,8 +289,8 @@ export function CountryDetail() {
           <PulsePanel title="Commerce Country Chart status">
             {exportControl.status === 'not_curated' ? (
               <p className="text-sm text-ink-muted">
-                This app has hand-verified export-control chart status for only 12 destinations so far. {name} isn't one of them yet, so no status is shown
-                here rather than a guessed one -- an export case involving {name} should be flagged for manual review.
+                This app has hand-verified export-control chart status for only 12 destinations so far. {name} isn't one of them yet, so no status is shown here
+                rather than a guessed one -- an export case involving {name} should be flagged for manual review.
               </p>
             ) : (
               <>
@@ -356,7 +335,10 @@ export function CountryDetail() {
                     naming {name}.
                   </p>
                   <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
-                  <Link to={`/influence?tab=sanctions&country=${encodeURIComponent(name)}`} className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+                  <Link
+                    to={`/influence?tab=sanctions&country=${encodeURIComponent(name)}`}
+                    className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+                  >
                     Browse these entries &rarr;
                   </Link>
                 </>
@@ -392,8 +374,8 @@ export function CountryDetail() {
                 <a href="https://www.dhs.gov/uflpa-entity-list" target="_blank" rel="noreferrer" className="text-accent">
                   UFLPA Entity List
                 </a>{' '}
-                of specific named importers/suppliers presumed to use forced labor -- a narrower, newer list than the one above, published only as a web
-                page with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
+                of specific named importers/suppliers presumed to use forced labor -- a narrower, newer list than the one above, published only as a web page
+                with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
               </p>
             </PulsePanel>
           </div>
@@ -407,7 +389,9 @@ export function CountryDetail() {
               <PulsePanel title={`USD / ${fxRow.quote}`} subtitle={currency === 'EUR' ? 'A Eurozone-wide rate, not specific to this country.' : undefined}>
                 <p className="text-3xl font-bold tabular-nums text-ink">{fxRow.rate.toFixed(4)}</p>
                 {fxRow.change30dPct !== null && (
-                  <p className="mt-1 text-sm text-ink-faint">{fxRow.change30dPct >= 0 ? 'Up' : 'Down'} {Math.abs(fxRow.change30dPct).toFixed(1)}% vs. 30 days ago.</p>
+                  <p className="mt-1 text-sm text-ink-faint">
+                    {fxRow.change30dPct >= 0 ? 'Up' : 'Down'} {Math.abs(fxRow.change30dPct).toFixed(1)}% vs. 30 days ago.
+                  </p>
                 )}
               </PulsePanel>
             )}

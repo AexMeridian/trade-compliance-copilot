@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { NewsItem, PulseAction, PulseSummary } from '../types/pulse';
+import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
 import { PulseCountryCard } from './PulseCountryCard';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { PulseDelta } from './PulseDelta';
@@ -18,6 +18,7 @@ const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-
 // black so it still works once the hero itself can be light (light theme).
 export function PulseHero({
   summary,
+  markets,
   activeMeasures,
   activeCountry,
   onCountry,
@@ -31,6 +32,7 @@ export function PulseHero({
   onRefresh,
 }: {
   summary: PulseSummary | null;
+  markets: PulseMarkets | null;
   activeMeasures: number | null;
   activeCountry: string | null;
   onCountry: (code: string) => void;
@@ -76,7 +78,9 @@ export function PulseHero({
                 onClick={() => onCountry('US')}
                 aria-pressed={activeCountry === 'US'}
                 className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                  activeCountry === 'US' ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
+                  activeCountry === 'US'
+                    ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
+                    : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                 }`}
               >
                 United States
@@ -88,7 +92,9 @@ export function PulseHero({
                   onClick={() => onCountry(b.country)}
                   aria-pressed={activeCountry === b.country}
                   className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === b.country ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
+                    activeCountry === b.country
+                      ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
+                      : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                   }`}
                 >
                   {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
@@ -119,6 +125,7 @@ export function PulseHero({
                     return i >= 0 ? i + 1 : null;
                   })()}
                   summary={summary}
+                  markets={markets}
                   actions={recent}
                   news={news}
                   onSeeAll={onSeeAll}
@@ -136,8 +143,8 @@ export function PulseHero({
               </button>
             </div>
             <p className="mt-4 text-base leading-snug text-hero-ink">
-              <span className="font-semibold">{activeMeasures ?? '…'}</span> measures in force,{' '}
-              <span className="font-semibold">{summary.last30}</span> new actions in the last 30 days
+              <span className="font-semibold">{activeMeasures ?? '…'}</span> measures in force, <span className="font-semibold">{summary.last30}</span> new
+              actions in the last 30 days
               {summary.trendPct !== null && (
                 <>
                   {' '}

@@ -223,6 +223,7 @@ export function PulseGlobe({
   const dragRef = useRef<{ x: number; y: number; r: [number, number]; moved: boolean } | null>(null);
   const hoverIdRef = useRef<number | null>(null);
   const clockRef = useRef(performance.now()); // feeds the arc/ping animation phase; set every animation frame, read inside draw()
+  const lastDrawRef = useRef(0); // throttles the ambient tick's own redraws (see the tick effect below)
   const [booted, setBooted] = useState(false); // flips true once, after the one-time boot-sweep plays (see .globe-boot, index.css)
 
   const counts = useMemo(() => new Map(breakdown.map((b) => [b.country, b.count])), [breakdown]);
@@ -477,9 +478,16 @@ export function PulseGlobe({
 
   // Turn slowly until the visitor touches it or picks a country (never, if
   // they asked for less motion) -- and, regardless of rotation, keep the
-  // clock advancing and the canvas redrawing every frame so the trade-flow
-  // arcs and radar ping (drawn inside draw()) keep animating even while a
-  // country is selected or the globe is being dragged.
+  // clock advancing so the trade-flow arcs and radar ping (drawn inside
+  // draw()) keep animating even while a country is selected or the globe is
+  // being dragged. The redraw itself is capped to ~30fps here (throttled
+  // independently of rAF's own ~60-120Hz cadence): before the arcs/ping
+  // existed, this branch was a no-op whenever a country was selected, so
+  // selecting one cost nothing. Now it always redraws for the ambient
+  // animation, so this cap keeps that from quietly doubling the globe's GPU/
+  // battery cost for as long as a country card stays open. Drag and hover
+  // stay instantly responsive -- those paths call draw() directly from their
+  // own event handlers, not through this throttle.
   useEffect(() => {
     if (!world || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let raf = 0;
@@ -504,7 +512,10 @@ export function PulseGlobe({
         }
       }
       clockRef.current = now;
-      draw();
+      if (now - lastDrawRef.current >= 33) {
+        lastDrawRef.current = now;
+        draw();
+      }
       last = now;
       raf = requestAnimationFrame(tick);
     };

@@ -139,6 +139,7 @@ export function Influence() {
     <div>
       <InfluenceHero
         summary={summary}
+        markets={markets}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}
         onClearCountry={() => setActiveCountry(null)}

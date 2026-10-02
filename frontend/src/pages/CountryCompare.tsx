@@ -3,18 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseCountry } from '../lib/api';
 import { PulsePanel } from '../components/PulsePanel';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
+import { STATUS_LABEL as EXPORT_STATUS_LABEL } from '../lib/pulseCountries';
 import { freightNoteFor } from '../lib/freightNotes';
 import type { PulseCountryDetail } from '../types/pulse';
 
 const MAX_COUNTRIES = 3;
 const DEFAULT_CODES = ['CN', 'MX'];
-
-const EXPORT_STATUS_LABEL: Record<PulseCountryDetail['exportControl']['status'], string> = {
-  curated: 'Verified export-control status',
-  comprehensive_embargo: 'Comprehensively embargoed',
-  broad_restriction_746_5: 'Near-comprehensive license requirement',
-  not_curated: 'Not yet verified by this app',
-};
 
 const SORTED_CODES = Object.keys(TARIFF_COUNTRY_LABELS).sort((a, b) => TARIFF_COUNTRY_LABELS[a].localeCompare(TARIFF_COUNTRY_LABELS[b]));
 
@@ -47,8 +41,8 @@ export function CountryCompare() {
       codes.map((code) =>
         getPulseCountry(code, TARIFF_COUNTRY_LABELS[code])
           .then((d) => [code, d] as const)
-          .catch(() => [code, 'error'] as const)
-      )
+          .catch(() => [code, 'error'] as const),
+      ),
     ).then((results) => {
       if (cancelled) return;
       setData(Object.fromEntries(results));
@@ -78,10 +72,7 @@ export function CountryCompare() {
   function removeSlot(i: number) {
     if (codes.length <= 2) return; // always compare at least two
     const next = new URLSearchParams(params);
-    next.set(
-      'countries',
-      codes.filter((_, idx) => idx !== i).join(',')
-    );
+    next.set('countries', codes.filter((_, idx) => idx !== i).join(','));
     setParams(next, { replace: true });
   }
 
@@ -89,8 +80,8 @@ export function CountryCompare() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="display text-4xl text-ink sm:text-5xl">Compare countries</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
-        Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page.
-        This link is shareable as-is; the countries you pick are saved in the URL, not an account.
+        Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page. This
+        link is shareable as-is; the countries you pick are saved in the URL, not an account.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -108,7 +99,12 @@ export function CountryCompare() {
               ))}
             </select>
             {codes.length > 2 && (
-              <button type="button" onClick={() => removeSlot(i)} aria-label={`Remove ${TARIFF_COUNTRY_LABELS[code]}`} className="text-ink-faint hover:text-stop">
+              <button
+                type="button"
+                onClick={() => removeSlot(i)}
+                aria-label={`Remove ${TARIFF_COUNTRY_LABELS[code]}`}
+                className="text-ink-faint hover:text-stop"
+              >
                 &times;
               </button>
             )}
@@ -144,14 +140,18 @@ export function CountryCompare() {
                     <ul className="mt-1 flex flex-col gap-1.5 text-ink-muted">
                       {d.tariffs.forcedLabor && <li>Section 301 forced-labor determination: {d.tariffs.forcedLabor.ratePct}%.</li>}
                       {d.tariffs.extra.map((e, i) => (
-                        <li key={i}>Section 338 extra duty: {e.ratePct}% ({e.note}).</li>
+                        <li key={i}>
+                          Section 338 extra duty: {e.ratePct}% ({e.note}).
+                        </li>
                       ))}
                       {d.tariffs.capped && (
                         <li>
                           Section 232 metals cap: {d.tariffs.capped.ratePct}% (standard {d.tariffs.capped.standardPct}%).
                         </li>
                       )}
-                      {!d.tariffs.forcedLabor && d.tariffs.extra.length === 0 && !d.tariffs.capped && <li>No country-specific tariff program applies right now.</li>}
+                      {!d.tariffs.forcedLabor && d.tariffs.extra.length === 0 && !d.tariffs.capped && (
+                        <li>No country-specific tariff program applies right now.</li>
+                      )}
                     </ul>
                   </div>
                   <div>

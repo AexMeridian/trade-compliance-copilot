@@ -15,6 +15,7 @@ import { Snapshot } from './pages/Snapshot';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
+import { SiteSearch } from './components/SiteSearch';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
@@ -133,6 +134,7 @@ export default function App() {
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
             </NavLink>
+            <SiteSearch />
             <ThemeToggle />
           </nav>
         </div>

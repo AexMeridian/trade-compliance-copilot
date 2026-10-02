@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { NewsItem, PulseAction, PulseSummary } from '../types/pulse';
+import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
 import { PulseCountryCard } from './PulseCountryCard';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { blocsFor, BLOC_LABELS } from '../lib/pulseBlocs';
@@ -18,6 +18,7 @@ const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-
 // the site, just read side by side for once.
 export function PowerHero({
   summary,
+  markets,
   activeCountry,
   onCountry,
   onClearCountry,
@@ -32,6 +33,7 @@ export function PowerHero({
   coferEarliest,
 }: {
   summary: PulseSummary | null;
+  markets: PulseMarkets | null;
   activeCountry: string | null;
   onCountry: (code: string) => void;
   onClearCountry: () => void;
@@ -99,7 +101,9 @@ export function PowerHero({
                 onClick={() => onCountry('US')}
                 aria-pressed={activeCountry === 'US'}
                 className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                  activeCountry === 'US' ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
+                  activeCountry === 'US'
+                    ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
+                    : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                 }`}
               >
                 United States
@@ -111,7 +115,9 @@ export function PowerHero({
                   onClick={() => onCountry(b.country)}
                   aria-pressed={activeCountry === b.country}
                   className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === b.country ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
+                    activeCountry === b.country
+                      ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
+                      : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                   }`}
                 >
                   {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
@@ -142,6 +148,7 @@ export function PowerHero({
                     return i >= 0 ? i + 1 : null;
                   })()}
                   summary={summary}
+                  markets={markets}
                   actions={recent}
                   news={news}
                   onSeeAll={onSeeAll}
@@ -169,8 +176,8 @@ export function PowerHero({
               {coferLatest && coferDrop !== null && coferStartYear ? (
                 <>
                   {' '}
-                  — meanwhile the dollar's share of world reserves has slipped to{' '}
-                  <span className="font-semibold">{coferLatest.value.toFixed(0)}%</span>, down from {coferEarliest!.value.toFixed(0)}% in {coferStartYear}.
+                  — meanwhile the dollar's share of world reserves has slipped to <span className="font-semibold">{coferLatest.value.toFixed(0)}%</span>, down
+                  from {coferEarliest!.value.toFixed(0)}% in {coferStartYear}.
                 </>
               ) : (
                 '.'
