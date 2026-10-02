@@ -8,7 +8,7 @@ import { PulseDelta } from './PulseDelta';
 // Loaded on its own so the map library and outlines don't slow the first paint.
 const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
 
-const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-w-[440px] rounded-full border border-white/20" aria-hidden="true" />;
+const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-w-[760px] rounded-full border border-hero-border" aria-hidden="true" />;
 
 // Same centered-globe-with-overlay hero treatment as PulseHero, recolored by
 // alliance membership instead of by how many actions named a country -- see
@@ -55,15 +55,12 @@ export function InfluenceHero({
   };
 
   return (
-    <section className="bg-bar text-white">
-      <div className="mx-auto max-w-2xl px-4 pb-16 pt-8 text-center sm:pt-12">
-        <div className="relative mx-auto w-full max-w-[520px]">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-16 pt-2"
-            style={{ background: 'radial-gradient(ellipse 70% 85% at 50% 15%, rgba(10,10,11,0.94) 0%, rgba(10,10,11,0.7) 45%, rgba(10,10,11,0) 78%)' }}
-          >
-            <h1 className="display text-2xl leading-tight text-white sm:text-3xl">American influence, mapped</h1>
-            <p className="mx-auto mt-2 max-w-xs text-[13px] leading-snug text-[#d8d8dd] sm:text-sm">
+    <section className="bg-hero-bg text-hero-ink">
+      <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
+        <div className="relative mx-auto w-full max-w-[760px]">
+          <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">
+            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">American influence, mapped</h1>
+            <p className="mx-auto mt-3 max-w-xs text-[13px] leading-snug text-hero-ink-muted sm:max-w-sm sm:text-base">
               Who the U.S. is pressuring with tariffs and sanctions, and who it's formally aligned with.
             </p>
           </div>
@@ -92,7 +89,7 @@ export function InfluenceHero({
                 onClick={() => onCountry('US')}
                 aria-pressed={activeCountry === 'US'}
                 className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                  activeCountry === 'US' ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
+                  activeCountry === 'US' ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                 }`}
               >
                 United States
@@ -104,7 +101,7 @@ export function InfluenceHero({
                   onClick={() => onCountry(b.country)}
                   aria-pressed={activeCountry === b.country}
                   className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === b.country ? 'border-white bg-white text-ink' : 'border-white/30 text-white hover:border-white hover:bg-white/10'
+                    activeCountry === b.country ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
                   }`}
                 >
                   {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
@@ -114,7 +111,7 @@ export function InfluenceHero({
                 aria-label="Choose another country"
                 value=""
                 onChange={(e) => e.target.value && onCountry(e.target.value)}
-                className="border border-white/30 bg-bar px-2 py-1 text-[13px] font-semibold text-white"
+                className="border border-hero-border bg-hero-bg px-2 py-1 text-[13px] font-semibold text-hero-ink"
               >
                 <option value="">More countries…</option>
                 {others.map((c) => (
@@ -151,18 +148,18 @@ export function InfluenceHero({
                 {syncing ? 'Checking…' : 'Check for updates'}
               </button>
             </div>
-            <p className="mt-4 text-base leading-snug text-white">
+            <p className="mt-4 text-base leading-snug text-hero-ink">
               <span className="font-semibold">{countryCount}</span> countries facing new U.S. tariffs, sanctions or export controls,{' '}
               <span className="font-semibold">{summary.last30}</span> pressure actions in total
               {summary.trendPct !== null && (
                 <>
                   {' '}
-                  (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} onDark className="font-semibold" />)
+                  (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} className="font-semibold" />)
                 </>
               )}
               {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
             </p>
-            <p className="mt-2 text-[13px] text-[#b4b4bc]">{updatedText}</p>
+            <p className="mt-2 text-[13px] text-hero-ink-faint">{updatedText}</p>
           </>
         )}
       </div>

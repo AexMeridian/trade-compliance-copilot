@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoOrthographic, geoPath } from 'd3-geo';
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { getCurrentTheme, THEME_CHANGE_EVENT, type Theme } from '../lib/theme';
 
 // A wireframe, dotted globe you can turn and press. Every country the feed
 // can name is coloured by how many U.S. actions named it in the last 30 days
@@ -79,11 +80,53 @@ const idsForCode = (code: string): number[] => {
   return id === undefined ? [] : [id];
 };
 
-const GLOBE_RAMP = ['#0e7490', '#06b6d4', '#67e8f9', '#ecfeff']; // 1..4+ actions, dim to bright
-const QUIET = '#8a8a94'; // any real country: no actions this month, tracked or not
-const HOME = '#a78bfa'; // the United States
+// Drawn on a <canvas>, so none of this can be a CSS custom property --
+// PulseGlobe listens for THEME_CHANGE_EVENT (lib/theme.ts) and keeps its own
+// palette in sync instead of relying on the cascade. SELECTED stays one
+// color in both themes (orange reads fine against either hero background);
+// everything else needs a real second value now that the hero itself can be
+// light, not just dark (see index.css's --color-hero-* comment).
 const SELECTED = '#fb923c';
-const HOVERED = '#ffffff';
+interface GlobePalette {
+  ocean: string;
+  rim: string;
+  graticule: string;
+  outline: string;
+  hoverFill: string;
+  hoverStroke: string;
+  ramp: string[]; // 1..4+ actions, dim to bright
+  quiet: string; // any real country: no actions this month, tracked or not
+  home: string; // the United States
+  hovered: string;
+}
+const PALETTES: Record<Theme, GlobePalette> = {
+  dark: {
+    ocean: '#000000',
+    rim: '#ffffff',
+    graticule: 'rgba(255,255,255,0.16)',
+    outline: 'rgba(255,255,255,0.28)',
+    hoverFill: 'rgba(255,255,255,0.16)',
+    hoverStroke: 'rgba(255,255,255,0.9)',
+    ramp: ['#0e7490', '#06b6d4', '#67e8f9', '#ecfeff'],
+    quiet: '#8a8a94',
+    home: '#a78bfa',
+    hovered: '#ffffff',
+  },
+  light: {
+    ocean: '#eef2f8',
+    rim: '#0b1220',
+    graticule: 'rgba(11,18,32,0.16)',
+    outline: 'rgba(11,18,32,0.26)',
+    hoverFill: 'rgba(11,18,32,0.08)',
+    hoverStroke: 'rgba(11,18,32,0.8)',
+    // Same dim-to-bright meaning as dark's ramp, but inverted luminance --
+    // "brightest" can't mean "near-white" on a near-white ocean.
+    ramp: ['#cfe6ef', '#7cc3db', '#1f93ad', '#0a5d73'],
+    quiet: '#9a9aa5',
+    home: '#6d28d9',
+    hovered: '#0b1220',
+  },
+};
 
 type Country = Feature<Geometry, { name: string }> & { id: number };
 interface Dot {
@@ -173,6 +216,7 @@ export function PulseGlobe({
   const [world, setWorld] = useState<World | null>(null);
   const [size, setSize] = useState(440);
   const [hoverId, setHoverId] = useState<number | null>(null);
+  const [theme, setTheme] = useState<Theme>(() => getCurrentTheme());
 
   const rotation = useRef<[number, number]>([-95, -22]);
   const pointerRef = useRef<{ x: number; y: number } | null>(null); // where the cursor is, while it is over the globe
@@ -193,9 +237,17 @@ export function PulseGlobe({
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setSize(Math.max(240, Math.min(520, Math.floor(entry.contentRect.width)))));
+    const ro = new ResizeObserver(([entry]) => setSize(Math.max(240, Math.min(760, Math.floor(entry.contentRect.width)))));
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // The canvas can't read CSS custom properties, so it needs its own nudge
+  // when the toggle (ThemeToggle.tsx) fires lib/theme.ts's setTheme().
+  useEffect(() => {
+    const onThemeChange = (e: Event) => setTheme((e as CustomEvent<Theme>).detail);
+    window.addEventListener(THEME_CHANGE_EVENT, onThemeChange);
+    return () => window.removeEventListener(THEME_CHANGE_EVENT, onThemeChange);
   }, []);
 
   const projection = useMemo(() => geoOrthographic().clipAngle(90), []);
@@ -212,16 +264,17 @@ export function PulseGlobe({
   // different reason -- rather than a separate, darker "unknown" bucket.
   const colorFor = useCallback(
     (id: number): string => {
+      const palette = PALETTES[theme];
       const code = codeFor(id);
-      if (code === 'US') return HOME;
+      if (code === 'US') return palette.home;
       if (code && code === activeCountry) return SELECTED;
-      if (id === hoverIdRef.current) return HOVERED;
-      if (!code) return QUIET;
-      if (groupColorFor) return groupColorFor(code) ?? QUIET;
+      if (id === hoverIdRef.current) return palette.hovered;
+      if (!code) return palette.quiet;
+      if (groupColorFor) return groupColorFor(code) ?? palette.quiet;
       const n = counts.get(code) ?? 0;
-      return n > 0 ? GLOBE_RAMP[stepFor(n, max) - 1] : QUIET;
+      return n > 0 ? palette.ramp[stepFor(n, max) - 1] : palette.quiet;
     },
-    [counts, max, activeCountry, groupColorFor]
+    [counts, max, activeCountry, groupColorFor, theme]
   );
 
   const draw = useCallback(() => {
@@ -236,6 +289,7 @@ export function PulseGlobe({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size, size);
 
+    const palette = PALETTES[theme];
     const r = size / 2 - 4;
     projection
       .scale(r)
@@ -246,23 +300,23 @@ export function PulseGlobe({
     // Ocean and rim.
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, r, 0, 2 * Math.PI);
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = palette.ocean;
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = palette.rim;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // Graticule.
     ctx.beginPath();
     path(graticule);
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.strokeStyle = palette.graticule;
     ctx.lineWidth = 0.75;
     ctx.stroke();
 
     // Country outlines: faint everywhere, strong on the countries the feed names.
     ctx.beginPath();
     for (const c of world.countries) path(c);
-    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.strokeStyle = palette.outline;
     ctx.lineWidth = 0.6;
     ctx.stroke();
 
@@ -280,7 +334,7 @@ export function PulseGlobe({
     };
     const activeIds = activeCountry ? idsForCode(activeCountry) : [];
     if (hoverIdRef.current !== null && !activeIds.includes(hoverIdRef.current)) {
-      washIds([hoverIdRef.current], 'rgba(255,255,255,0.16)', 'rgba(255,255,255,0.9)', 1.4);
+      washIds([hoverIdRef.current], palette.hoverFill, palette.hoverStroke, 1.4);
     }
     washIds(activeIds, 'rgba(251,146,60,0.2)', SELECTED, 1.8);
 
@@ -312,7 +366,7 @@ export function PulseGlobe({
       ctx.fillStyle = color;
       ctx.fill();
     }
-  }, [world, size, projection, graticule, hittable, activeCountry, colorFor]);
+  }, [world, size, projection, graticule, hittable, activeCountry, colorFor, theme]);
 
   // Redraw whenever the data, size or selection changes.
   useEffect(() => draw(), [draw]);
@@ -404,7 +458,7 @@ export function PulseGlobe({
 
   return (
     <div className="min-w-0">
-      <div ref={wrap} className="mx-auto w-full min-w-0 max-w-[520px]">
+      <div ref={wrap} className="mx-auto w-full min-w-0 max-w-[760px]">
         <canvas
           ref={canvas}
           role="img"
@@ -451,11 +505,11 @@ export function PulseGlobe({
           }}
         />
       </div>
-      <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-white">
+      <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink">
         {shownMessage ?? (world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…')}
       </p>
       {legend ? (
-        <p className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#b4b4bc]" aria-hidden="true">
+        <p className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-hero-ink-faint" aria-hidden="true">
           {legend.map((l) => (
             <span key={l.label} className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.swatch }} />
@@ -464,10 +518,10 @@ export function PulseGlobe({
           ))}
         </p>
       ) : (
-        <p className="mt-1 flex items-center justify-center gap-2 text-xs text-[#b4b4bc]" aria-hidden="true">
+        <p className="mt-1 flex items-center justify-center gap-2 text-xs text-hero-ink-faint" aria-hidden="true">
           Fewer
           <span className="flex gap-1">
-            {GLOBE_RAMP.map((c) => (
+            {PALETTES[theme].ramp.map((c) => (
               <span key={c} className="h-2.5 w-4 rounded-sm" style={{ background: c }} />
             ))}
           </span>

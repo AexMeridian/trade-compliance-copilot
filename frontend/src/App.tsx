@@ -63,9 +63,14 @@ function usePageMeta(pathname: string, tab: string | null) {
   }, [pathname, tab]);
 }
 
-// On the black top bar: light text, and the current page is a solid white block.
+// On the black top bar: light text, and the current page is a solid white
+// block. text-[#0b0b0c] (not the text-ink token) is deliberate -- this pill's
+// background is always literal white regardless of site theme (the bar never
+// changes, see index.css's dark-theme comment), but text-ink itself DOES flip
+// with theme, which would make the active tab's label nearly invisible in
+// dark theme (near-white text on a white pill).
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-white text-ink' : 'text-[#b4b4bc] hover:text-white'}`;
+  `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-white text-[#0b0b0c]' : 'text-[#b4b4bc] hover:text-white'}`;
 
 export default function App() {
   const location = useLocation();

@@ -47,22 +47,22 @@ export function PulseCountryCard({
   const homeCount = summary?.last30 ?? 0;
 
   return (
-    <section ref={ref} aria-label={`Details for ${name}`} className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-4 text-left">
+    <section ref={ref} aria-label={`Details for ${name}`} className="mt-4 rounded-xl border border-hero-border bg-hero-card-bg p-4 text-left">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold leading-tight text-white">{name}</h2>
-          <p className="mt-0.5 text-sm text-[#b4b4bc]">
+          <h2 className="font-display text-2xl font-bold leading-tight text-hero-ink">{name}</h2>
+          <p className="mt-0.5 text-sm text-hero-ink-faint">
             {isHome ? (
               <>
                 Every action on this page is published by the U.S. government.{' '}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-hero-ink">
                   {homeCount} {homeCount === 1 ? 'action' : 'actions'}
                 </span>{' '}
                 in the last 30 days.
               </>
             ) : count > 0 ? (
               <>
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-hero-ink">
                   {count} U.S. {count === 1 ? 'action' : 'actions'}
                 </span>{' '}
                 named it in the last 30 days{rank ? `, ${rank === 1 ? 'the most of any country' : `number ${rank} among countries`}` : ''}.
@@ -78,14 +78,14 @@ export function PulseCountryCard({
       </div>
 
       {latestActions.length > 0 && (
-        <ul className="mt-3 divide-y divide-white/10">
+        <ul className="mt-3 divide-y divide-hero-divider">
           {latestActions.map((a) => (
             <li key={a.document_number} className="py-2">
-              <div className="flex items-center gap-2 text-xs text-[#b4b4bc]">
+              <div className="flex items-center gap-2 text-xs text-hero-ink-faint">
                 <span className={`h-1.5 w-1.5 rounded-full ${(TAG_HUE[a.tag] ?? TAG_HUE.Other).bg}`} aria-hidden="true" />
                 {a.tag}, {friendlyDate(a.publication_date)}
               </div>
-              <a href={a.html_url} target="_blank" rel="noreferrer" className="mt-0.5 block text-[15px] leading-snug text-white no-underline hover:underline">
+              <a href={a.html_url} target="_blank" rel="noreferrer" className="mt-0.5 block text-[15px] leading-snug text-hero-ink no-underline hover:underline">
                 {a.title}
               </a>
             </li>
@@ -94,14 +94,14 @@ export function PulseCountryCard({
       )}
 
       {headlines.length > 0 && (
-        <ul className="mt-2 divide-y divide-white/10 border-t border-white/10">
+        <ul className="mt-2 divide-y divide-hero-divider border-t border-hero-divider">
           {headlines.map((n) => (
             <li key={n.id} className="py-2">
-              <div className="flex items-center gap-2 text-xs text-[#b4b4bc]">
+              <div className="flex items-center gap-2 text-xs text-hero-ink-faint">
                 <span className={`h-1.5 w-1.5 rounded-full ${(NEWS_HUE[n.category] ?? NEWS_HUE.Official).bg}`} aria-hidden="true" />
                 {n.source}, {timeAgo(n.published_at)}
               </div>
-              <a href={n.url} target="_blank" rel="noreferrer" className="mt-0.5 block text-[15px] leading-snug text-white no-underline hover:underline">
+              <a href={n.url} target="_blank" rel="noreferrer" className="mt-0.5 block text-[15px] leading-snug text-hero-ink no-underline hover:underline">
                 {n.title}
               </a>
             </li>
@@ -110,7 +110,7 @@ export function PulseCountryCard({
       )}
 
       {latestActions.length === 0 && headlines.length === 0 && (isHome ? homeCount > 0 : count > 0) && (
-        <p className="mt-3 text-sm text-[#b4b4bc]">The newest of these are in the U.S. policy tab.</p>
+        <p className="mt-3 text-sm text-hero-ink-faint">The newest of these are in the U.S. policy tab.</p>
       )}
 
       <div className="mt-3 flex flex-wrap gap-3">

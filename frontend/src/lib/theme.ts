@@ -10,6 +10,12 @@ export type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'theme';
 
+// Fired whenever the applied theme changes, for the one component that can't
+// just rely on CSS custom properties re-cascading on its own: PulseGlobe's
+// wireframe/dot colors are drawn on a <canvas>, which has no idea a CSS
+// variable changed underneath it and needs an explicit nudge to redraw.
+export const THEME_CHANGE_EVENT = 'aex-theme-change';
+
 function safeSetItem(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
@@ -33,6 +39,7 @@ export function getCurrentTheme(): Theme {
 function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute('data-theme', theme);
   document.documentElement.style.colorScheme = theme;
+  window.dispatchEvent(new CustomEvent<Theme>(THEME_CHANGE_EVENT, { detail: theme }));
 }
 
 /** Sets an explicit theme choice and persists it -- once a visitor has

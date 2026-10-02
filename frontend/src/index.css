@@ -1,11 +1,12 @@
 @import 'tailwindcss';
 /* Self-hosted fonts (no request to Google, so nothing about a visitor is shared with a third party). */
-@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/space-grotesk';
 @import '@fontsource-variable/instrument-sans';
 
 /*
-  Black and white, with color that means something. The page is white, the top
-  bar and hero are black, and a small set of hues sorts the content:
+  Black and white, with color that means something. The page is white (or, in
+  dark theme, near-black -- see below), the top nav bar always stays black,
+  and a small set of hues sorts the content:
 
     orange   U.S. policy and tariffs
     violet   sanctions and comment periods
@@ -19,7 +20,7 @@
 */
 @theme {
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
 
   --color-bar: #0a0a0b;
   --color-paper: #f5f5f6;
@@ -53,6 +54,25 @@
   --color-hue-gray: #8a8a94;
   --color-hue-gray-ink: #47474e;
 
+  /* The hero (PulseHero/PowerHero/InfluenceHero + PulseGlobe + PulseCountryCard)
+     is its own small color system, not the page's --color-paper/--color-ink --
+     because it needs a "day" look distinct from a plain white page (a wireframe
+     globe redrawn in black lines on white reads as a broken inversion, not a
+     deliberate second treatment). These are the light/day values; the dark
+     override block below restores today's exact black-hero look unchanged. */
+  --color-hero-bg: #eef2f8;
+  --color-hero-ink: #0b1220;
+  --color-hero-ink-muted: #45526b;
+  --color-hero-ink-faint: #5d697e;
+  --color-hero-border: rgba(11, 18, 32, 0.22);
+  --color-hero-border-strong: rgba(11, 18, 32, 0.55);
+  --color-hero-divider: rgba(11, 18, 32, 0.1);
+  --color-hero-card-bg: rgba(11, 18, 32, 0.035);
+  --color-hero-btn-bg: #0b1220;
+  --color-hero-btn-text: #eef2f8;
+  --color-hero-btn-hover: #1b2a4a;
+  --hero-mask-rgb: 238, 242, 248; /* matches --color-hero-bg, for the headline's radial fade */
+
   --radius-control: 8px;
 }
 
@@ -60,18 +80,32 @@
   Dark theme: every color above is a real CSS custom property (Tailwind v4
   generates utilities like `.text-ink { color: var(--color-ink) }`), so a
   second value for each token here is enough to repaint the whole app --
-  no component changes needed. The top bar, hero and the hero-only
-  components (PulseHero/PowerHero/InfluenceHero, PulseGlobe, PulseCountryCard,
-  PulseDelta's `onDark` branch, .btn-hero/.btn-hero-ghost) are deliberately
-  NOT reassigned here: this site's design already keeps that one zone black
-  in both themes ("the top bar and hero are black" -- see the comment at the
-  top of this file), so their hardcoded on-black colors are correct in both
-  themes, not a gap. `[data-theme="dark"]` is set by a small inline script in
-  index.html before first paint (see frontend/src/lib/theme.ts) -- there's no
+  no component changes needed. The thin top nav bar stays black in both
+  themes on purpose (it's chrome, not content) -- --color-bar is never
+  reassigned. The hero's own --color-hero-* tokens ARE reassigned here, back
+  to today's familiar black-hero look, so a dark-theme visitor sees no
+  change there; PulseGlobe.tsx additionally listens for theme changes itself
+  (its wireframe/dot colors are drawn on a <canvas>, which can't read CSS
+  custom properties) to redraw with the matching palette.
+  `[data-theme="dark"]` is set by a small inline script in index.html before
+  first paint (see frontend/src/lib/theme.ts) -- there's no
   `prefers-color-scheme` media query here because that script already
   resolves system preference into an explicit attribute before CSS runs.
 */
 :root[data-theme='dark'] {
+  --color-hero-bg: #0a0a0b;
+  --color-hero-ink: #ffffff;
+  --color-hero-ink-muted: #d8d8dd;
+  --color-hero-ink-faint: #b4b4bc;
+  --color-hero-border: rgba(255, 255, 255, 0.3);
+  --color-hero-border-strong: rgba(255, 255, 255, 0.7);
+  --color-hero-divider: rgba(255, 255, 255, 0.1);
+  --color-hero-card-bg: rgba(255, 255, 255, 0.05);
+  --color-hero-btn-bg: #ffffff;
+  --color-hero-btn-text: #0b0b0c;
+  --color-hero-btn-hover: #e4e4e7;
+  --hero-mask-rgb: 10, 10, 11;
+
   --color-paper: #121214;
   --color-paper-raised: #1b1b1f;
   --color-ink: #f2f2f3;
@@ -238,11 +272,18 @@
     @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* On the black hero. */
+  /* On the hero -- see --color-hero-* above for why this isn't .btn/.btn-primary. */
   .btn-hero {
-    @apply inline-flex items-center justify-center gap-2 border border-white bg-white px-5 py-2.5 text-sm font-semibold text-ink no-underline hover:bg-[#e4e4e7];
+    @apply inline-flex items-center justify-center gap-2 border border-hero-btn-bg bg-hero-btn-bg px-5 py-2.5 text-sm font-semibold text-hero-btn-text no-underline hover:bg-hero-btn-hover disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-hero-ghost {
-    @apply inline-flex items-center justify-center gap-2 border border-white/30 bg-transparent px-4 py-2.5 text-sm font-semibold text-white no-underline hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 border border-hero-border bg-transparent px-4 py-2.5 text-sm font-semibold text-hero-ink no-underline hover:border-hero-border-strong hover:bg-hero-card-bg disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* The dark wash behind the hero headline, keyed to --hero-mask-rgb so it
+     fades to whichever --color-hero-bg is currently active instead of always
+     fading to black (see PulseHero.tsx's comment on why this exists at all). */
+  .hero-mask {
+    background: radial-gradient(ellipse 70% 85% at 50% 15%, rgba(var(--hero-mask-rgb), 0.94) 0%, rgba(var(--hero-mask-rgb), 0.7) 45%, rgba(var(--hero-mask-rgb), 0) 78%);
   }
 }
