@@ -22,8 +22,20 @@ determinationRoute.post('/:id/determination', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
-  if (caseFile.classification.status !== 'complete' || caseFile.origin.status !== 'complete' || caseFile.screening.status !== 'complete') {
-    return c.json({ error: 'Modules 1-3 (classification, origin, screening) must be complete before Module 4 (determination).' }, 409);
+  // Origin (Module 2) is a USMCA/duty-stack input, which only the import
+  // path uses -- an export determination turns on classification, screening
+  // and destination, so requiring origin there blocked a real workflow for
+  // no reason.
+  const originNeeded = caseFile.direction === 'import';
+  if (caseFile.classification.status !== 'complete' || caseFile.screening.status !== 'complete' || (originNeeded && caseFile.origin.status !== 'complete')) {
+    return c.json(
+      {
+        error: originNeeded
+          ? 'Modules 1-3 (classification, origin, screening) must be complete before Module 4 (determination).'
+          : 'Modules 1 and 3 (classification, screening) must be complete before Module 4 (determination).',
+      },
+      409
+    );
   }
 
   const code = caseFile.classification.selected_code!;
@@ -93,9 +105,14 @@ determinationRoute.post('/:id/determination', async (c) => {
     // country USMCA is simply not relevant, and origin.qualifies=null there
     // just reflects "not applicable," not a real gap needing manual review.
     const usmcaRelevant = USMCA_COUNTRIES.has(country);
+    // China-origin goods can carry a Section 301 duty this app has no verified
+    // data for (see dutyStack.ts) -- the estimate is knowingly incomplete, so
+    // it can't be called "clear".
+    const china301Unevaluated = country === 'CN' && !overlays.some((o) => o.program === 'sec301_china');
     const verdict: Verdict = hardStop
       ? 'stop'
       : caseFile.classification.ambiguous ||
+          china301Unevaluated ||
           (usmcaRelevant && caseFile.origin.qualifies === null) ||
           totalPct === null ||
           caseFile.screening.highest_severity === 'caution'
@@ -126,6 +143,11 @@ determinationRoute.post('/:id/determination', async (c) => {
       verdict,
     };
     for (const issue of narration.open_issues) caseFile.open_issues.push(`Determination: ${issue}`);
+    if (china301Unevaluated) {
+      caseFile.open_issues.push(
+        'Determination: goods of China may be subject to an additional Section 301 duty that this app has no verified data for -- the estimated total excludes it. Check the HTS code against the current USTR Section 301 lists (HTSUS Chapter 99) before relying on this figure.'
+      );
+    }
     if (totalPct === null) {
       caseFile.open_issues.push('Determination: one or more duty-stack lines have a non-ad-valorem (specific/compound) rate this app cannot sum automatically -- compute manually.');
     }
@@ -178,16 +200,30 @@ determinationRoute.post('/:id/determination', async (c) => {
 
   if (hardStop) {
     licenseRequirement = 'License Required';
-    licenseReasoningNote = 'Overridden by a true match against the BIS Entity List/Denied Persons List in Module 3 -- license-determinative regardless of ECCN.';
+    licenseReasoningNote =
+      'Overridden by a true match in Module 3 against a denied or blocked-party list (BIS Entity List/Denied Persons List, UN Security Council list, or OFAC SDN) -- determinative regardless of ECCN. See the screening open issues for which list.';
+  } else if (coverage?.status === 'comprehensive_embargo') {
+    // Checked BEFORE the EAR99 shortcut below: a destination under a
+    // comprehensive embargo (Part 746: Cuba, Iran, North Korea, Syria) is
+    // not "NLR" just because the item is EAR99 -- BIS and/or OFAC licensing
+    // applies to the destination itself, not only to CCL-controlled items.
+    licenseRequirement = 'License Required';
+    licenseReasoningNote = `Destination "${country}" is subject to a comprehensive EAR embargo (${coverage.notes ?? coverage.status}) -- a license (from BIS and/or OFAC, depending on the destination) is required regardless of ECCN, including EAR99 items. Do not ship without confirming the exact authorization with BIS and OFAC.`;
+  } else if (coverage?.status === 'broad_restriction_746_5' && (!selected || selected.eccn === 'EAR99' || reasonsForControl.length === 0)) {
+    // Russia/Belarus: Part 746 extends licensing to many EAR99 items too, by
+    // HTS code (Supplements 2, 4 and 6 to Part 746) -- a list this app does
+    // not carry, so it cannot honestly answer NLR here.
+    licenseRequirement = 'Insufficient Data';
+    licenseReasoningNote = `Destination "${country}" is subject to near-comprehensive EAR restrictions (${coverage.notes ?? coverage.status}) that reach many EAR99 items by HTS code (Supplements 2, 4 and 6 to 15 CFR Part 746). This app does not carry those lists, so it cannot conclude No License Required -- check them directly.`;
   } else if (!selected || selected.eccn === 'EAR99' || reasonsForControl.length === 0) {
     licenseRequirement = 'NLR';
     licenseReasoningNote = 'EAR99 or no reason-for-control match -- No License Required for standard commercial export, subject to standard embargo/denied-party/end-use screening.';
   } else if (!coverage || coverage.status === 'not_curated') {
     licenseRequirement = 'Insufficient Data';
     licenseReasoningNote = `Destination "${country}" is not in this app's curated Commerce Country Chart coverage -- cannot determine license requirement automatically. Consult 15 CFR 738 Supp. 1 directly.`;
-  } else if (coverage.status === 'comprehensive_embargo' || coverage.status === 'broad_restriction_746_5') {
+  } else if (coverage.status === 'broad_restriction_746_5') {
     licenseRequirement = 'License Required';
-    licenseReasoningNote = `Destination "${country}" is subject to a comprehensive or near-comprehensive EAR restriction (${coverage.notes ?? coverage.status}) -- license required regardless of the specific reason-for-control match.`;
+    licenseReasoningNote = `Destination "${country}" is subject to a near-comprehensive EAR restriction (${coverage.notes ?? coverage.status}) -- license required regardless of the specific reason-for-control match.`;
   } else {
     const chartRows = await getCountryChartRows(c.env, country);
     const chartReasonPrefixes = new Set(chartRows.map((r) => r.reason_for_control.replace(/\d+$/, '')));
@@ -209,6 +245,10 @@ determinationRoute.post('/:id/determination', async (c) => {
       ? 'stop'
       : licenseRequirement === 'Insufficient Data' ||
           licenseRequirement === 'License Exception May Apply' ||
+          // Same rule the import path applies: a true UK-list/MEU match or an
+          // unresolved name match can't be called "clear" just because the
+          // item itself needs no license.
+          caseFile.screening.highest_severity === 'caution' ||
           caseFile.classification.ambiguous ||
           eccnOutput.no_match ||
           ungroundedEccn
@@ -247,7 +287,11 @@ determinationRoute.post('/:id/determination', async (c) => {
     );
   }
   if (licenseRequirement === 'Insufficient Data') {
-    caseFile.open_issues.push(`Determination: destination "${country}" is not curated in this app's Commerce Country Chart data -- consult 15 CFR 738 Supp. 1 directly before relying on this.`);
+    caseFile.open_issues.push(
+      coverage?.status === 'broad_restriction_746_5'
+        ? `Determination: destination "${country}" is under near-comprehensive EAR restrictions that reach many EAR99 items -- check Supplements 2, 4 and 6 to 15 CFR Part 746 before shipping.`
+        : `Determination: destination "${country}" is not curated in this app's Commerce Country Chart data -- consult 15 CFR 738 Supp. 1 directly before relying on this.`
+    );
   }
 
   await saveCaseFile(c.env, caseFile);

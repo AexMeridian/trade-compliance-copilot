@@ -26,8 +26,8 @@
   {
     "direction": "import",
     "product_description": "A wooden dining chair with four legs, a back, and no upholstery, for household use",
-    "expected_hts_prefix": "9401.6",
-    "source": "HTSUS heading 9401 covers seats and parts thereof; subheadings under 9401.6X cover other seats with wooden frames -- consistent with CBP CROSS rulings on wooden household dining chairs."
+    "expected_hts_prefix": "9401.69",
+    "source": "HTSUS heading 9401 covers seats and parts thereof; 9401.61 is upholstered seats with wooden frames and 9401.69 is the other (non-upholstered) seats with wooden frames -- a plain wooden dining chair with no upholstery belongs under 9401.69, so the prefix is checked at the full 6-digit subheading, not just the 9401.6 group."
   },
   {
     "direction": "export",
@@ -58,5 +58,11 @@
     "product_description": "A stainless steel vacuum-insulated double-wall drinking bottle with a screw-on lid, household use",
     "expected_schedule_b_prefix": "9617.00",
     "source": "Schedule B 9617.00 mirrors HTS 9617.00 at the HS-6 level, same basis as the import case above."
+  },
+  {
+    "direction": "import",
+    "product_description": "Women’s blue denim jeans, 100% cotton, five-pocket, woven, for adult women",
+    "expected_hts_prefix": "6204.62",
+    "source": "Heading 6204 covers women’s or girls’ woven trousers; subheading 6204.62 is of cotton (HTSUS). Regression case: before the ancestor-text index (migration 0023) retrieval returned only the men’s 6203 branch."
   }
 ]

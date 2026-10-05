@@ -215,7 +215,11 @@ screeningRoute.post('/:id/screening', async (c) => {
 
   // Import: a true Entity List/Denied Persons/UN hit is a strong caution, not automatically
   // determinative (these are primarily export controls / multilateral sanctions). Export: hard stop.
-  const isHardStop = caseFile.direction === 'export' && (hardStopHit || unHit);
+  // OFAC SDN: a true match is a blocked person -- U.S. persons are prohibited
+  // from dealing with them, on an import as much as an export -- so unlike the
+  // export-control lists above, direction doesn't soften it.
+  const sdnHit = trueMatches.some((m) => m.source === 'SDN');
+  const isHardStop = (caseFile.direction === 'export' && (hardStopHit || unHit)) || sdnHit;
   const severity: 'none' | 'caution' | 'hard_stop' = isHardStop
     ? 'hard_stop'
     : trueMatches.length > 0 || anyInconclusive
@@ -231,6 +235,11 @@ screeningRoute.post('/:id/screening', async (c) => {
     deemed_export_flagged: body.deemed_export_flag === true,
   };
 
+  if (sdnHit) {
+    caseFile.open_issues.push(
+      'Screening: HARD STOP -- true match against OFAC\'s Specially Designated Nationals (SDN) list. An SDN is a blocked person: U.S. persons are generally prohibited from dealing with them in either direction. Do not proceed without OFAC counsel or a specific OFAC license.'
+    );
+  }
   if (hardStopHit && caseFile.direction === 'import') {
     caseFile.open_issues.push(
       'Screening: a true match against the BIS Entity List/Denied Persons List was found. This list is primarily an export control, but still warrants compliance review for an import transaction (e.g. related-party or reexport risk).'

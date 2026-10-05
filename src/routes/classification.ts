@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
-import { searchHts, searchScheduleB, getCrossReferenceForHts, getCrossReferenceForScheduleB } from '../lib/db.js';
+import { searchHts, searchScheduleB, getCrossReferenceForHts, getCrossReferenceForScheduleB, attachHtsAncestors } from '../lib/db.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import {
   CLASSIFICATION_SYSTEM_PROMPT,
@@ -52,11 +52,15 @@ classificationRoute.post('/:id/classification', async (c) => {
     return c.json({ classification: caseFile.classification });
   }
 
+  // Parent headings for each HTS candidate (import only -- Schedule B rows
+  // have no superior_id hierarchy in this schema).
+  const ancestors = direction === 'import' ? await attachHtsAncestors(c.env, candidates as Awaited<ReturnType<typeof searchHts>>) : undefined;
+
   let output: ClassificationToolOutput;
   try {
     output = await callClaudeTool<ClassificationToolOutput>(c.env, {
       system: CLASSIFICATION_SYSTEM_PROMPT,
-      userContent: buildClassificationUserContent(productDescription, direction, candidates),
+      userContent: buildClassificationUserContent(productDescription, direction, candidates, ancestors),
       tool: buildClassificationTool(candidateCodes),
     });
   } catch (err) {

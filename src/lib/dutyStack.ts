@@ -34,6 +34,33 @@ export function specialRateHasProgram(specialRate: string, programSymbol: string
   return re.test(specialRate);
 }
 
+/** Finds the rate that applies to one program symbol inside an HTS "special"
+ * column, which is a list of "<rate> (<symbols>)" groups, e.g.
+ * "Free (A,AU,CO,S,SG)" or "3.4% (S) Free (AU,CO)". Returns null if the
+ * symbol isn't listed in any group; pct is null if its group's rate isn't a
+ * plain ad-valorem/Free value (flagged, never guessed). parseAdValoremRate
+ * alone can't do this: it reads only the leading rate, so it returns null
+ * for "Free (...)" and the wrong group's rate for multi-group strings. */
+export function specialRateForSymbol(specialRate: string, symbol: string): { pct: number | null; raw: string } | null {
+  const groupRe = /([^()]*?)\s*\(([^)]*)\)/g;
+  for (const m of specialRate.matchAll(groupRe)) {
+    const symbols = m[2].split(',').map((x) => x.trim());
+    if (!symbols.includes(symbol)) continue;
+    const raw = m[1].trim();
+    return { pct: parseAdValoremRate(raw).pct, raw };
+  }
+  return null;
+}
+
+/** One-to-one U.S. free trade agreements, each with its own program symbol in
+ * the HTS special column (General Note 3(c)). Deliberately excludes the
+ * multi-country programs (GSP "A", AGOA "D", CBI "E", CAFTA-DR "P"), whose
+ * eligible-country lists change and are not in this app's data. */
+export const FTA_SYMBOL_FOR_COUNTRY: Record<string, string> = {
+  AU: 'AU', BH: 'BH', CL: 'CL', CO: 'CO', IL: 'IL', JO: 'JO',
+  KR: 'KR', MA: 'MA', OM: 'OM', PA: 'PA', PE: 'PE', SG: 'SG',
+};
+
 /** Renders an overlay row's exclusions JSON array (if any) as a single caveat
  * string, so scope-precision caveats (e.g. "chapter-level approximation, not
  * line-item") survive into the report even for lines that DO apply. */
@@ -81,7 +108,8 @@ export function buildDutyStack(
   const htsProvenance = { source_url: hts.source_url, source_tier: hts.source_tier as 1 | 2 | 3, last_updated: hts.last_updated };
 
   if (specialApplies) {
-    const specialRate = parseAdValoremRate(hts.special_rate ?? '');
+    // 'S+' (Canada/Mexico differ) is looked up when plain 'S' isn't listed.
+    const specialRate = specialRateForSymbol(hts.special_rate ?? '', 'S') ?? specialRateForSymbol(hts.special_rate ?? '', 'S+') ?? { pct: null, raw: '' };
     lines.push({
       layer: 'HTS Column 1 General',
       rate_pct: generalRate.pct,
@@ -135,6 +163,50 @@ export function buildDutyStack(
         source: htsProvenance,
       });
     }
+  }
+
+  // Other free trade agreements: show the preferential rate this line lists
+  // for the origin country, but do NOT apply it to the total. Claiming an FTA
+  // rate means the goods meet that agreement's rules of origin, and this app
+  // only evaluates origin for USMCA -- so applying it would silently assert
+  // something unverified. The total stays at the rate the importer pays
+  // unless they prove preference; the line tells them the saving exists.
+  const ftaSymbol = FTA_SYMBOL_FOR_COUNTRY[country];
+  if (ftaSymbol) {
+    const fta = specialRateForSymbol(hts.special_rate ?? '', ftaSymbol);
+    if (fta) {
+      lines.push({
+        layer: `HTS Column 1 Special (${ftaSymbol} free trade agreement)`,
+        rate_pct: fta.pct,
+        rate_type: fta.pct === null ? 'specific_or_compound' : 'ad_valorem',
+        legal_basis: `19 U.S.C. 1202, HTSUS Column 1 Special, program symbol "${ftaSymbol}"`,
+        effective_date: hts.revision,
+        applies: false,
+        reason_if_not_applied: "Not included in the total: the preferential rate applies only if the goods meet this agreement's rules of origin, which this app does not evaluate.",
+        caveat: `If the goods qualify and the importer claims the "${ftaSymbol}" preference at entry, the Column 1 General duty above is replaced by this rate. Confirm qualification with a licensed customs broker.`,
+        source: htsProvenance,
+      });
+    }
+  }
+
+  // Section 301 China tariff actions (Lists 1-4A and later modifications) are
+  // product-specific and have changed repeatedly; this app carries no
+  // verified list for them (no sec301_china rows are seeded). Rather than
+  // omit the layer and let a China-origin good read as fully priced, say so
+  // explicitly. rate_pct is null and applies is false, so the total is not
+  // poisoned -- determination.ts separately forces review for this case.
+  if (country === 'CN' && !overlays.some((o) => o.program === 'sec301_china')) {
+    lines.push({
+      layer: 'Section 301 (China tariff actions) -- NOT EVALUATED',
+      rate_pct: null,
+      rate_type: 'ad_valorem',
+      legal_basis: 'Section 301 of the Trade Act of 1974; USTR China action Lists 1-4A and later modifications',
+      effective_date: hts.revision,
+      applies: false,
+      reason_if_not_applied: 'This app has no verified Section 301 China product lists loaded, so it cannot say whether this HTS line is covered or at what rate.',
+      caveat: 'Goods of China are often subject to an additional Section 301 duty (historically 7.5%-100% depending on the product and list). The total below does NOT include it. Check this HTS code against the current USTR lists / HTSUS Chapter 99 before relying on the estimate.',
+      source: null,
+    });
   }
 
   // Section 232 metals: apply baseline, then cap if a per-country cap row exists.

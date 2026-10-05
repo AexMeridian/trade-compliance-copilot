@@ -21,13 +21,18 @@ Write reasoning_steps as a short numbered list showing which GRI rule(s) you app
 export function buildClassificationUserContent(
   productDescription: string,
   direction: Direction,
-  candidates: (HtsCandidateRow | ScheduleBCandidateRow)[]
+  candidates: (HtsCandidateRow | ScheduleBCandidateRow)[],
+  ancestors?: Map<number, string[]>
 ): string {
   const schedule = direction === 'import' ? 'HTS (Harmonized Tariff Schedule)' : 'Schedule B';
+  // A line's own text is often just "Other" or "Other household"; what it
+  // actually covers is set by its parent headings, shown in [brackets] from
+  // the top heading down. Read them as part of the line (GRI 1).
   const list = candidates
     .map((c) => {
       const code = 'htsno' in c ? c.htsno : c.code;
-      return `- ${code}: ${c.description}`;
+      const chain = 'htsno' in c ? ancestors?.get(c.id) : undefined;
+      return chain && chain.length > 0 ? `- ${code}: [${chain.join(' > ')}] ${c.description}` : `- ${code}: ${c.description}`;
     })
     .join('\n');
   return `Product description: "${productDescription}"

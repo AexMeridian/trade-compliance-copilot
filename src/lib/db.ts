@@ -124,7 +124,15 @@ async function mergedFtsCandidateIds(
 }
 
 export async function searchHts(env: Env, query: string, limit = 25): Promise<HtsCandidateRow[]> {
-  const ids = await mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit);
+  const [ownIds, pathIds] = await Promise.all([
+    mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit),
+    // Ancestor-heading matches (migration 0023): reaches branches whose defining
+    // words ("women's", "of cotton") live on a parent heading, not the leaf.
+    // Ranked after own-text matches and capped small -- it is a recall
+    // supplement, and a failure here must never take classification down.
+    ftsMatchIds(env, 'hts_path_search', '', toFtsQuery(query), 12).catch(() => [] as number[]),
+  ]);
+  const ids = [...ownIds, ...pathIds.filter((id) => !ownIds.includes(id))].slice(0, 80);
   if (ids.length === 0) return [];
   const { results } = await env.DB.prepare(
     `SELECT id, htsno, description, indent, superior_id, units, general_rate, special_rate,
@@ -138,7 +146,7 @@ export async function searchHts(env: Env, query: string, limit = 25): Promise<Ht
   const ordered = ids.map((id) => byId.get(id)).filter((r): r is HtsCandidateRow => !!r);
   // Real headroom beyond what's already matched, so children actually get pulled in
   // (a cap equal to the current count would make expandWithChildren's gate a no-op).
-  return expandWithChildren(env, ordered, ordered.length + 15);
+  return expandWithChildren(env, ordered, ordered.length + 40);
 }
 
 /**
@@ -176,11 +184,63 @@ async function expandWithChildren(env: Env, rows: HtsCandidateRow[], cap: number
     .bind(...idList)
     .all<HtsCandidateRow>();
 
+  // Fill the headroom in MATCH-RANK order, not in whatever order the database
+  // happens to return rows: a high-ranking match's own children/siblings must
+  // be added before those of a low-ranking one, or irrelevant families (e.g.
+  // "Legs" from frog legs) can use up the cap before the on-topic family
+  // (the actual chair lines) is reached.
+  const relatedByGroup = new Map<number, HtsCandidateRow[]>();
   for (const r of related) {
-    if (byId.size >= cap) break;
-    if (!byId.has(r.id)) byId.set(r.id, r);
+    if (r.superior_id === null) continue;
+    const list = relatedByGroup.get(r.superior_id);
+    if (list) list.push(r);
+    else relatedByGroup.set(r.superior_id, [r]);
+  }
+  outer: for (const row of rows) {
+    for (const gid of [row.id, row.superior_id]) {
+      if (gid === null) continue;
+      for (const r of relatedByGroup.get(gid) ?? []) {
+        if (byId.size >= cap) break outer;
+        if (!byId.has(r.id)) byId.set(r.id, r);
+      }
+    }
   }
   return [...byId.values()];
+}
+
+/**
+ * Attaches each candidate's ancestor descriptions (heading > subheading > ...),
+ * oldest first. A leaf like "9401.69.60.11 Other household" is meaningless on
+ * its own -- what makes it a wooden-framed seat is its parents -- and GRI 1
+ * classification is decided by exactly that heading text. Real D1 rows only;
+ * walks superior_id upward a level per query, so cost is bounded by tree depth
+ * (a handful of queries), not by candidate count.
+ */
+export async function attachHtsAncestors(env: Env, rows: HtsCandidateRow[]): Promise<Map<number, string[]>> {
+  const known = new Map<number, { description: string; superior_id: number | null }>();
+  for (const r of rows) known.set(r.id, { description: r.description, superior_id: r.superior_id });
+  let frontier = [...new Set(rows.map((r) => r.superior_id).filter((id): id is number => id !== null && !known.has(id)))];
+  for (let depth = 0; depth < 8 && frontier.length > 0; depth++) {
+    const chunk = frontier.slice(0, 90);
+    const { results } = await env.DB.prepare(`SELECT id, description, superior_id FROM hts_lines WHERE id IN (${inClause(chunk)})`)
+      .bind(...chunk)
+      .all<{ id: number; description: string; superior_id: number | null }>();
+    for (const r of results) known.set(r.id, { description: r.description, superior_id: r.superior_id });
+    frontier = [...new Set(results.map((r) => r.superior_id).filter((id): id is number => id !== null && !known.has(id)))];
+  }
+  const out = new Map<number, string[]>();
+  for (const r of rows) {
+    const chain: string[] = [];
+    let cur = r.superior_id;
+    for (let i = 0; i < 8 && cur !== null; i++) {
+      const node = known.get(cur);
+      if (!node) break;
+      chain.unshift(node.description.replace(/<[^>]+>/g, '').replace(/[:\s]+$/, ''));
+      cur = node.superior_id;
+    }
+    out.set(r.id, chain);
+  }
+  return out;
 }
 
 export interface ScheduleBCandidateRow {
@@ -440,6 +500,15 @@ export interface TariffOverlayRow {
  * AND whose country_scope is null, '%', or matches the given country. Rate/
  * cap arithmetic is applied by the caller (src/routes/determination.ts), not
  * here -- this is pure data retrieval. */
+/** The 27 EU member states (ISO alpha-2). An overlay row scoped to 'EU' (e.g.
+ * the Section 232 metals country cap, which the source proclamation grants to
+ * "the EU") applies to goods of any member state -- but overlays are matched
+ * on the origin country code, and Germany's code is 'DE', never 'EU'. Without
+ * this, no member state could ever receive the EU's cap. */
+export const EU_MEMBER_CODES = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+]);
+
 export async function getApplicableOverlays(
   env: Env,
   htsno: string,
@@ -452,7 +521,8 @@ export async function getApplicableOverlays(
     const countryMatches =
       r.country_scope === null ||
       r.country_scope === '%' ||
-      (countryCode !== null && r.country_scope === countryCode);
+      (countryCode !== null && r.country_scope === countryCode) ||
+      (countryCode !== null && r.country_scope === 'EU' && EU_MEMBER_CODES.has(countryCode));
     return patternMatches && countryMatches;
   });
 }
