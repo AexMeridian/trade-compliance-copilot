@@ -24,8 +24,13 @@ const CONFIG: Record<Verdict, { label: string; bg: string; fg: string; border: s
   },
 };
 
-export function VerdictBanner({ verdict, caseId, generatedAt }: { verdict: Verdict; caseId: string; generatedAt?: string }) {
+const SHOWN_ISSUES = 3;
+
+export function VerdictBanner({ verdict, caseId, generatedAt, issues = [] }: { verdict: Verdict; caseId: string; generatedAt?: string; issues?: string[] }) {
   const cfg = CONFIG[verdict];
+  // Blocking findings first, then the determination, then everything else (stable).
+  const rank = (s: string) => (/HARD STOP|license required|denied|blocked/i.test(s) ? 0 : s.startsWith('Determination') ? 1 : 2);
+  const shown = verdict === 'clear' ? [] : [...issues].sort((a, b) => rank(a) - rank(b)).slice(0, SHOWN_ISSUES);
   return (
     <div className={`border ${cfg.border} ${cfg.bg} px-5 py-4`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -36,6 +41,21 @@ export function VerdictBanner({ verdict, caseId, generatedAt }: { verdict: Verdi
         </span>
       </div>
       <p className="mt-1 text-sm text-ink-muted">{cfg.note}</p>
+      {shown.length > 0 && (
+        <div className="mt-3 border-t border-current/20 pt-3">
+          <p className="text-sm font-semibold text-ink">Why</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-ink-muted">
+            {shown.map((s, i) => (
+              <li key={i} className="line-clamp-2">
+                {s}
+              </li>
+            ))}
+          </ul>
+          <a href="#open-issues" className="no-print mt-2 inline-block text-sm text-accent hover:underline">
+            {issues.length > SHOWN_ISSUES ? `See all ${issues.length} open issues` : 'See the full details'}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

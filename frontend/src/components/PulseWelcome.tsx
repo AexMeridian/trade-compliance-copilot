@@ -1,5 +1,4 @@
 import { PRESETS, type Preset } from '../lib/pulsePrefs';
-import { SITE } from '../lib/site';
 
 // Shown once to a first-time visitor (until they pick, skip, or open the
 // guide). One question -- "what describes you?" -- because that is the
@@ -35,48 +34,39 @@ const CHOICES: { presetId: string; label: string; blurb: string }[] = [
   { presetId: 'default', label: "I'm just looking around", blurb: 'Keep everything, exactly as it is.' },
 ];
 
-export function PulseWelcome({ onPick, onGuide, onSkip }: { onPick: (p: Preset) => void; onGuide: () => void; onSkip: () => void }) {
+// One quiet row, not a card: it never pushes the real content down, takes one
+// tap to use, and one tap to dismiss. The blurb lives in each button's tooltip.
+export function PulseWelcome({ onPick, onSkip }: { onPick: (p: Preset) => void; onSkip: () => void }) {
   return (
-    <section aria-label="Welcome" className="card mb-6 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-ink">Welcome to {SITE.name}</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-            This page keeps track of what's changing in world trade: new U.S. tariff and sanctions rules, stock and currency moves, and the news behind them.
-            Everything is explained in plain English, and you don't need any background to follow it.
-          </p>
-        </div>
-        <button type="button" onClick={onSkip} className="text-xs text-ink-faint hover:text-ink">
-          Skip for now
-        </button>
-      </div>
-
-      <p className="mt-4 text-sm font-medium text-ink">What best describes you? We'll set the page up for you.</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        {CHOICES.map((c) => {
+    <section aria-label="Personalize this page" className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border border-hairline bg-paper-raised px-3 py-2">
+      <span className="text-[13px] text-ink-muted">Show me what matters to:</span>
+      <div className="flex flex-wrap gap-1.5">
+        {CHOICES.filter((c) => c.presetId !== 'default').map((c) => {
           const preset = PRESETS.find((p) => p.id === c.presetId);
           if (!preset) return null;
           return (
             <button
               key={c.presetId}
               type="button"
+              title={c.blurb}
               onClick={() => onPick(preset)}
-              className="flex flex-col items-start gap-1 border border-hairline-strong bg-paper-raised px-3 py-2.5 text-left hover:border-accent hover:bg-accent-soft"
+              className="rounded-full border border-hairline-strong px-3 py-1 text-[13px] font-medium text-ink hover:border-accent hover:bg-accent-soft"
             >
-              <span className="text-sm font-medium text-ink">{c.label}</span>
-              <span className="text-xs leading-snug text-ink-faint">{c.blurb}</span>
+              {SHORT_LABEL[c.presetId] ?? c.label}
             </button>
           );
         })}
       </div>
-
-      <p className="mt-3 text-xs text-ink-faint">
-        You can change this any time with <span className="text-ink-muted">Filter</span>. Want a walkthrough first?{' '}
-        <button type="button" onClick={onGuide} className="text-accent hover:underline">
-          Read the short guide
-        </button>
-        .
-      </p>
+      <button type="button" onClick={onSkip} aria-label="Dismiss" className="ml-auto text-[13px] text-ink-faint hover:text-ink">
+        Dismiss
+      </button>
     </section>
   );
 }
+
+const SHORT_LABEL: Record<string, string> = {
+  trader: 'Importing or exporting',
+  investor: 'Markets',
+  compliance: 'Compliance',
+  policy: 'Policy and politics',
+};

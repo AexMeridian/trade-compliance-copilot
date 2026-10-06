@@ -430,11 +430,6 @@ export function Pulse() {
               markWelcomed();
               setWelcomed(true);
             }}
-            onGuide={() => {
-              markWelcomed();
-              setWelcomed(true);
-              setTab('guide', true);
-            }}
             onSkip={() => {
               markWelcomed();
               setWelcomed(true);

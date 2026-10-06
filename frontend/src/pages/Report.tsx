@@ -10,6 +10,8 @@ import { ScreeningRedFlags } from '../components/ScreeningRedFlags';
 import { agoText } from '../lib/pulsePlain';
 import { SITE } from '../lib/site';
 
+const SCREENING_PLAIN = { none: 'No matches', caution: 'Needs a closer look', hard_stop: 'Blocked party found' } as const;
+
 export function Report() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{ case_file: CaseFile; verdict: Verdict; generated_at: string } | null>(null);
@@ -58,6 +60,22 @@ export function Report() {
 
   const { case_file: cf, verdict, generated_at } = data;
 
+  // One line per module, in plain words, so the answer is visible without
+  // reading the reasoning below it.
+  const det = cf.determination;
+  const dutyValue =
+    cf.direction === 'import'
+      ? det.landed_cost_estimate_pct !== null
+        ? `${det.landed_cost_estimate_pct}% duty`
+        : 'Needs manual calculation'
+      : (det.license_requirement ?? 'Not determined');
+  const glance = [
+    { label: 'Product code', value: cf.classification.selected_code ?? 'Not resolved' },
+    { label: 'USMCA origin', value: cf.direction === 'import' ? (cf.origin.qualifies === null ? 'Undetermined' : cf.origin.qualifies ? 'Qualifies' : 'Does not qualify') : 'Not applicable' },
+    { label: 'Party screening', value: SCREENING_PLAIN[cf.screening.highest_severity] },
+    { label: cf.direction === 'import' ? 'Estimated duty' : 'Export license', value: dutyValue },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       {/* Screen-only: the printed/PDF copy names the site in its own
@@ -78,7 +96,16 @@ export function Report() {
           Case {cf.id}, printed {new Date().toLocaleString()}. Not legal, customs, tax or financial advice -- see the disclaimer at the end of this document.
         </p>
       </div>
-      <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} />
+      <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} issues={cf.open_issues} />
+
+      <dl className="mt-4 grid grid-cols-2 gap-px border border-hairline bg-hairline text-sm sm:grid-cols-4">
+        {glance.map((g) => (
+          <div key={g.label} className="bg-paper px-3 py-2">
+            <dt className="text-xs text-ink-faint">{g.label}</dt>
+            <dd className="mt-0.5 font-semibold tabular-nums text-ink">{g.value}</dd>
+          </div>
+        ))}
+      </dl>
 
       <section className="mt-8 border-t border-hairline pt-6">
         <h2 className="font-display text-xl font-bold text-ink">1. Classification</h2>
@@ -103,7 +130,7 @@ export function Report() {
             {rescreening ? 'Re-screening…' : 'Re-screen parties'}
           </button>
         </div>
-        <p className="mt-1 text-sm capitalize">{cf.screening.highest_severity.replace('_', ' ')}</p>
+        <p className="mt-1 text-sm">{SCREENING_PLAIN[cf.screening.highest_severity]}</p>
         {cf.screening.screened_at && (
           <p className="text-xs text-ink-faint">
             Screened {agoText(cf.screening.screened_at)}. Watchlists change over time -- re-screen before acting on a result from a while ago.
@@ -161,7 +188,7 @@ export function Report() {
       </section>
 
       {cf.open_issues.length > 0 && (
-        <section className="mt-8 border-t border-hairline pt-6">
+        <section id="open-issues" className="mt-8 scroll-mt-20 border-t border-hairline pt-6">
           <h2 className="font-display text-xl font-bold text-ink">Open issues for a human analyst</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-muted">
             {cf.open_issues.map((issue, i) => (

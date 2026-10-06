@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { SECTION_HUE } from '../lib/pulseColors';
 
 export type PulseTabId = 'overview' | 'policy' | 'markets' | 'news' | 'data' | 'guide';
@@ -23,12 +24,28 @@ const TAB_BORDER: Record<PulseTabId, string> = {
 // Native buttons with tab roles; the parent owns which panel renders, so
 // only the active tab's content is in the page at any time.
 export function PulseTabs({ active, onChange, children }: { active: PulseTabId; onChange: (id: PulseTabId) => void; children?: React.ReactNode }) {
+  // On a narrow screen the tab row scrolls sideways with no visible cue that
+  // "Data" and "Guide" exist; fade its right edge while there is more to see.
+  const [moreRight, setMoreRight] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const measure = () => {
+    const el = listRef.current;
+    if (el) setMoreRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   return (
     // scroll-mt clears the sticky site header when a link elsewhere reveals the tabs.
     <div id="pulse-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label="Pulse sections"
+        ref={listRef}
+        onScroll={measure}
+        style={moreRight ? { maskImage: 'linear-gradient(to right, black 82%, transparent)', WebkitMaskImage: 'linear-gradient(to right, black 82%, transparent)' } : undefined}
         className="flex min-w-0 overflow-x-auto border-b border-hairline-strong sm:border-b-0"
         onKeyDown={(e) => {
           const i = PULSE_TABS.findIndex((t) => t.id === active);
