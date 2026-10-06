@@ -1,6 +1,8 @@
 import type { PulseAction } from '../types/pulse';
 import { CITATION_HINT } from '../lib/pulseGlossary';
 import { plainSummary } from '../lib/pulsePlain';
+import { parseCountries } from '../lib/pulseCountries';
+import { RelatedLinks } from './RelatedLinks';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -30,6 +32,7 @@ export function PulseActionDetails({ a }: { a: PulseAction }) {
           {a.effective_on && <span>Effective {a.effective_on}</span>}
         </div>
       )}
+      <RelatedLinks kind="action" id={a.document_number} countries={parseCountries(a.countries)} />
     </>
   );
 }

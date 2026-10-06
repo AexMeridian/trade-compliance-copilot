@@ -8,7 +8,7 @@
     "build:frontend": "npm run build --workspace frontend",
     "deploy": "npm run build:frontend && wrangler deploy",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test:unit": "tsx tests/duty-stack.test.ts",
+    "test:unit": "tsx tests/duty-stack.test.ts && tsx tests/connections.test.ts",
     "db:migrate:local": "wrangler d1 migrations apply trade-compliance-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply trade-compliance-db --remote",
     "seed:hts": "tsx scripts/fetch-hts.ts",

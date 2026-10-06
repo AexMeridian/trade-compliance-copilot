@@ -1,5 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
-import type { PulseHome, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, TempoPoint } from '../types/pulse';
+import type { PulseHome, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, TempoPoint, ConnectionsResponse, RelatedResponse } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -209,4 +209,19 @@ export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer'
 
 export function getSnapshot(id: string) {
   return request<PulseSnapshot>(`/pulse/snapshots/${id}`);
+}
+
+export function getPulseConnections(code: string, opts: { name?: string; days?: number; topic?: string } = {}) {
+  const params = new URLSearchParams({ country: code });
+  if (opts.name) params.set('name', opts.name);
+  if (opts.days) params.set('days', String(opts.days));
+  if (opts.topic) params.set('topic', opts.topic);
+  return request<ConnectionsResponse>(`/pulse/connections?${params.toString()}`);
+}
+
+export function getPulseRelated(kind: 'action' | 'news', id: string, names: Record<string, string> = {}) {
+  const params = new URLSearchParams({ kind, id });
+  const pairs = Object.entries(names).map(([c, n]) => `${c}:${n}`);
+  if (pairs.length) params.set('names', pairs.join('|'));
+  return request<RelatedResponse>(`/pulse/related?${params.toString()}`);
 }

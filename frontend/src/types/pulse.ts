@@ -222,3 +222,54 @@ export interface PulseNewsResponse {
   lastSuccessAt: string | null;
   note: string | null;
 }
+
+// --- Cross-topic connections (src/routes/pulseConnections.ts) ----------------
+
+export type ConnectionKind = 'action' | 'news' | 'gta' | 'wro';
+
+export interface ConnectionReaction {
+  seriesId: string;
+  label: string;
+  /** Plain-words reading, e.g. "CNY weakened 0.4% against the dollar". */
+  reading: string;
+  changePct: number;
+  beforeDate: string;
+  afterDate: string;
+}
+
+export interface ConnectionEvent {
+  kind: ConnectionKind;
+  id: string;
+  date: string;
+  title: string;
+  url: string | null;
+  source: string | null;
+  countries: string[];
+  topics: string[];
+  reactions: ConnectionReaction[];
+}
+
+export interface ConnectionsResponse {
+  country: string;
+  days: number;
+  topic: string | null;
+  events: ConnectionEvent[];
+  topicCounts: { topic: string; count: number }[];
+  /** Items left out of the default view per source, e.g. { action: 72 }. */
+  omitted: Partial<Record<ConnectionKind, number>>;
+  reactionNote: string;
+}
+
+export interface RelatedLinkItem {
+  event: Omit<ConnectionEvent, 'reactions'>;
+  score: number;
+  reason: string;
+  sharedTopics: string[];
+  daysApart: number;
+}
+
+export interface RelatedResponse {
+  subject: { kind: ConnectionKind; id: string; topics: string[]; countries: string[] };
+  windowDays: number;
+  links: RelatedLinkItem[];
+}

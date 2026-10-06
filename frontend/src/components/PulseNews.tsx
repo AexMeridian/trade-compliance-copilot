@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RelatedLinks } from './RelatedLinks';
 import type { NewsCategory, NewsItem, PulseNewsResponse } from '../types/pulse';
 import { COUNTRY_LABELS, parseCountries } from '../lib/pulseCountries';
 import { NEWS_HUE } from '../lib/pulseColors';
@@ -102,7 +104,19 @@ export function PulseNews({
                     {n.title}
                   </a>
                   {n.summary && !compact && <p className="mt-1 line-clamp-2 text-xs text-ink-muted">{n.summary}</p>}
-                  {countries.length > 0 && <p className="mt-1 text-[11px] text-ink-faint">{countries.map((c) => COUNTRY_LABELS[c] ?? c).join(', ')}</p>}
+                  {countries.length > 0 && (
+                    <p className="mt-1 text-[11px] text-ink-faint">
+                      {countries.map((c, i) => (
+                        <span key={c}>
+                          {i > 0 && ', '}
+                          <Link to={`/country/${c.toLowerCase()}`} className="text-ink-faint underline-offset-2 hover:text-accent hover:underline">
+                            {COUNTRY_LABELS[c] ?? c}
+                          </Link>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  <RelatedLinks kind="news" id={n.id} countries={countries} />
                 </div>
                 <NewsThumb src={n.image_url} className="h-16 w-24 sm:h-[4.5rem] sm:w-32" />
               </li>

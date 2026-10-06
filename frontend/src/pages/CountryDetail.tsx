@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseHome } from '../lib/api';
 import { COUNTRY_TABS, CountryTabs, type CountryTabId } from '../components/CountryTabs';
 import { CountryGuide } from '../components/CountryGuide';
+import { ConnectionsPanel } from '../components/ConnectionsPanel';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseTempoChart } from '../components/PulseTempoChart';
 import { PulseFeedList } from '../components/PulseFeedList';
@@ -113,6 +114,15 @@ export function CountryDetail() {
       <div role="tabpanel" id="country-tabpanel" className="mt-6">
         {tab === 'overview' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sm:col-span-2 lg:col-span-3">
+              <PulsePanel
+                title={`How ${name} connects`}
+                subtitle="Policy, trade barriers, news and market moves for this country on one timeline"
+                help="Every item names this country. Items are grouped by topic from their own text, and market moves are shown for context only: a market moving after an event does not mean the event caused it."
+              >
+                <ConnectionsPanel code={code} name={name} />
+              </PulsePanel>
+            </div>
             {data.snapshot && (
               <PulsePanel
                 title="Country snapshot"

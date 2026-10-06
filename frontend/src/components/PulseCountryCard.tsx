@@ -441,7 +441,7 @@ export function PulseCountryCard({
         </button>
         {!isHome && (
           <Link to={`/country/${code}`} className="btn-hero-ghost">
-            Full country page &rarr;
+            See how it all connects &rarr;
           </Link>
         )}
       </div>

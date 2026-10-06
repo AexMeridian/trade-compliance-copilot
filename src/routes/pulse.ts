@@ -10,8 +10,12 @@ import { logRefresh } from '../lib/refresh/log.js';
 import type { PulseAction, TempoPoint } from '../lib/pulse/types.js';
 import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows } from '../lib/db.js';
 import { buildDutyStack } from '../lib/dutyStack.js';
+import { connectionsRoute } from './pulseConnections.js';
 
 export const pulseRoute = new Hono<{ Bindings: Env }>();
+
+// /connections and /related -- cross-domain links (see routes/pulseConnections.ts).
+pulseRoute.route('/', connectionsRoute);
 
 /** Parses and clamps a query-string integer param, defaulting on anything
  * missing or non-numeric. Using `Number.isFinite` (rather than `Number(x) ||
