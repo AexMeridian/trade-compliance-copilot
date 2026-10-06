@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import type { CaseFile, PartyMatch, Verdict } from '../types/case';
 import { getReport, submitScreening } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
@@ -12,6 +12,8 @@ import { IssueList, type ParsedIssue } from '../components/IssueList';
 import { Facts, ReportSection, StatusChip, type Tone } from '../components/ReportBits';
 import { agoText } from '../lib/pulsePlain';
 import { SITE } from '../lib/site';
+import { ConnectionsPanel } from '../components/ConnectionsPanel';
+import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 
 const SCREENING_PLAIN = { none: 'No matches', caution: 'Needs a closer look', hard_stop: 'Blocked party found' } as const;
 const SCREENING_TONE: Record<keyof typeof SCREENING_PLAIN, Tone> = { none: 'clear', caution: 'review', hard_stop: 'stop' };
@@ -108,6 +110,10 @@ export function Report() {
   const lead: ParsedIssue[] = [];
   if (sev === 'hard_stop') lead.push({ group: 'Screening', title: 'Blocked party found', body: '' });
   if (!isImport && det.license_requirement === 'License Required') lead.push({ group: 'Determination', title: 'Export license required for this destination', body: '' });
+  // The country whose current events matter to this shipment: where an import
+  // comes from, or where an export is going. Only shown when a code is known.
+  const contextCountry = (isImport ? org.final_assembly_country : det.destination_country)?.toUpperCase() ?? null;
+  const contextName = contextCountry ? (TARIFF_COUNTRY_LABELS[contextCountry] ?? contextCountry) : '';
   const originTone: Tone = org.qualifies === null ? 'review' : org.qualifies ? 'clear' : 'stop';
   const dutyTone: Tone = isImport ? (det.landed_cost_estimate_pct !== null ? 'neutral' : 'review') : (LICENSE_TONE[det.license_requirement ?? ''] ?? 'neutral');
 
@@ -246,6 +252,25 @@ export function Report() {
         </div>
         {det.reasoning && <ReasoningPanel reasoning={det.reasoning} />}
       </ReportSection>
+
+      {contextCountry && (
+        <div className="no-print">
+        <ReportSection
+          title={`Context: ${contextName}`}
+          chip={
+            <Link to={`/country/${contextCountry.toLowerCase()}`} className="no-print text-sm text-accent hover:underline">
+              Full country page
+            </Link>
+          }
+        >
+          <p className="mb-3 max-w-prose text-sm text-ink-muted">
+            The latest policy, sanctions, trade and news items that name {contextName}, the {isImport ? 'country this shipment comes from' : 'destination'}. Context for the
+            reviewer, not part of the determination above.
+          </p>
+          <ConnectionsPanel code={contextCountry} name={contextName} compact />
+        </ReportSection>
+        </div>
+      )}
 
       {issues.length > 0 && (
         <section id="open-issues" className="mt-8 scroll-mt-20">
