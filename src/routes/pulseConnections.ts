@@ -183,15 +183,49 @@ const REACTION_NOTE = 'Shown for context only: a market moved after an event doe
 // Country timeline: every linked source for one country in one merged,
 // dated list, with topic counts and (where the data covers it) how markets
 // moved over the five days after each event.
+//
+// `country=CN` is one country (with market reactions). `countries=CN,IN,BR` is
+// a group such as a bloc: the same merged timeline across its members, each
+// item once, without per-item market reactions (a bloc has no single currency).
 connectionsRoute.get('/connections', async (c) => {
-  const code = (c.req.query('country') ?? '').toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return c.json({ error: 'country must be a 2-letter code' }, 400);
+  const group = (c.req.query('countries') ?? '')
+    .split(',')
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+  const isGroup = group.length > 0;
+  const code = isGroup ? group[0] : (c.req.query('country') ?? '').toUpperCase();
+  if (isGroup ? group.length > 12 || !group.every((g) => /^[A-Z]{2}$/.test(g)) : !/^[A-Z]{2}$/.test(code)) {
+    return c.json({ error: isGroup ? 'countries must be up to 12 two-letter codes' : 'country must be a 2-letter code' }, 400);
+  }
   const name = c.req.query('name') || null;
   const days = clampInt(c.req.query('days'), 60, 7, 180);
   const topic = c.req.query('topic');
   const wanted = (TOPICS as readonly string[]).includes(topic ?? '') ? (topic as Topic) : null;
 
-  const all = await loadCountryEvents(c.env, code, name, days);
+  let all: ConnEvent[];
+  if (isGroup) {
+    // Names for the GTA lookup aren't available per member here, so trade barriers are left out of group views.
+    const perCountry = await Promise.all(group.map((g) => loadCountryEvents(c.env, g, null, days)));
+    // At most a few of each source per member, so one member's big story
+    // (an election, a long list of duty cases) can't crowd out the others.
+    const perMemberCap: Record<EventKind, number> = { action: 3, news: 3, gta: 2, wro: 2, sanction: 2 };
+    const limited = perCountry.map((events) => {
+      const seen: Record<string, number> = {};
+      return events.filter((e) => (seen[e.kind] = (seen[e.kind] ?? 0) + 1) <= perMemberCap[e.kind]);
+    });
+    const seenKeys = new Set<string>();
+    all = limited
+      .flat()
+      .filter((e) => {
+        const key = `${e.kind}:${e.id}`;
+        if (seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+      })
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  } else {
+    all = await loadCountryEvents(c.env, code, name, days);
+  }
   const topicCounts = TOPICS.map((t) => ({ topic: t, count: all.filter((e) => e.topics.includes(t)).length })).filter((t) => t.count > 0).sort((a, b) => b.count - a.count);
   // Per-source caps keep a high-volume source (routine antidumping notices for
   // China run to dozens a month) from burying news and trade barriers. Newest
@@ -209,13 +243,13 @@ connectionsRoute.get('/connections', async (c) => {
   });
 
   const from = new Date(Date.now() - (days + 10) * 86_400_000).toISOString().slice(0, 10);
-  const neededIds = [...new Set(events.slice(0, 25).flatMap((e) => seriesFor(code, e.topics)))];
+  const neededIds = isGroup ? [] : [...new Set(events.slice(0, 25).flatMap((e) => seriesFor(code, e.topics)))];
   const seriesMap = new Map<string, SeriesPoint[]>();
   await Promise.all(neededIds.map(async (id) => seriesMap.set(id, await loadSeries(c.env, id, from))));
 
   const out = events.map((e, i) => {
     const reactions: EventReaction[] = [];
-    if (i < 25 && e.kind !== 'news') {
+    if (!isGroup && i < 25 && e.kind !== 'news') {
       for (const id of seriesFor(code, e.topics)) {
         const r = marketReaction(seriesMap.get(id) ?? [], e.date);
         if (r) reactions.push({ ...r, seriesId: id, ...describe(id, r.changePct) });
@@ -224,7 +258,7 @@ connectionsRoute.get('/connections', async (c) => {
     return { ...e, reactions };
   });
 
-  return c.json({ country: code, days, topic: wanted, events: out, topicCounts, omitted, reactionNote: REACTION_NOTE });
+  return c.json({ country: isGroup ? null : code, countries: isGroup ? group : [code], days, topic: wanted, events: out, topicCounts, omitted, reactionNote: REACTION_NOTE });
 });
 
 // Items related to one item, by the rule in lib/pulse/links.ts.

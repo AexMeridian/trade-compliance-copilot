@@ -57,7 +57,7 @@ export function InfluenceHero({
   };
 
   return (
-    <section className="bg-hero-bg text-hero-ink">
+    <section className="overflow-x-clip bg-hero-bg text-hero-ink">
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">

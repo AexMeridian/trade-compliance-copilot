@@ -250,7 +250,8 @@ export interface ConnectionEvent {
 }
 
 export interface ConnectionsResponse {
-  country: string;
+  country: string | null;
+  countries: string[];
   days: number;
   topic: string | null;
   events: ConnectionEvent[];

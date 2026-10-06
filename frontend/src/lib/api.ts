@@ -211,8 +211,8 @@ export function getSnapshot(id: string) {
   return request<PulseSnapshot>(`/pulse/snapshots/${id}`);
 }
 
-export function getPulseConnections(code: string, opts: { name?: string; days?: number; topic?: string } = {}) {
-  const params = new URLSearchParams({ country: code });
+export function getPulseConnections(code: string, opts: { name?: string; days?: number; topic?: string; countries?: string[] } = {}) {
+  const params = opts.countries?.length ? new URLSearchParams({ countries: opts.countries.join(',') }) : new URLSearchParams({ country: code });
   if (opts.name) params.set('name', opts.name);
   if (opts.days) params.set('days', String(opts.days));
   if (opts.topic) params.set('topic', opts.topic);

@@ -1,6 +1,8 @@
 import { BLOC_FULL_NAMES, BLOC_LABELS, BLOC_MEMBERS, PARTNER_COUNTRIES, type Bloc } from '../lib/pulseBlocs';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { BLOC_HUE } from '../lib/pulseColors';
+import { useState } from 'react';
+import { ConnectionsPanel } from './ConnectionsPanel';
 
 const BLOCS: Bloc[] = ['USMCA', 'G7', 'NATO', 'BRICS', 'G20'];
 
@@ -18,6 +20,10 @@ export function InfluenceBlocs({
   onSelect: (code: string) => void;
 }) {
   const counts = new Map(breakdown.map((b) => [b.country, b.count]));
+  const [open, setOpen] = useState<Bloc | null>(null);
+  // The connections endpoint takes up to 12 countries; for a larger bloc use
+  // the members with the most U.S. activity this month, and say so.
+  const groupFor = (bloc: Bloc) => [...BLOC_MEMBERS[bloc]].sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)).slice(0, 12);
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -54,10 +60,28 @@ export function InfluenceBlocs({
                   );
                 })}
               </ul>
+              <button
+                type="button"
+                onClick={() => setOpen(open === bloc ? null : bloc)}
+                aria-expanded={open === bloc}
+                className="mt-3 text-sm font-medium text-accent hover:underline"
+              >
+                {open === bloc ? 'Hide what connects them' : 'What connects them'}
+              </button>
             </div>
           );
         })}
       </div>
+      {open && (
+        <div className={`card border-t-4 p-4 ${BLOC_HUE[open].border}`}>
+          <h3 className="font-display text-base font-bold text-ink">{BLOC_LABELS[open]}: policy, sanctions, trade and news together</h3>
+          <p className="mb-3 mt-0.5 text-xs text-ink-faint">
+            One timeline across {groupFor(open).length === BLOC_MEMBERS[open].length ? 'every member' : `the ${groupFor(open).length} members with the most U.S. activity`}, last
+            60 days. Each item names at least one member country.
+          </p>
+          <ConnectionsPanel code={groupFor(open)[0]} name={BLOC_LABELS[open]} group={groupFor(open)} />
+        </div>
+      )}
       <div className="card p-4">
         <h3 className="font-display text-base font-bold text-ink">NATO partners</h3>
         <p className="mt-0.5 text-xs text-ink-faint">

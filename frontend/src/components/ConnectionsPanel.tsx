@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPulseConnections } from '../lib/api';
+import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import type { ConnectionEvent, ConnectionKind, ConnectionsResponse } from '../types/pulse';
 
 export const KIND_LABEL: Record<ConnectionKind, string> = {
@@ -28,7 +29,7 @@ function shortDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function EventRow({ e }: { e: ConnectionEvent }) {
+function EventRow({ e, showCountries }: { e: ConnectionEvent; showCountries: boolean }) {
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-3 border-b border-hairline py-2.5 last:border-0">
       <span className="pt-0.5 text-xs tabular-nums text-ink-faint">{shortDate(e.date)}</span>
@@ -37,6 +38,7 @@ function EventRow({ e }: { e: ConnectionEvent }) {
           <span className={`h-2 w-2 shrink-0 rounded-full ${KIND_DOT[e.kind]}`} aria-hidden="true" />
           {KIND_LABEL[e.kind]}
           {e.source && <span className="truncate">· {e.source}</span>}
+          {showCountries && e.countries.length > 0 && <span className="truncate">· {e.countries.map((c) => COUNTRY_LABELS[c] ?? c).join(', ')}</span>}
         </p>
         {e.url ? (
           <a href={e.url} target="_blank" rel="noreferrer" className="mt-0.5 block text-sm leading-snug text-ink no-underline hover:text-accent">
@@ -67,7 +69,7 @@ function EventRow({ e }: { e: ConnectionEvent }) {
 // timeline, filterable by topic. Every row is a real item from a source this
 // app already tracks; grouping is by the deterministic rules in
 // src/lib/pulse/links.ts, never an inference about cause.
-export function ConnectionsPanel({ code, name, compact = false }: { code: string; name: string; compact?: boolean }) {
+export function ConnectionsPanel({ code, name, compact = false, group }: { code: string; name: string; compact?: boolean; group?: string[] }) {
   const [topic, setTopic] = useState<string | null>(null);
   const [data, setData] = useState<ConnectionsResponse | null>(null);
   const [failed, setFailed] = useState(false);
@@ -75,13 +77,13 @@ export function ConnectionsPanel({ code, name, compact = false }: { code: string
   useEffect(() => {
     let live = true;
     setFailed(false);
-    getPulseConnections(code, { name, days: 60, topic: topic ?? undefined })
+    getPulseConnections(code, { name, days: 60, topic: topic ?? undefined, countries: group })
       .then((r) => live && setData(r))
       .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
-  }, [code, name, topic]);
+  }, [code, name, topic, group?.join(',')]);
 
   if (failed) return <p className="text-sm text-ink-faint">Couldn't load connections right now.</p>;
   if (!data) return <p className="text-sm text-ink-faint">Loading…</p>;
@@ -112,7 +114,7 @@ export function ConnectionsPanel({ code, name, compact = false }: { code: string
       ) : (
         <ol className={compact ? '' : 'max-h-[34rem] overflow-y-auto pr-1'}>
           {events.map((e) => (
-            <EventRow key={`${e.kind}:${e.id}`} e={e} />
+            <EventRow key={`${e.kind}:${e.id}`} e={e} showCountries={!!group} />
           ))}
         </ol>
       )}
