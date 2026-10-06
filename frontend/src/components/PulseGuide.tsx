@@ -158,6 +158,27 @@ export function PulseGuide({ status }: { status: PulseHome['status'] | null }) {
         </div>
       </Section>
 
+      <Section title="How items are connected">
+        <p>
+          The <span className="text-ink">Related</span> links, country timelines and "where it's all connecting" panels group items that belong together. Two
+          items are linked only when all three of these are true:
+        </p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>they name the same country,</li>
+          <li>they share a topic (tariffs, sanctions, energy, diplomacy and so on, picked from the wording of each item), and</li>
+          <li>they were published close together in time.</li>
+        </ul>
+        <p className="mt-3">
+          Every link says why it was made, for example "Both name Canada, both about elections and politics, the same day." Stories that list many countries at
+          once are left out, because they aren't about any one of them.
+        </p>
+        <p className="mt-3">
+          A link means two items are about the same thing, not that one caused the other. Where a timeline shows how a currency, index or commodity moved in the
+          five days after an item, that is context only: markets move for many reasons at once. "Where it's all connecting" counts how many different kinds of source
+          (U.S. actions, news, sanctions and export listings, forced-labor orders) name a country. It is a count of what was published, not a risk score.
+        </p>
+      </Section>
+
       <Section title="Words you might see">
         <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {MARKET_TERMS.map(([term, def]) => (
