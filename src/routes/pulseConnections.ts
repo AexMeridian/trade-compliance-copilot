@@ -4,7 +4,7 @@ import type { PulseAction } from '../lib/pulse/types.js';
 import { topicsFor, topicHintForActionTag, TOPICS, type Topic } from '../lib/pulse/topic.js';
 import { converge, findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
 import { CURRENCY_FOR, MARKET_TILE_FOR, TOPIC_COMMODITY } from '../lib/pulse/countryMarkets.js';
-import { extractCountries } from '../lib/pulse/country.js';
+import { extractCountries, focusCountries } from '../lib/pulse/country.js';
 
 // Cross-domain connections. Everything here is derived from rows that already
 // exist (actions, news, trade barriers, forced-labor findings, market series)
@@ -40,11 +40,11 @@ interface GtaRow { intervention_id: number; state_act_title: string; interventio
 function actionEvent(a: PulseAction): ConnEvent {
   return {
     kind: 'action', id: a.document_number, date: isoDay(a.publication_date), title: a.title, url: a.html_url, source: a.agency,
-    countries: parseCodes(a.countries), topics: topicsFor(`${a.title} ${a.abstract ?? ''}`, topicHintForActionTag(a.tag)),
+    countries: focusCountries(a.title, parseCodes(a.countries)), topics: topicsFor(`${a.title} ${a.abstract ?? ''}`, topicHintForActionTag(a.tag)),
   };
 }
 function newsEvent(n: NewsRow): ConnEvent {
-  return { kind: 'news', id: n.id, date: isoDay(n.published_at), title: n.title, url: n.url, source: n.source, countries: parseCodes(n.countries), topics: topicsFor(`${n.title} ${n.summary ?? ''}`) };
+  return { kind: 'news', id: n.id, date: isoDay(n.published_at), title: n.title, url: n.url, source: n.source, countries: focusCountries(n.title, parseCodes(n.countries)), topics: topicsFor(`${n.title} ${n.summary ?? ''}`) };
 }
 
 interface UnRow { uid: string; primary_name: string; un_list_type: string | null; listed_on: string; nationality: string | null; addresses: string | null; source_url: string }
@@ -126,8 +126,8 @@ async function loadCountryEvents(env: Env, code: string, name: string | null, da
 
   const events: ConnEvent[] = [
     ...sanctions,
-    ...actions.results.map(actionEvent),
-    ...news.results.map(newsEvent),
+    ...actions.results.map(actionEvent).filter((e) => e.countries.includes(code)),
+    ...news.results.map(newsEvent).filter((e) => e.countries.includes(code)),
     ...wro.results.filter((w) => isoDay(w.effective_date) >= since).map((w): ConnEvent => ({
       kind: 'wro', id: String(w.id), date: isoDay(w.effective_date), title: `CBP forced-labor ${w.order_type.toLowerCase()}: ${w.merchandise}${w.entity ? ` (${w.entity})` : ''}`,
       url: 'https://www.cbp.gov/trade/forced-labor/withhold-release-orders-and-findings', source: 'U.S. Customs and Border Protection', countries: [code],

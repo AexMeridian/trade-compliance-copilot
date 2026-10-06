@@ -231,3 +231,15 @@ export function extractCountries(text: string): string[] {
   }
   return hits;
 }
+
+/**
+ * The countries an item is actually *about*: those its headline names. A story
+ * whose body merely mentions Iran in passing is not about Iran, so linking on
+ * every body mention produces noise. Falls back to the stored (title + body)
+ * tags when the headline names no country at all (e.g. "Iranian Transactions
+ * and Sanctions Regulations").
+ */
+export function focusCountries(title: string, stored: string[]): string[] {
+  const inTitle = extractCountries(title);
+  return inTitle.length > 0 ? inTitle : stored;
+}

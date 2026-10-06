@@ -2,7 +2,7 @@
 // no network, no database. Run: npm run test:unit
 import assert from 'node:assert/strict';
 import { topicsFor, topicHintForActionTag } from '../src/lib/pulse/topic.js';
-import { extractCountries } from '../src/lib/pulse/country.js';
+import { extractCountries, focusCountries } from '../src/lib/pulse/country.js';
 import { relate, findRelated, marketReaction, converge, daysBetween, type ConnEvent } from '../src/lib/pulse/links.js';
 
 let failures = 0;
@@ -49,6 +49,13 @@ test("the long North Korea name no longer also tags South Korea", () => {
   assert.deepEqual(extractCountries("Democratic People's Republic of Korea"), ['KP']);
 });
 test('South Korea is still recognized', () => assert.deepEqual(extractCountries('Republic of Korea'), ['KR']));
+
+test('focusCountries prefers the headline over body mentions', () => {
+  assert.deepEqual(focusCountries('Iran war live: Yemen forces reclaim port', ['TR', 'IR', 'PK', 'YE']), ['IR', 'YE']);
+});
+test('focusCountries falls back to stored tags when the headline names no country', () => {
+  assert.deepEqual(focusCountries('Trump heads to Nebraska as court hears arguments', ['IR']), ['IR']);
+});
 
 // --- linking --------------------------------------------------------------
 const ev = (over: Partial<ConnEvent>): ConnEvent => ({
