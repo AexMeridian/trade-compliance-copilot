@@ -7,6 +7,10 @@ import { ProvenanceBadge } from './ProvenanceBadge';
 // per-row. The first line is always HTS-sourced (Column 1 General), so its
 // effective_date doubles as a single top-of-table stamp without a schema
 // change or a second backend field.
+//
+// Layout: the answer first (a total), then one row per duty layer with the
+// rate on the right where the eye lands, the legal basis underneath in
+// smaller type, and boilerplate notes folded away.
 export function DutyStackTable({
   lines,
   totalPct,
@@ -27,78 +31,80 @@ export function DutyStackTable({
   const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   return (
     <div>
-      {revision && <p className="mb-2 text-xs text-ink-faint">Checked against {revision}. HTS revisions change; re-run this case if it's been a while.</p>}
-      <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-hairline-strong text-left text-ink-muted">
-          <th className="py-1.5 pr-3 font-normal">Duty layer</th>
-          <th className="py-1.5 pr-3 font-normal">Rate</th>
-          <th className="py-1.5 pr-3 font-normal">Legal basis</th>
-          <th className="py-1.5 font-normal">Effective</th>
-        </tr>
-      </thead>
-      <tbody>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border border-hairline-strong bg-paper px-4 py-3">
+        <div>
+          <p className="text-xs text-ink-faint">Total estimated duty</p>
+          {totalPct !== null ? (
+            <p className="font-display text-3xl font-bold tabular-nums text-ink">{totalPct}%</p>
+          ) : (
+            <p className="text-base font-semibold text-review">Can't be totalled automatically</p>
+          )}
+        </div>
+        <div className="text-sm text-ink-muted sm:text-right">
+          {declaredValueUsd != null && landedCostUsd != null && dutyUsd != null ? (
+            <>
+              <p className="tabular-nums">
+                {usd(dutyUsd)} duty on {usd(declaredValueUsd)}
+              </p>
+              <p className="tabular-nums">{usd(landedCostUsd)} landed cost</p>
+            </>
+          ) : declaredValueUsd != null ? (
+            <p>Dollar amount unavailable: a layer below has a rate this app can't sum.</p>
+          ) : totalPct === null ? (
+            <p>See the flagged layers below.</p>
+          ) : null}
+        </div>
+      </div>
+
+      <ul className="mt-3 divide-y divide-hairline border-y border-hairline">
         {lines.map((line, i) => (
-          <tr key={i} className={`border-b border-hairline ${line.applies ? '' : 'text-ink-faint'}`}>
-            <td className="py-2 pr-3 align-top">{line.layer}</td>
-            <td className="py-2 pr-3 align-top tabular-nums">{line.applies ? (line.rate_pct !== null ? `${line.rate_pct}%` : 'not available') : '—'}</td>
-            <td className="py-2 pr-3 align-top">
-              <div>{line.legal_basis}</div>
-              {!line.applies && line.reason_if_not_applied && <div className="mt-0.5 text-xs italic text-ink-faint">{line.reason_if_not_applied}</div>}
-              {line.caveat && <div className="mt-0.5 text-xs text-review">{line.caveat}</div>}
-              {line.source && (
-                <div className="mt-1">
-                  <ProvenanceBadge source={line.source} />
-                </div>
+          <li key={i} className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 py-3 ${line.applies ? '' : 'opacity-75'}`}>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${line.applies ? 'text-ink' : 'text-ink-muted'}`}>{line.layer}</p>
+              <p className="mt-0.5 max-w-prose text-[13px] leading-snug text-ink-muted">{line.legal_basis}</p>
+              {!line.applies && line.reason_if_not_applied && <p className="mt-1 max-w-prose text-[13px] italic leading-snug text-ink-faint">{line.reason_if_not_applied}</p>}
+              {line.caveat && (
+                <p className="mt-1.5 max-w-prose border-l-2 border-review bg-review-soft px-2 py-1 text-[13px] leading-snug text-ink">{line.caveat}</p>
               )}
-            </td>
-            <td className="py-2 align-top tabular-nums">{line.effective_date}</td>
-          </tr>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {line.source && <ProvenanceBadge source={line.source} />}
+                <span className="text-xs tabular-nums text-ink-faint">Effective {line.effective_date}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-semibold tabular-nums text-ink">
+                {line.applies ? (line.rate_pct !== null ? `${line.rate_pct}%` : 'n/a') : '—'}
+              </p>
+              {!line.applies && <p className="text-xs text-ink-faint">not applied</p>}
+              {line.applies && line.rate_pct === null && <p className="text-xs text-review">rate unavailable</p>}
+            </div>
+          </li>
         ))}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td className="pt-3 font-semibold" colSpan={1}>
-            Total estimated landed-cost duty
-          </td>
-          <td className="pt-3 tabular-nums font-semibold" colSpan={3}>
-            {totalPct !== null ? `${totalPct}%` : 'Total unavailable, see the flagged lines above'}
-          </td>
-        </tr>
-        {declaredValueUsd != null && (
-          <tr>
-            <td className="pt-1 text-xs text-ink-faint" colSpan={1}>
-              On a declared value of {usd(declaredValueUsd)}
-            </td>
-            <td className="pt-1 tabular-nums text-xs text-ink-faint" colSpan={3}>
-              {landedCostUsd != null && dutyUsd != null
-                ? `${usd(dutyUsd)} duty, ${usd(landedCostUsd)} total landed cost`
-                : 'Duty dollar amount unavailable -- one or more lines above have a rate this app cannot sum automatically.'}
-            </td>
-          </tr>
-        )}
-      </tfoot>
-      </table>
-      {deMinimisNote && <p className="mt-3 text-xs text-ink-faint">{deMinimisNote}</p>}
+      </ul>
+
+      {revision && <p className="mt-2 text-xs text-ink-faint">Checked against {revision}. HTS revisions change; re-run this case if it's been a while.</p>}
+      {deMinimisNote && <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-faint">{deMinimisNote}</p>}
       {/* Gated on htsCode (only passed for a real case's own result, not the
-          country page's loop of representative sample headings) so these two
+          country page's loop of representative sample headings) so these
           notes appear once per real determination, not once per sample row. */}
       {htsCode && (
-        <>
-          <p className="mt-3 text-xs text-ink-faint">
-            Want a binding answer, not an estimate? CBP's own ruling database (CROSS) is searchable at{' '}
-            <a href="https://rulings.cbp.gov/" target="_blank" rel="noopener noreferrer" className="text-accent">
-              rulings.cbp.gov
-            </a>{' '}
-            -- paste in <span className="tabular-nums text-ink">{htsCode}</span> or your product description to see if CBP has already ruled on something
-            similar. (CROSS has no bulk search API, so this is a link to search by hand, not an automatic lookup.)
-          </p>
-          <p className="mt-2 text-xs text-ink-faint">
-            This estimate assumes a standard consumption entry. It does not account for a foreign-trade zone, bonded warehouse, or duty-drawback program,
-            each of which can defer, reduce or recover duty under its own separate eligibility rules this app does not evaluate -- ask a licensed customs
-            broker whether any of them apply to this shipment.
-          </p>
-        </>
+        <details className="mt-3 text-xs text-ink-muted">
+          <summary className="cursor-pointer font-medium text-ink-muted hover:text-ink">About this estimate</summary>
+          <div className="mt-2 max-w-prose space-y-2 leading-relaxed text-ink-faint">
+            <p>
+              Want a binding answer, not an estimate? CBP's ruling database (CROSS) is searchable at{' '}
+              <a href="https://rulings.cbp.gov/" target="_blank" rel="noopener noreferrer" className="text-accent">
+                rulings.cbp.gov
+              </a>
+              . Paste in <span className="tabular-nums text-ink">{htsCode}</span> or your product description to see whether CBP has ruled on something similar. CROSS
+              has no bulk search API, so this is a link to search by hand, not an automatic lookup.
+            </p>
+            <p>
+              Assumes a standard consumption entry. It does not account for a foreign-trade zone, bonded warehouse or duty-drawback program, each of which can
+              defer, reduce or recover duty under its own eligibility rules. Ask a licensed customs broker whether any apply.
+            </p>
+          </div>
+        </details>
       )}
     </div>
   );
