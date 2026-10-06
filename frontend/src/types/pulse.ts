@@ -225,7 +225,7 @@ export interface PulseNewsResponse {
 
 // --- Cross-topic connections (src/routes/pulseConnections.ts) ----------------
 
-export type ConnectionKind = 'action' | 'news' | 'gta' | 'wro';
+export type ConnectionKind = 'action' | 'news' | 'gta' | 'wro' | 'sanction';
 
 export interface ConnectionReaction {
   seriesId: string;

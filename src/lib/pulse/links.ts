@@ -4,7 +4,7 @@
 // reader can judge it -- nothing here claims causation, and nothing is guessed.
 import type { Topic } from './topic.js';
 
-export type EventKind = 'action' | 'news' | 'gta' | 'wro';
+export type EventKind = 'action' | 'news' | 'gta' | 'wro' | 'sanction';
 
 export interface ConnEvent {
   kind: EventKind;

@@ -48,7 +48,7 @@
 export const COUNTRY_PATTERNS: { code: string; name: string; pattern: RegExp }[] = [
   { code: 'CN', name: 'China', pattern: /\b(?:People'?s Republic of China|China)\b/i },
   { code: 'VN', name: 'Vietnam', pattern: /\b(?:Socialist Republic of Vietnam|Vietnam)\b/i },
-  { code: 'KR', name: 'South Korea', pattern: /\b(?:Republic of Korea|South Korea)\b/i },
+  { code: 'KR', name: 'South Korea', pattern: /\b(?:(?<!People'?s )Republic of Korea|South Korea)\b/i },
   { code: 'MX', name: 'Mexico', pattern: /\bMexico\b/i },
   { code: 'CA', name: 'Canada', pattern: /\bCanada\b/i },
   { code: 'IN', name: 'India', pattern: /\bIndia\b/i },
@@ -65,7 +65,8 @@ export const COUNTRY_PATTERNS: { code: string; name: string; pattern: RegExp }[]
   { code: 'UA', name: 'Ukraine', pattern: /\bUkraine\b/i },
   { code: 'RU', name: 'Russia', pattern: /\b(?:Russian Federation|Russia)\b/i },
   { code: 'IR', name: 'Iran', pattern: /\b(?:Islamic Republic of Iran|Iran)\b/i },
-  { code: 'KP', name: 'North Korea', pattern: /\b(?:Democratic People'?s Republic of Korea|North Korea)\b/i },
+  { code: 'KP', name: 'North Korea', pattern: /\b(?:Democratic People'?s Republic of Korea|Korea, Democratic People'?s Republic of|North Korea)\b/i },
+  { code: 'HK', name: 'Hong Kong', pattern: /\bHong Kong\b/i },
   { code: 'CU', name: 'Cuba', pattern: /\bCuba\b/i },
   { code: 'SY', name: 'Syria', pattern: /\b(?:Syrian Arab Republic|Syria)\b/i },
   { code: 'VE', name: 'Venezuela', pattern: /\bVenezuela\b/i },

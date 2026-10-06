@@ -2,6 +2,7 @@
 // no network, no database. Run: npm run test:unit
 import assert from 'node:assert/strict';
 import { topicsFor, topicHintForActionTag } from '../src/lib/pulse/topic.js';
+import { extractCountries } from '../src/lib/pulse/country.js';
 import { relate, findRelated, marketReaction, daysBetween, type ConnEvent } from '../src/lib/pulse/links.js';
 
 let failures = 0;
@@ -38,6 +39,16 @@ test('hints add certain topics without removing detected ones', () => {
 test('"Al Jazeera" is not read as the AI topic', () => {
   assert.equal(topicsFor('Al Jazeera reports on local festival').includes('Technology'), false);
 });
+
+// --- country extraction for sanctions text --------------------------------
+test('Hong Kong is recognized', () => assert.deepEqual(extractCountries('Kowloon, Hong Kong'), ['HK']));
+test("North Korea's inverted official name maps to KP only", () => {
+  assert.deepEqual(extractCountries("Korea, Democratic People's Republic of"), ['KP']);
+});
+test("the long North Korea name no longer also tags South Korea", () => {
+  assert.deepEqual(extractCountries("Democratic People's Republic of Korea"), ['KP']);
+});
+test('South Korea is still recognized', () => assert.deepEqual(extractCountries('Republic of Korea'), ['KR']));
 
 // --- linking --------------------------------------------------------------
 const ev = (over: Partial<ConnEvent>): ConnEvent => ({

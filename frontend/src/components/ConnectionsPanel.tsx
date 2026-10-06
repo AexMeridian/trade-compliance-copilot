@@ -8,6 +8,7 @@ export const KIND_LABEL: Record<ConnectionKind, string> = {
   news: 'News',
   gta: 'Trade barrier',
   wro: 'Forced-labor order',
+  sanction: 'Sanctions or export listing',
 };
 
 const KIND_DOT: Record<ConnectionKind, string> = {
@@ -15,6 +16,7 @@ const KIND_DOT: Record<ConnectionKind, string> = {
   news: 'bg-hue-indigo',
   gta: 'bg-hue-pink',
   wro: 'bg-hue-violet',
+  sanction: 'bg-hue-cyan',
 };
 
 export function TopicPill({ children }: { children: string }) {

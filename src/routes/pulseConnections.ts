@@ -4,6 +4,7 @@ import type { PulseAction } from '../lib/pulse/types.js';
 import { topicsFor, topicHintForActionTag, TOPICS, type Topic } from '../lib/pulse/topic.js';
 import { findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
 import { CURRENCY_FOR, MARKET_TILE_FOR, TOPIC_COMMODITY } from '../lib/pulse/countryMarkets.js';
+import { extractCountries } from '../lib/pulse/country.js';
 
 // Cross-domain connections. Everything here is derived from rows that already
 // exist (actions, news, trade barriers, forced-labor findings, market series)
@@ -46,9 +47,61 @@ function newsEvent(n: NewsRow): ConnEvent {
   return { kind: 'news', id: n.id, date: isoDay(n.published_at), title: n.title, url: n.url, source: n.source, countries: parseCodes(n.countries), topics: topicsFor(`${n.title} ${n.summary ?? ''}`) };
 }
 
+interface UnRow { uid: string; primary_name: string; un_list_type: string | null; listed_on: string; nationality: string | null; addresses: string | null; source_url: string }
+interface UkRow { uid: string; primary_name: string; regime_name: string | null; date_listed: string; addresses: string | null; source_url: string }
+interface CslRow { id: number; name: string; source_list: string; start_date: string; addresses: string | null; source_url: string }
+
+// Sanctions and export-control listings are rarer than news, so they get a
+// longer lookback than the rest of the timeline.
+const SANCTIONS_LOOKBACK_DAYS = 365;
+
+// Designations carry no country column, only free text (UN nationality, UK and
+// CSL address strings). The country is read from that text with the same
+// extractor used for news -- best-effort, and only ever matched on a country
+// the text actually names.
+async function loadSanctionEvents(env: Env, code: string, days: number): Promise<ConnEvent[]> {
+  const since = new Date(Date.now() - Math.max(days, SANCTIONS_LOOKBACK_DAYS) * 86_400_000).toISOString().slice(0, 10);
+  const [un, uk, csl] = await Promise.all([
+    env.DB.prepare(`SELECT uid, primary_name, un_list_type, listed_on, nationality, addresses, source_url FROM un_sanctions_entries WHERE listed_on >= ?1 ORDER BY listed_on DESC LIMIT 400`)
+      .bind(since).all<UnRow>().catch(() => ({ results: [] as UnRow[] })),
+    env.DB.prepare(`SELECT uid, primary_name, regime_name, date_listed, addresses, source_url FROM uk_sanctions_entries WHERE date_listed >= ?1 ORDER BY date_listed DESC LIMIT 400`)
+      .bind(since).all<UkRow>().catch(() => ({ results: [] as UkRow[] })),
+    env.DB.prepare(`SELECT id, name, source_list, start_date, addresses, source_url FROM csl_entries WHERE start_date >= ?1 ORDER BY start_date DESC LIMIT 400`)
+      .bind(since).all<CslRow>().catch(() => ({ results: [] as CslRow[] })),
+  ]);
+  const out: ConnEvent[] = [];
+  for (const r of un.results) {
+    const countries = extractCountries(`${r.nationality ?? ''}; ${r.addresses ?? ''}`);
+    if (!countries.includes(code)) continue;
+    out.push({
+      kind: 'sanction', id: `un:${r.uid}`, date: isoDay(r.listed_on), title: `${r.primary_name} added to the UN Security Council sanctions list${r.un_list_type ? ` (${r.un_list_type})` : ''}`,
+      url: r.source_url, source: 'UN Security Council', countries: countries.slice(0, 3), topics: ['Sanctions', ...topicsFor(`${r.un_list_type ?? ''}`).filter((t) => t !== 'Sanctions')],
+    });
+  }
+  for (const r of uk.results) {
+    const countries = extractCountries(`${r.regime_name ?? ''}; ${r.addresses ?? ''}`);
+    if (!countries.includes(code)) continue;
+    out.push({
+      kind: 'sanction', id: `uk:${r.uid}`, date: isoDay(r.date_listed), title: `${r.primary_name} added to the UK sanctions list${r.regime_name ? ` (${r.regime_name} regime)` : ''}`,
+      url: r.source_url, source: 'UK sanctions list (OFSI)', countries: countries.slice(0, 3), topics: ['Sanctions', ...topicsFor(r.regime_name ?? '').filter((t) => t !== 'Sanctions')],
+    });
+  }
+  for (const r of csl.results) {
+    const countries = extractCountries(r.addresses ?? '');
+    if (!countries.includes(code)) continue;
+    const bis = /Bureau of Industry and Security/i.test(r.source_list);
+    out.push({
+      kind: 'sanction', id: `csl:${r.id}`, date: isoDay(r.start_date), title: `${r.name} added to the ${r.source_list.replace(/\s*-\s*.*$/, '')}`,
+      url: r.source_url, source: r.source_list.split(' - ')[1] ?? 'U.S. government', countries: countries.slice(0, 3), topics: bis ? ['Export controls'] : ['Sanctions'],
+    });
+  }
+  return out;
+}
+
 async function loadCountryEvents(env: Env, code: string, name: string | null, days: number): Promise<ConnEvent[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
-  const [actions, news, wro, gta] = await Promise.all([
+  const [sanctions, actions, news, wro, gta] = await Promise.all([
+    loadSanctionEvents(env, code, days),
     env.DB.prepare(`SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%' AND publication_date >= ?2 ORDER BY publication_date DESC LIMIT 120`)
       .bind(code, since).all<PulseAction>().catch(() => ({ results: [] as PulseAction[] })),
     env.DB.prepare(`SELECT id, title, summary, url, source, countries, published_at FROM world_news WHERE countries LIKE '%"' || ?1 || '"%' AND published_at >= ?2 ORDER BY published_at DESC LIMIT 80`)
@@ -68,6 +121,7 @@ async function loadCountryEvents(env: Env, code: string, name: string | null, da
   ]);
 
   const events: ConnEvent[] = [
+    ...sanctions,
     ...actions.results.map(actionEvent),
     ...news.results.map(newsEvent),
     ...wro.results.filter((w) => isoDay(w.effective_date) >= since).map((w): ConnEvent => ({
@@ -122,7 +176,7 @@ function seriesFor(code: string, topics: Topic[]): string[] {
   return [...new Set(ids)];
 }
 
-const PER_KIND_CAP: Record<EventKind, number> = { action: 12, news: 20, gta: 10, wro: 8 };
+const PER_KIND_CAP: Record<EventKind, number> = { action: 12, news: 20, gta: 10, wro: 8, sanction: 8 };
 
 const REACTION_NOTE = 'Shown for context only: a market moved after an event does not mean the event caused it.';
 
