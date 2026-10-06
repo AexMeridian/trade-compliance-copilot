@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseCountry } from '../lib/api';
+import { getPulseConnections, getPulseCountry } from '../lib/api';
+import { blocsFor, BLOC_LABELS } from '../lib/pulseBlocs';
+import { TopicPill } from '../components/ConnectionsPanel';
 import { PulsePanel } from '../components/PulsePanel';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { STATUS_LABEL as EXPORT_STATUS_LABEL } from '../lib/pulseCountries';
@@ -33,6 +35,7 @@ export function CountryCompare() {
   const codes = parseCodes(params.get('countries'));
   const [data, setData] = useState<Record<string, PulseCountryDetail | 'error'>>({});
   const [loading, setLoading] = useState(false);
+  const [topics, setTopics] = useState<Record<string, { topic: string; count: number }[]>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +50,17 @@ export function CountryCompare() {
       if (cancelled) return;
       setData(Object.fromEntries(results));
       setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [codes.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // What each country is involved in right now, by topic (src/lib/pulse/topic.ts).
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(codes.map((code) => getPulseConnections(code, { name: TARIFF_COUNTRY_LABELS[code], days: 60 }).then((r) => [code, r.topicCounts] as const).catch(() => [code, []] as const))).then((rows) => {
+      if (!cancelled) setTopics(Object.fromEntries(rows));
     });
     return () => {
       cancelled = true;
@@ -117,6 +131,34 @@ export function CountryCompare() {
         )}
       </div>
 
+      {(() => {
+        // What the countries share: blocs they all belong to, and topics all of
+        // them were named under in the last 60 days. Only shown when there is
+        // something real to say.
+        const sharedBlocs = blocsFor(codes[0]).filter((b) => codes.every((c) => blocsFor(c).includes(b)));
+        const loaded = codes.every((c) => topics[c]);
+        const sharedTopics = loaded
+          ? (topics[codes[0]] ?? []).map((t) => t.topic).filter((t) => codes.every((c) => topics[c]?.some((x) => x.topic === t)))
+          : [];
+        if (sharedBlocs.length === 0 && sharedTopics.length === 0) return null;
+        return (
+          <div className="mt-6 border border-hairline bg-paper-raised px-4 py-3 text-sm">
+            <p className="font-semibold text-ink">What they have in common</p>
+            {sharedBlocs.length > 0 && (
+              <p className="mt-1 text-ink-muted">{codes.length > 2 ? 'All' : 'Both'} belong to {sharedBlocs.map((b) => BLOC_LABELS[b]).join(' and ')}.</p>
+            )}
+            {sharedTopics.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-ink-muted">
+                <span>In the last 60 days, {codes.length > 2 ? 'all appear' : 'both appear'} in items about</span>
+                {sharedTopics.map((t) => (
+                  <TopicPill key={t}>{t}</TopicPill>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {loading && codes.every((c) => !data[c]) ? (
         <p className="mt-10 text-sm text-ink-faint">Loading…</p>
       ) : (
@@ -164,6 +206,16 @@ export function CountryCompare() {
                       {d.sanctions.sdnCount ?? 0} SDN, {d.sanctions.cslCount ?? 0} Commerce/State list
                     </p>
                   </div>
+                  {(topics[code]?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="font-semibold text-ink">In the news and policy, last 60 days</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {topics[code].slice(0, 5).map((t) => (
+                          <TopicPill key={t.topic}>{`${t.topic} ${t.count}`}</TopicPill>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {freight && (
                     <div>
                       <p className="font-semibold text-ink">Typical shipping lane</p>
