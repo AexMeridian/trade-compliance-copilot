@@ -119,3 +119,56 @@ export function marketReaction(series: SeriesPoint[], eventDate: string, opts: {
   const changePct = ((after.value - before.value) / before.value) * 100;
   return { beforeDate: before.obs_date, beforeValue: before.value, afterDate: after.obs_date, afterValue: after.value, changePct: Math.round(changePct * 100) / 100 };
 }
+
+export interface Convergence {
+  country: string;
+  /** How many items from each source type name this country. */
+  kinds: Partial<Record<EventKind, number>>;
+  /** Number of distinct source types -- the measure of "converging from several directions". */
+  sourceCount: number;
+  topics: { topic: Topic; count: number }[];
+  total: number;
+  latest: ConnEvent;
+}
+
+/**
+ * Where activity from several different source types (policy actions, news,
+ * sanctions, forced-labor orders...) lands on the same country. Rank is by how
+ * many distinct source types name it, then how many distinct topics, then
+ * volume -- plain counts, deliberately not blended into a made-up score. A
+ * roundup naming many countries counts toward none of them, and countries
+ * named by fewer than `minSources` source types are left out.
+ */
+export function converge(events: ConnEvent[], opts: { minSources?: number; limit?: number; exclude?: string[] } = {}): Convergence[] {
+  const minSources = opts.minSources ?? 2;
+  const exclude = new Set(opts.exclude ?? []);
+  const by = new Map<string, ConnEvent[]>();
+  for (const e of events) {
+    if (e.countries.length === 0 || e.countries.length > MAX_FOCUS_COUNTRIES) continue;
+    for (const c of e.countries) {
+      if (exclude.has(c)) continue;
+      const list = by.get(c);
+      if (list) list.push(e);
+      else by.set(c, [e]);
+    }
+  }
+  const out: Convergence[] = [];
+  for (const [country, list] of by) {
+    const kinds: Partial<Record<EventKind, number>> = {};
+    const topicCount = new Map<Topic, number>();
+    for (const e of list) {
+      kinds[e.kind] = (kinds[e.kind] ?? 0) + 1;
+      for (const t of e.topics) topicCount.set(t, (topicCount.get(t) ?? 0) + 1);
+    }
+    const sourceCount = Object.keys(kinds).length;
+    if (sourceCount < minSources) continue;
+    const latest = list.reduce((a, b) => (b.date > a.date ? b : a));
+    out.push({
+      country, kinds, sourceCount, total: list.length, latest,
+      topics: [...topicCount.entries()].map(([topic, count]) => ({ topic, count })).sort((a, b) => b.count - a.count),
+    });
+  }
+  return out
+    .sort((a, b) => b.sourceCount - a.sourceCount || b.topics.length - a.topics.length || b.total - a.total || (a.latest.date < b.latest.date ? 1 : -1))
+    .slice(0, opts.limit ?? 8);
+}

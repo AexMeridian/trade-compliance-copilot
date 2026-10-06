@@ -274,3 +274,18 @@ export interface RelatedResponse {
   windowDays: number;
   links: RelatedLinkItem[];
 }
+
+export interface ConvergenceRow {
+  country: string;
+  kinds: Partial<Record<ConnectionKind, number>>;
+  sourceCount: number;
+  topics: { topic: string; count: number }[];
+  total: number;
+  latest: Omit<ConnectionEvent, 'reactions'>;
+}
+
+export interface ConvergenceResponse {
+  days: number;
+  rows: ConvergenceRow[];
+  note: string;
+}

@@ -14,6 +14,7 @@ import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseCurrencyMovers } from '../components/PulseCharts';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
+import { ConvergencePanel } from '../components/ConvergencePanel';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/PulseTempoChart';
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
@@ -252,6 +253,13 @@ export function Power() {
                   Register.
                 </p>
               </div>
+              <PulsePanel
+                title="Where pressure converges"
+                subtitle="Countries named by several different kinds of source at once, last 60 days"
+                help="Pressure rarely arrives from one direction. This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by how many topics. It is a count of what was published, not a risk score. Open a country to see its full timeline."
+              >
+                <ConvergencePanel />
+              </PulsePanel>
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel

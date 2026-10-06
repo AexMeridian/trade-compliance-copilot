@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import type { PulseAction } from '../lib/pulse/types.js';
 import { topicsFor, topicHintForActionTag, TOPICS, type Topic } from '../lib/pulse/topic.js';
-import { findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
+import { converge, findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
 import { CURRENCY_FOR, MARKET_TILE_FOR, TOPIC_COMMODITY } from '../lib/pulse/countryMarkets.js';
 import { extractCountries } from '../lib/pulse/country.js';
 
@@ -59,7 +59,7 @@ const SANCTIONS_LOOKBACK_DAYS = 365;
 // CSL address strings). The country is read from that text with the same
 // extractor used for news -- best-effort, and only ever matched on a country
 // the text actually names.
-async function loadSanctionEvents(env: Env, code: string, days: number): Promise<ConnEvent[]> {
+async function loadAllSanctionEvents(env: Env, days: number): Promise<ConnEvent[]> {
   const since = new Date(Date.now() - Math.max(days, SANCTIONS_LOOKBACK_DAYS) * 86_400_000).toISOString().slice(0, 10);
   const [un, uk, csl] = await Promise.all([
     env.DB.prepare(`SELECT uid, primary_name, un_list_type, listed_on, nationality, addresses, source_url FROM un_sanctions_entries WHERE listed_on >= ?1 ORDER BY listed_on DESC LIMIT 400`)
@@ -72,7 +72,7 @@ async function loadSanctionEvents(env: Env, code: string, days: number): Promise
   const out: ConnEvent[] = [];
   for (const r of un.results) {
     const countries = extractCountries(`${r.nationality ?? ''}; ${r.addresses ?? ''}`);
-    if (!countries.includes(code)) continue;
+    if (countries.length === 0) continue;
     out.push({
       kind: 'sanction', id: `un:${r.uid}`, date: isoDay(r.listed_on), title: `${r.primary_name} added to the UN Security Council sanctions list${r.un_list_type ? ` (${r.un_list_type})` : ''}`,
       url: r.source_url, source: 'UN Security Council', countries: countries.slice(0, 3), topics: ['Sanctions', ...topicsFor(`${r.un_list_type ?? ''}`).filter((t) => t !== 'Sanctions')],
@@ -80,7 +80,7 @@ async function loadSanctionEvents(env: Env, code: string, days: number): Promise
   }
   for (const r of uk.results) {
     const countries = extractCountries(`${r.regime_name ?? ''}; ${r.addresses ?? ''}`);
-    if (!countries.includes(code)) continue;
+    if (countries.length === 0) continue;
     out.push({
       kind: 'sanction', id: `uk:${r.uid}`, date: isoDay(r.date_listed), title: `${r.primary_name} added to the UK sanctions list${r.regime_name ? ` (${r.regime_name} regime)` : ''}`,
       url: r.source_url, source: 'UK sanctions list (OFSI)', countries: countries.slice(0, 3), topics: ['Sanctions', ...topicsFor(r.regime_name ?? '').filter((t) => t !== 'Sanctions')],
@@ -88,7 +88,7 @@ async function loadSanctionEvents(env: Env, code: string, days: number): Promise
   }
   for (const r of csl.results) {
     const countries = extractCountries(r.addresses ?? '');
-    if (!countries.includes(code)) continue;
+    if (countries.length === 0) continue;
     const bis = /Bureau of Industry and Security/i.test(r.source_list);
     out.push({
       kind: 'sanction', id: `csl:${r.id}`, date: isoDay(r.start_date), title: `${r.name} added to the ${r.source_list.replace(/\s*-\s*.*$/, '')}`,
@@ -96,6 +96,10 @@ async function loadSanctionEvents(env: Env, code: string, days: number): Promise
     });
   }
   return out;
+}
+
+async function loadSanctionEvents(env: Env, code: string, days: number): Promise<ConnEvent[]> {
+  return (await loadAllSanctionEvents(env, days)).filter((e) => e.countries.includes(code));
 }
 
 async function loadCountryEvents(env: Env, code: string, name: string | null, days: number): Promise<ConnEvent[]> {
@@ -298,4 +302,44 @@ connectionsRoute.get('/related', async (c) => {
     .slice(0, 8);
 
   return c.json({ subject: { kind: subject.kind, id: subject.id, topics: subject.topics, countries: subject.countries }, windowDays, links: unique });
+});
+
+// Every recent item across all countries, for the cross-country view below.
+async function loadAllEvents(env: Env, days: number): Promise<ConnEvent[]> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const [sanctions, actions, news, wro] = await Promise.all([
+    loadAllSanctionEvents(env, days),
+    env.DB.prepare(`SELECT * FROM trade_policy_actions WHERE publication_date >= ?1 AND countries IS NOT NULL AND countries != '[]' ORDER BY publication_date DESC LIMIT 800`)
+      .bind(since).all<PulseAction>().catch(() => ({ results: [] as PulseAction[] })),
+    env.DB.prepare(`SELECT id, title, summary, url, source, countries, published_at FROM world_news WHERE published_at >= ?1 AND countries IS NOT NULL AND countries != '[]' ORDER BY published_at DESC LIMIT 500`)
+      .bind(since).all<NewsRow>().catch(() => ({ results: [] as NewsRow[] })),
+    env.DB.prepare(`SELECT id, effective_date, merchandise, order_type, status, entity, country_code FROM wro_findings LIMIT 1000`)
+      .all<WroRow & { country_code: string }>().catch(() => ({ results: [] as (WroRow & { country_code: string })[] })),
+  ]);
+  return [
+    ...sanctions.filter((e) => e.date >= since),
+    ...actions.results.map(actionEvent),
+    ...news.results.map(newsEvent),
+    ...wro.results
+      .filter((w) => w.country_code && isoDay(w.effective_date) >= since)
+      .map((w): ConnEvent => ({
+        kind: 'wro', id: String(w.id), date: isoDay(w.effective_date), title: `CBP forced-labor ${w.order_type.toLowerCase()}: ${w.merchandise}${w.entity ? ` (${w.entity})` : ''}`,
+        url: 'https://www.cbp.gov/trade/forced-labor/withhold-release-orders-and-findings', source: 'U.S. Customs and Border Protection', countries: [w.country_code],
+        topics: topicsFor(`${w.merchandise} forced labor`, ['Supply chain & shipping']),
+      })),
+  ];
+}
+
+// Where activity from several different source types lands on the same
+// country. Plain counts per source and topic -- no blended score.
+connectionsRoute.get('/convergence', async (c) => {
+  const days = clampInt(c.req.query('days'), 60, 7, 90);
+  const limit = clampInt(c.req.query('limit'), 8, 1, 20);
+  const events = await loadAllEvents(c.env, days);
+  const rows = converge(events, { limit, exclude: ['US'] });
+  return c.json({
+    days,
+    rows,
+    note: 'Countries ranked by how many different kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by topic breadth. Counts only: not a risk score.',
+  });
 });

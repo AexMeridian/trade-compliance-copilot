@@ -19,6 +19,7 @@ import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars, MARKET_RANGES, type MarketRangeId } from '../components/PulseCharts';
 import { CiteThisButton } from '../components/CiteThisButton';
 import { PulseNews } from '../components/PulseNews';
+import { ConvergencePanel } from '../components/ConvergencePanel';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseSignalStrip } from '../components/PulseSignalStrip';
 import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/PulseTempoChart';
@@ -531,6 +532,18 @@ export function Pulse() {
                 <PulsePanel title="Currencies" subtitle={currencySubtitle}>
                   {currenciesPanel(5)}
                   {seeAll('All markets', 'markets')}
+                </PulsePanel>
+              )}
+              {!custom && (
+                <PulsePanel
+                  title="Where it's all connecting"
+                  subtitle="Countries named by policy, news, sanctions and more at once, last 60 days"
+                  help="Rather than one list per topic, this shows where several kinds of activity land on the same country. It counts what was published; it is not a risk score. Open a country for its full timeline."
+                >
+                  <ConvergencePanel limit={3} />
+                  <Link to="/influence?tab=pressure" className="mt-3 inline-block text-[13px] text-accent hover:underline">
+                    More in Influence
+                  </Link>
                 </PulsePanel>
               )}
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">

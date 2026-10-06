@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { topicsFor, topicHintForActionTag } from '../src/lib/pulse/topic.js';
 import { extractCountries } from '../src/lib/pulse/country.js';
-import { relate, findRelated, marketReaction, daysBetween, type ConnEvent } from '../src/lib/pulse/links.js';
+import { relate, findRelated, marketReaction, converge, daysBetween, type ConnEvent } from '../src/lib/pulse/links.js';
 
 let failures = 0;
 function test(name: string, fn: () => void) {
@@ -105,6 +105,44 @@ test('diplomacy has its own topic; a bare "president" does not trigger politics'
   assert.equal(topicsFor('The president said on Monday that he was pleased').includes('Elections & politics'), false);
 });
 test('daysBetween handles month boundaries', () => assert.equal(daysBetween('2026-08-30', '2026-09-02'), 3));
+
+// --- convergence ----------------------------------------------------------
+test('convergence needs two different source types; one source repeated is not convergence', () => {
+  const only = [ev({ id: '1' }), ev({ id: '2' }), ev({ id: '3' })]; // all news, all CN
+  assert.deepEqual(converge(only), []);
+});
+test('convergence counts distinct source types and ranks by them', () => {
+  const events = [
+    ev({ kind: 'news', id: 'a', countries: ['CN'] }),
+    ev({ kind: 'action', id: 'b', countries: ['CN'] }),
+    ev({ kind: 'sanction', id: 'c', countries: ['CN'], topics: ['Sanctions'] }),
+    ev({ kind: 'news', id: 'd', countries: ['MX'] }),
+    ev({ kind: 'action', id: 'e', countries: ['MX'] }),
+    ev({ kind: 'action', id: 'f', countries: ['MX'] }),
+  ];
+  const out = converge(events);
+  assert.equal(out[0].country, 'CN');
+  assert.equal(out[0].sourceCount, 3);
+  assert.equal(out[1].country, 'MX');
+  assert.equal(out[1].total, 3);
+});
+test('convergence ignores roundups and excluded countries', () => {
+  const events = [
+    ev({ kind: 'news', id: 'a', countries: ['CN', 'TR', 'IR', 'YE'] }),
+    ev({ kind: 'action', id: 'b', countries: ['CN', 'TR', 'IR', 'YE'] }),
+    ev({ kind: 'news', id: 'c', countries: ['US'] }),
+    ev({ kind: 'action', id: 'd', countries: ['US'] }),
+  ];
+  assert.deepEqual(converge(events, { exclude: ['US'] }), []);
+});
+test('convergence reports the latest item and topic counts', () => {
+  const out = converge([
+    ev({ kind: 'news', id: 'old', date: '2026-09-01', countries: ['IN'], topics: ['Tariffs'] }),
+    ev({ kind: 'action', id: 'new', date: '2026-09-20', countries: ['IN'], topics: ['Tariffs', 'Metals & minerals'] }),
+  ]);
+  assert.equal(out[0].latest.id, 'new');
+  assert.deepEqual(out[0].topics[0], { topic: 'Tariffs', count: 2 });
+});
 
 // --- market reaction --------------------------------------------------------
 const series = [

@@ -1,5 +1,5 @@
 import type { CaseFile, Direction, OriginComponent, PartyRole, Verdict } from '../types/case';
-import type { PulseHome, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, TempoPoint, ConnectionsResponse, RelatedResponse } from '../types/pulse';
+import type { PulseHome, PulseAction, PulseCountryDetail, PulseMarkets, PulseNewsResponse, TempoPoint, ConnectionsResponse, RelatedResponse, ConvergenceResponse } from '../types/pulse';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -224,4 +224,12 @@ export function getPulseRelated(kind: 'action' | 'news', id: string, names: Reco
   const pairs = Object.entries(names).map(([c, n]) => `${c}:${n}`);
   if (pairs.length) params.set('names', pairs.join('|'));
   return request<RelatedResponse>(`/pulse/related?${params.toString()}`);
+}
+
+export function getPulseConvergence(opts: { days?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.days) params.set('days', String(opts.days));
+  if (opts.limit) params.set('limit', String(opts.limit));
+  const qs = params.toString();
+  return request<ConvergenceResponse>(`/pulse/convergence${qs ? `?${qs}` : ''}`);
 }
