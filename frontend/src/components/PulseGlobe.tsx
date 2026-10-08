@@ -80,12 +80,12 @@ const PALETTES: Record<Theme, GlobePalette> = {
     hovered: '#ffffff',
   },
   light: {
-    ocean: '#d6ecfa', // fallback only; the sphere gradient below is what is drawn
-    rim: 'rgba(37,99,235,0.42)',
-    graticule: 'rgba(30,64,175,0.2)',
-    outline: 'rgba(30,64,175,0.28)',
-    hoverFill: 'rgba(30,64,175,0.12)',
-    hoverStroke: 'rgba(30,64,175,0.9)',
+    ocean: '#eef1f6', // fallback only; the sphere gradient below is what is drawn
+    rim: 'rgba(71,85,105,0.4)',
+    graticule: 'rgba(51,65,85,0.14)',
+    outline: 'rgba(51,65,85,0.26)',
+    hoverFill: 'rgba(51,65,85,0.1)',
+    hoverStroke: 'rgba(30,41,59,0.85)',
     // Same dim-to-bright meaning as dark's ramp (more actions = stronger), but the
     // strength comes from saturation and depth, not near-white: teal, cyan-blue,
     // royal blue, deep navy. Each step stays readable on the pale blue ocean.
@@ -308,10 +308,10 @@ export function PulseGlobe({
     if (palette.sphere) {
       // Lit from the upper left: bright sky-white core falling to a deeper blue at the far limb.
       const lit = ctx.createRadialGradient(size / 2 - r * 0.38, size / 2 - r * 0.42, r * 0.05, size / 2, size / 2, r);
-      lit.addColorStop(0, '#fcfeff');
-      lit.addColorStop(0.45, '#e8f2fa');
-      lit.addColorStop(0.85, '#cbdff0');
-      lit.addColorStop(1, '#b0cbe6');
+      lit.addColorStop(0, '#ffffff');
+      lit.addColorStop(0.5, '#f1f4f8');
+      lit.addColorStop(0.88, '#dce3ec');
+      lit.addColorStop(1, '#c6d0dd');
       ctx.fillStyle = lit;
     } else {
       ctx.fillStyle = palette.ocean;
@@ -390,12 +390,12 @@ export function PulseGlobe({
       ctx.arc(size / 2, size / 2, r, 0, 2 * Math.PI);
       ctx.clip();
       const limb = ctx.createRadialGradient(size / 2, size / 2, r * 0.62, size / 2, size / 2, r);
-      limb.addColorStop(0, 'rgba(30,64,175,0)');
-      limb.addColorStop(1, 'rgba(30,64,175,0.15)');
+      limb.addColorStop(0, 'rgba(51,65,85,0)');
+      limb.addColorStop(1, 'rgba(51,65,85,0.12)');
       ctx.fillStyle = limb;
       ctx.fillRect(0, 0, size, size);
       const glint = ctx.createRadialGradient(size / 2 - r * 0.45, size / 2 - r * 0.5, 0, size / 2 - r * 0.45, size / 2 - r * 0.5, r * 0.55);
-      glint.addColorStop(0, 'rgba(255,255,255,0.5)');
+      glint.addColorStop(0, 'rgba(255,255,255,0.35)');
       glint.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = glint;
       ctx.fillRect(0, 0, size, size);

@@ -60,7 +60,7 @@
      globe redrawn in black lines on white reads as a broken inversion, not a
      deliberate second treatment). These are the light/day values; the dark
      override block below restores today's exact black-hero look unchanged. */
-  --color-hero-bg: #eef3fa;
+  --color-hero-bg: #f4f6f9;
   --color-hero-ink: #0b1220;
   --color-hero-ink-muted: #45526b;
   --color-hero-ink-faint: #5d697e;
@@ -71,11 +71,11 @@
   --color-hero-btn-bg: #0b1220;
   --color-hero-btn-text: #eef2f8;
   --color-hero-btn-hover: #1b2a4a;
-  --hero-mask-rgb: 238, 243, 250; /* matches --color-hero-bg, for the headline's radial fade */
-  --hero-glow-rgb: 56, 189, 248; /* sky blue: daylight atmosphere behind the globe */
-  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
-  --globe-shadow-alpha: 0.3;
-  --hero-glow-alpha: 0.24; /* softer in daylight; the dark override brightens it to read as a monitor glow */
+  --hero-mask-rgb: 244, 246, 249; /* matches --color-hero-bg, for the headline's radial fade */
+  --hero-glow-rgb: 100, 116, 139; /* cool slate: a quiet daylight atmosphere behind the globe */
+  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.07) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
+  --globe-shadow-alpha: 0.22;
+  --hero-glow-alpha: 0.14; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
 }
@@ -312,7 +312,7 @@
      like an object instead of floating. Invisible in dark (alpha 0). */
   .globe-shadow {
     border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(30, 64, 175, var(--globe-shadow-alpha)) 0%, rgba(30, 64, 175, 0) 70%);
+    background: radial-gradient(ellipse at center, rgba(30, 41, 59, var(--globe-shadow-alpha)) 0%, rgba(30, 41, 59, 0) 70%);
     filter: blur(10px);
   }
 
