@@ -121,7 +121,7 @@ const PAGES: SearchEntry[] = [
     type: 'Page',
     url: '/power?tab=alliances',
   },
-  { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader -- no account needed.', type: 'Page', url: '/api/pulse/rss' },
+  { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader -- no account needed.', type: 'Page', url: '/rss.xml' },
 ];
 
 // Real, public alliance facts (lib/pulseBlocs.ts) -- one search entry per

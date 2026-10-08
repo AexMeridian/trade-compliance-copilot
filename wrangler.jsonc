@@ -22,7 +22,7 @@
     "directory": "frontend/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/rss.xml", "/atom.xml", "/feed.json"]
   },
 
   // Caps how often one client IP can hit the 4 routes that call the Anthropic

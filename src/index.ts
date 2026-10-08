@@ -9,6 +9,8 @@ import { determinationRoute } from './routes/determination.js';
 import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
 import { edgeCache } from './lib/edgeCache.js';
+import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
+import { normalizeFilters } from './lib/feed.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -33,6 +35,30 @@ app.use('/api/pulse/*', async (c, next) => {
 // (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
 const EDGE_CACHED = ['country/*', 'connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'export-control-chart', 'active-measures'];
 for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
+
+// Feeds are polled by readers around the clock, so they get a longer edge window, a cache
+// key built from the validated query (junk or reordered parameters share one entry), and
+// If-None-Match / If-Modified-Since -> 304. conditionalGet is registered first so it wraps
+// the cache and also answers hits.
+const feedCacheKey = (url: URL) => {
+  const parsed = normalizeFilters((name) => url.searchParams.get(name));
+  return parsed.ok ? `${url.origin}${url.pathname}${parsed.canonical ? `?${parsed.canonical}` : ''}` : url.toString();
+};
+for (const p of FEED_PATHS) {
+  app.use(`/api/pulse/${p}`, conditionalGet);
+  app.use(`/api/pulse/${p}`, edgeCache(600, feedCacheKey));
+}
+
+// Short, stable feed addresses for readers and for sharing. Forwarded in-process (not
+// redirected) so there is no extra hop; the forwarded request still passes the rate limiter.
+const FEED_ALIASES: Record<string, string> = { '/rss.xml': 'rss', '/atom.xml': 'atom', '/feed.json': 'feed.json' };
+for (const [alias, target] of Object.entries(FEED_ALIASES)) {
+  app.get(alias, (c) => {
+    const url = new URL(c.req.url);
+    url.pathname = `/api/pulse/${target}`;
+    return app.fetch(new Request(url, c.req.raw), c.env, c.executionCtx);
+  });
+}
 
 // Public Pulse reads are safe for a browser to reuse for a minute (switching tabs
 // or reopening a country re-asks for the same data). Routes that know better set

@@ -56,9 +56,9 @@ export function SiteSearch() {
 
   const go = (entry: SearchEntry) => {
     setOpen(false);
-    // /api/pulse/rss is a real server resource, not a client-side route --
-    // a router navigation there would just hit the 404 page.
-    if (entry.url.startsWith('/api/')) window.location.href = entry.url;
+    // Feeds (/rss.xml) and /api/* are real server resources, not client-side
+    // routes -- a router navigation there would just hit the 404 page.
+    if (entry.url.startsWith('/api/') || /\.(xml|json)$/.test(entry.url)) window.location.href = entry.url;
     else navigate(entry.url);
   };
 

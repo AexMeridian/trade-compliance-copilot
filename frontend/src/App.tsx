@@ -195,7 +195,7 @@ export default function App() {
               <Link to="/accessibility" className="text-white no-underline hover:underline">
                 Accessibility
               </Link>
-              <a href="/api/pulse/rss" className="text-white no-underline hover:underline">
+              <a href="/rss.xml" className="text-white no-underline hover:underline">
                 RSS feed
               </a>
               {SITE.contactEmail && (

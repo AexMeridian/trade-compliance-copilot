@@ -12,13 +12,15 @@ import type { MiddlewareHandler } from 'hono';
  * or that a user action must make fresh (/home, /feed, /summary, /news, /markets).
  * Responses carry `X-Edge-Cache: HIT | MISS` so behavior is observable.
  */
-export function edgeCache(ttlSeconds: number): MiddlewareHandler {
+export function edgeCache(ttlSeconds: number, cacheKeyUrl?: (url: URL) => string): MiddlewareHandler {
   return async (c, next) => {
     // The Cache API is absent in some local/test runtimes; never let that break a request.
     const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
     if (c.req.method !== 'GET' || !cache) return next();
 
-    const key = new Request(c.req.url, { method: 'GET' });
+    // `cacheKeyUrl` lets an endpoint collapse equivalent URLs (reordered or junk query
+    // parameters) into one entry, so a client cannot mint unlimited cache keys.
+    const key = new Request(cacheKeyUrl ? cacheKeyUrl(new URL(c.req.url)) : c.req.url, { method: 'GET' });
     const hit = await cache.match(key).catch(() => undefined);
     if (hit) {
       const res = new Response(hit.body, hit);

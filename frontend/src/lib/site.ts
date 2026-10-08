@@ -9,7 +9,7 @@ export const SITE = {
   contactEmail: '',
   // "Last updated" dates on the About, Privacy and Accessibility pages.
   // Change them whenever those pages change.
-  aboutUpdated: '2026-09-25',
-  privacyUpdated: '2026-09-25',
+  aboutUpdated: '2026-10-07',
+  privacyUpdated: '2026-10-07',
   accessibilityUpdated: '2026-09-30',
 } as const;

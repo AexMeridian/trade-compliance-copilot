@@ -141,19 +141,29 @@ export function About() {
 
       <H>Follow along</H>
       <p className="mt-3">
-        New U.S. trade actions are available as an{' '}
-        <a href="/api/pulse/rss" className="text-accent">
-          RSS feed
+        New U.S. trade actions are available as a feed you can add to any feed reader -- no account needed:{' '}
+        <a href="/rss.xml" className="text-accent">
+          RSS
+        </a>
+        ,{' '}
+        <a href="/atom.xml" className="text-accent">
+          Atom
         </a>{' '}
-        you can add to any feed reader -- no account needed. Narrow it with <code className="tabular-nums text-xs text-ink">?tag=</code>,{' '}
+        or{' '}
+        <a href="/feed.json" className="text-accent">
+          JSON Feed
+        </a>
+        . Narrow any of them with <code className="tabular-nums text-xs text-ink">?tag=</code>,{' '}
         <code className="tabular-nums text-xs text-ink">?country=</code> or <code className="tabular-nums text-xs text-ink">?q=</code> (a keyword search
         against the title and abstract, useful for a specific program like "Section 301"). Each accepts a comma-separated list, matched as "any of
         these": <code className="tabular-nums text-xs text-ink">{'?q=Section 301,Section 232&country=CN,MX,CA'}</code> is one link for "Section 301 or 232
-        actions naming China, Mexico or Canada." The same three filters work on the{' '}
-        <a href="/api/pulse/feed" className="text-accent">
-          JSON feed
-        </a>{' '}
-        used elsewhere on this site.
+        actions naming China, Mexico or Canada." Topics are Tariff, Sanctions, Export Control, Trade Agreement and Other; countries are two-letter codes.
+      </p>
+      <p className="mt-3">
+        Feeds contain only the title, agency, document type and the opening of the official summary from the Federal Register, with a link to the official
+        notice. That source is a U.S. government publication in the public domain; feeds don't carry other publishers' news. Feeds refresh about every ten
+        minutes, so please don't poll more often than that. They are free to use for your own reading and internal alerts; the information-only limits below
+        apply to them too.
       </p>
 
       <H>Important limits</H>

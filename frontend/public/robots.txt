@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /rss.xml
+Allow: /atom.xml
+Allow: /feed.json
 Disallow: /api/
 Disallow: /case/
 

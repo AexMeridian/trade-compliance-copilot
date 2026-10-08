@@ -434,7 +434,30 @@ Things only the site's owner can decide or set. Everything else in this list is 
 5. **Legal review.** The About and Privacy pages describe what the site does today (no accounts, no cookies, no analytics, local-storage preferences, Cloudflare logs, calculator data stored and sent to Anthropic). They are not a substitute for advice from a lawyer, especially if you serve users in the EU, U.K. or California. Note that calculator cases have no delete or expiry today; consider adding one before promoting the calculator.
 6. **Analytics (optional).** None is installed. If you enable Cloudflare Web Analytics, the Content-Security-Policy in `frontend/public/_headers` already allows its beacon; update the Privacy page to say so.
 7. **Monitoring.** Workers observability is on. Point an uptime monitor at `/api/health`, and check `data_refresh_log` and `pulse_feed_state` (D1) if a source looks stale.
-8. **Alerts by email.** Not built: it needs an email provider and a way to confirm and unsubscribe addresses. RSS (`/api/pulse/rss`, optional `?tag=` and `?country=`) is the no-account alternative.
+8. **Alerts by email.** Not built: it needs an email provider and a way to confirm and unsubscribe addresses. Feeds (`/rss.xml`, `/atom.xml`, `/feed.json`; see "Public feeds" below) are the no-account alternative.
+
+## Public feeds (RSS, Atom, JSON Feed)
+
+`/rss.xml`, `/atom.xml` and `/feed.json` (aliases for `/api/pulse/rss`, `/atom`, `/feed.json`) syndicate
+new U.S. trade actions from the Federal Register. Optional `?tag=`, `?country=`, `?q=` (comma-separated,
+any-of) and `?limit=` (1-50, default 30). Code: `src/lib/feed.ts` (pure, tested in `tests/feed.test.ts`)
+and `src/routes/pulse/feeds.ts`.
+
+- **Legal.** Content is U.S. government public-domain text only (title, agency, type, first ~300 characters
+  of the official summary, link to the official notice). Third-party news (BBC, Guardian...) is deliberately
+  *not* in the feeds: those publishers' feed terms are personal/non-commercial. Each feed states its source
+  and "informational only, not legal advice". No images, enclosures or tracking links. The Privacy page
+  covers feed requests. Have counsel review before a commercial launch.
+- **Security.** Output is escaped plain text (XML-illegal control characters stripped, so one bad character
+  upstream can't break every reader). Inputs are whitelisted and capped (known tags, 2-letter countries,
+  <=10 values of <=50 characters); keyword `LIKE` wildcards are escaped; the feed's own links are rebuilt from
+  validated values, never echoed from the request. Responses carry `Content-Security-Policy: default-src 'none'; sandbox`,
+  `nosniff` and CORS `*` (read-only public data). Read-only: no database writes, no per-reader identifiers.
+- **Efficiency.** 10-minute edge cache keyed on the *validated* query (junk or reordered parameters share one
+  entry, so the cache can't be flooded), `ETag`/`Last-Modified` with `304 Not Modified`, `HEAD` support, and
+  the per-IP Pulse rate limit still applies. A polling reader costs almost nothing.
+- **Discovery.** `<link rel="alternate">` for all three formats in `frontend/index.html`, `robots.txt` allows
+  the short URLs, and the About page documents the filters.
 
 ## Continuous deployment
 

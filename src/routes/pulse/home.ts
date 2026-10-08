@@ -5,7 +5,7 @@ import { refreshIfStale } from '../../lib/pulse/refreshLazy.js';
 import { logRefresh } from '../../lib/refresh/log.js';
 import type { PulseAction } from '../../lib/pulse/types.js';
 import type { PulseApp } from './util.js';
-import { clampInt, csvParam, slimAction } from './util.js';
+import { clampInt, slimAction } from './util.js';
 
 // Global cooldown, not per-caller -- Pulse's risk is Worker CPU/subrequest
 // exhaustion from repeated Federal Register calls, a shared resource, not an
@@ -16,21 +16,6 @@ import { clampInt, csvParam, slimAction } from './util.js';
 // sync" and "check the cooldown" are the same statement, not two steps with
 // a gap between them.
 const SYNC_COOLDOWN_MS = 60_000;
-
-// ---------------------------------------------------------------------------
-// RSS 2.0 feed of U.S. trade actions -- the no-account way to "get alerts":
-// paste the URL into any feed reader. Same filters as /feed (tag, country,
-// q), each accepting a comma-separated list via csvParam() so "Section 301
-// and Section 232, for these three countries" is one subscribable link
-// instead of something only possible with a saved search behind a login.
-// Title, agency, document type and the Federal Register's own abstract only.
-// ---------------------------------------------------------------------------
-const xmlEscape = (v: unknown) =>
-  String(v ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 // Citable snapshots -- see migrations/0021_schema_pulse_snapshots.sql's header
 // for why this is its own frozen-copy table rather than reusing any
@@ -158,32 +143,6 @@ homeRoute.get('/home', async (c) => {
   });
 });
 
-homeRoute.get('/rss', async (c) => {
-  const limit = clampInt(c.req.query('limit'), { default: 30, min: 1, max: 50 });
-  const tags = csvParam(c.req.query('tag'));
-  const keywords = csvParam(c.req.query('q'));
-  const countries = csvParam(c.req.query('country'));
-  const { results } = await c.env.DB.prepare(
-    `SELECT document_number, title, abstract, agency, doc_type, tag, publication_date, html_url FROM trade_policy_actions
-     WHERE (?1 = '[]' OR EXISTS (SELECT 1 FROM json_each(?1) je WHERE tag = je.value))
-       AND (?2 = '[]' OR EXISTS (SELECT 1 FROM json_each(?2) je WHERE title LIKE '%' || je.value || '%' OR abstract LIKE '%' || je.value || '%'))
-       AND (?3 = '[]' OR EXISTS (SELECT 1 FROM json_each(?3) je WHERE countries LIKE '%"' || je.value || '"%'))
-     ORDER BY publication_date DESC, document_number DESC LIMIT ?4`
-  )
-    .bind(JSON.stringify(tags), JSON.stringify(keywords), JSON.stringify(countries), limit)
-    .all<{ document_number: string; title: string; abstract: string | null; agency: string; doc_type: string; tag: string; publication_date: string; html_url: string }>();
-
-  const origin = new URL(c.req.url).origin;
-  const label = [...tags, ...keywords, ...countries].join(', ');
-  const items = results
-    .map((r) => {
-      const desc = `${r.doc_type} (${r.tag}) from ${r.agency.split(', ').slice(0, 2).join(', ')}.${r.abstract ? ` ${r.abstract.slice(0, 300)}${r.abstract.length > 300 ? '…' : ''}` : ''}`;
-      return `<item><title>${xmlEscape(r.title)}</title><link>${xmlEscape(r.html_url)}</link><guid isPermaLink="false">${xmlEscape(r.document_number)}</guid><pubDate>${new Date(`${r.publication_date}T12:00:00Z`).toUTCString()}</pubDate><category>${xmlEscape(r.tag)}</category><description>${xmlEscape(desc)}</description></item>`;
-    })
-    .join('');
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${xmlEscape(`Aex Terminal: U.S. trade actions${label ? ` (${label})` : ''}`)}</title><link>${xmlEscape(origin)}/</link><description>New U.S. tariff, sanctions, export-control and trade-agreement actions from the Federal Register.</description><language>en-us</language><atom:link href="${xmlEscape(c.req.url)}" rel="self" type="application/rss+xml"/>${items}</channel></rss>`;
-  return new Response(xml, { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
-});
  // generous for chart data (a few hundred points), well under D1's 100KB-per-value column limit headroom when combined with the rest of the row
 
 homeRoute.post('/snapshots', async (c) => {

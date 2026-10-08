@@ -77,7 +77,7 @@ export function CustomizePanel({
   const rss = new URLSearchParams();
   if (prefs.tags.length) rss.set('tag', prefs.tags.join(','));
   if (prefs.countries.length) rss.set('country', prefs.countries.join(','));
-  const rssHref = `/api/pulse/rss${rss.toString() ? `?${rss}` : ''}`;
+  const rssHref = `/rss.xml${rss.toString() ? `?${rss}` : ''}`;
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(shareUrl);

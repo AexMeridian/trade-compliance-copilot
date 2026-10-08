@@ -5,6 +5,7 @@ import { countryRoute } from './pulse/country.js';
 import { referenceRoute } from './pulse/reference.js';
 import { marketsNewsRoute } from './pulse/marketsNews.js';
 import { homeRoute } from './pulse/home.js';
+import { feedsRoute } from './pulse/feeds.js';
 import { connectionsRoute } from './pulseConnections.js';
 
 // The Pulse read API, composed from one module per area (see ./pulse/):
@@ -12,6 +13,7 @@ import { connectionsRoute } from './pulseConnections.js';
 //   country      /country/:code                                   (one country across every source)
 //   reference    tariffs, sanctions, NATO, COFER, export-control chart, GTA, WRO
 //   marketsNews  markets, news                                    (lazily refreshed)
+//   feeds        rss, atom, feed.json                             (public syndication)
 //   home         sync, home, rss, snapshots                       (aggregates and publishing)
 //   connections  /connections, /convergence, /related             (cross-topic links)
 // No two modules share a path, so registration order does not change behavior.
@@ -22,5 +24,6 @@ pulseRoute.route('/', policyRoute);
 pulseRoute.route('/', countryRoute);
 pulseRoute.route('/', referenceRoute);
 pulseRoute.route('/', marketsNewsRoute);
+pulseRoute.route('/', feedsRoute);
 // /home calls the other routes in-process, so it is given the composed router.
 pulseRoute.route('/', homeRoute(pulseRoute));

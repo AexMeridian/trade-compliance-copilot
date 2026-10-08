@@ -45,6 +45,13 @@ export function Privacy() {
         that site's own policies apply.
       </p>
 
+      <H>News feeds (RSS)</H>
+      <p className="mt-3">
+        The RSS, Atom and JSON feeds are ordinary web requests, handled like any other page above. They contain no tracking links, images or per-reader
+        identifiers, set no cookies and load nothing from other companies. Feed readers usually fetch them automatically, so your reader's own service may
+        see which feeds you follow; that is governed by its policy, not ours.
+      </p>
+
       <H>The Compliance calculator</H>
       <p className="mt-3">
         When you create a case in the{' '}
