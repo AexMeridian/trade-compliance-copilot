@@ -4,6 +4,7 @@ import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { WORLD_CODE_TO_ID, WORLD_ID_TO_CODE } from '../lib/worldCountries';
 import { getCurrentTheme, THEME_CHANGE_EVENT, type Theme } from '../lib/theme';
+import { useLiveArcs } from '../lib/useLiveArcs';
 
 // A wireframe, dotted globe you can turn and press. Every country is
 // pressable and opens a card -- coloured by how many U.S. actions named it
@@ -162,10 +163,61 @@ function loadWorld(): Promise<World> {
   return worldPromise;
 }
 
+const TAG_NOUN: Record<string, string> = { Tariff: 'Tariff', Sanctions: 'Sanctions', 'Export Control': 'Export control', 'Trade Agreement': 'Trade agreement', Other: 'Notice' };
+
+// What sits behind an arc: the country, how many actions named it in the last 30 days, and
+// the latest few from the Federal Register, each linked to the official notice.
+function ArcTooltip({
+  code,
+  x,
+  y,
+  width,
+  count,
+  latest,
+}: {
+  code: string;
+  x: number;
+  y: number;
+  width: number;
+  count: number;
+  latest: { title: string; url: string; date: string; tag: string }[];
+}) {
+  const name = COUNTRY_LABELS[code] ?? code;
+  const boxW = Math.min(300, width - 16);
+  const left = Math.max(8, Math.min(x + 14, width - boxW - 8));
+  return (
+    <div
+      role="status"
+      className="pointer-events-none absolute z-20 rounded-md border border-hero-border-strong bg-hero-bg/95 p-3 text-left text-hero-ink shadow-lg backdrop-blur"
+      style={{ left, top: Math.max(8, y + 16), width: boxW }}
+    >
+      <p className="text-sm font-semibold">
+        U.S. to {name}
+      </p>
+      <p className="text-xs text-hero-ink-muted">
+        {count} action{count === 1 ? '' : 's'} in the last 30 days. Press to open.
+      </p>
+      {latest.length > 0 && (
+        <ul className="mt-2 space-y-1.5 border-t border-hero-divider pt-2">
+          {latest.slice(0, 2).map((a) => (
+            <li key={a.url} className="text-xs leading-snug">
+              <span className="text-hero-ink-faint">
+                {TAG_NOUN[a.tag] ?? a.tag}, {a.date}
+              </span>
+              <br />
+              <span className="line-clamp-2">{a.title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 const stepFor = (count: number, max: number) => Math.min(4, Math.max(1, Math.ceil((count / max) * 4)));
 
 export function PulseGlobe({
-  breakdown,
+  breakdown: breakdownProp,
   activeCountry,
   onSelect,
   groupColorFor,
@@ -204,6 +256,15 @@ export function PulseGlobe({
   const clockRef = useRef(performance.now()); // feeds the arc/ping animation phase; set every animation frame, read inside draw()
   const lastDrawRef = useRef(0); // throttles the ambient tick's own redraws (see the tick effect below)
   const [booted, setBooted] = useState(false); // flips true once, after the one-time boot-sweep plays (see .globe-boot, index.css)
+
+  // Live arcs: the same counts the page loaded with, refreshed every five minutes while this
+  // globe is on screen (lib/useLiveArcs.ts), plus the latest actions behind each busy country.
+  const { live, freshUntil } = useLiveArcs(() => onScreenRef.current);
+  const breakdown = useMemo(() => (live ? live.countries.map((c) => ({ country: c.country, count: c.count })) : breakdownProp), [live, breakdownProp]);
+  const latestFor = useMemo(() => new Map((live?.countries ?? []).map((c) => [c.country, c.latest])), [live]);
+  const arcRunsRef = useRef(new Map<string, [number, number][][]>()); // each arc's on-screen polyline runs, rebuilt every draw, for hit-testing
+  const arcHoverRef = useRef<string | null>(null);
+  const [arcHover, setArcHover] = useState<{ code: string; x: number; y: number } | null>(null);
 
   const counts = useMemo(() => new Map(breakdown.map((b) => [b.country, b.count])), [breakdown]);
   const max = Math.max(...breakdown.map((b) => b.count), 1);
@@ -432,17 +493,24 @@ export function PulseGlobe({
     ctx.setLineDash(reducedMotion ? [] : [5, 6]);
     ctx.lineDashOffset = reducedMotion ? 0 : -((clock / 45) % 11);
     ctx.globalAlpha = 0.85;
+    arcRunsRef.current.clear();
     for (const arc of activeArcs) {
       const interp = geoInterpolate(arc.from, arc.to);
+      const hot = arcHoverRef.current === arc.code;
       ctx.strokeStyle = arc.color;
       ctx.shadowColor = arc.color;
-      ctx.shadowBlur = size / 55;
+      ctx.shadowBlur = hot ? size / 28 : size / 55;
+      ctx.lineWidth = hot ? Math.max(2.4, size / 210) : Math.max(1.1, size / 420);
+      ctx.globalAlpha = hot ? 1 : 0.85;
       ctx.beginPath();
       let drawing = false;
+      const runs: [number, number][][] = [];
+      let run: [number, number][] = [];
       for (let i = 0; i <= STEPS; i++) {
         const [lng, lat] = interp(i / STEPS);
         const p = near(lng, lat) ? projection([lng, lat]) : null;
         if (p) {
+          run.push([p[0], p[1]]);
           if (drawing) ctx.lineTo(p[0], p[1]);
           else {
             ctx.moveTo(p[0], p[1]);
@@ -452,9 +520,13 @@ export function PulseGlobe({
           ctx.stroke();
           ctx.beginPath();
           drawing = false;
+          runs.push(run);
+          run = [];
         }
       }
       if (drawing) ctx.stroke();
+      if (run.length) runs.push(run);
+      arcRunsRef.current.set(arc.code, runs);
     }
     ctx.restore();
 
@@ -462,19 +534,24 @@ export function PulseGlobe({
     // busiest right now". Deliberately just one, not one per arc: the point
     // is to draw the eye to a focal moment, not to turn the globe into a
     // light show.
-    if (!reducedMotion && activeArcs[0]) {
-      const [lng, lat] = activeArcs[0].to;
+    // A country that gained an action since the last live refresh also pings, faster and
+    // wider, for a few seconds -- the visible sign that new data just arrived.
+    const nowMs = Date.now();
+    const pinged = activeArcs.filter((a, i) => (i === 0 && !reducedMotion) || (freshUntil.current.get(a.code) ?? 0) > nowMs);
+    for (const arc of pinged) {
+      const [lng, lat] = arc.to;
       const p = near(lng, lat) ? projection([lng, lat]) : null;
       if (p) {
-        const period = 1700;
+        const isNew = (freshUntil.current.get(arc.code) ?? 0) > nowMs;
+        const period = isNew ? 1100 : 1700;
         const phase = (clock % period) / period;
         ctx.beginPath();
-        ctx.arc(p[0], p[1], dotR * 1.6 + phase * size * 0.065, 0, 2 * Math.PI);
-        ctx.strokeStyle = activeArcs[0].color;
-        ctx.shadowColor = activeArcs[0].color;
+        ctx.arc(p[0], p[1], dotR * 1.6 + phase * size * (isNew ? 0.1 : 0.065), 0, 2 * Math.PI);
+        ctx.strokeStyle = arc.color;
+        ctx.shadowColor = arc.color;
         ctx.shadowBlur = size / 40;
         ctx.globalAlpha = Math.max(0, 1 - phase) * 0.85;
-        ctx.lineWidth = 1.8;
+        ctx.lineWidth = isNew ? 2.6 : 1.8;
         ctx.stroke();
         ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
@@ -588,6 +665,41 @@ export function PulseGlobe({
     return null;
   };
 
+  // The arc (if any) under the pointer, by distance to the on-screen polyline in canvas pixels.
+  // Arcs are only ever the real U.S.-to-country lines, so this stays a data interaction.
+  const hitTestArc = (clientX: number, clientY: number): string | null => {
+    const cv = canvas.current;
+    if (!cv) return null;
+    const rect = cv.getBoundingClientRect();
+    const px = ((clientX - rect.left) / rect.width) * size;
+    const py = ((clientY - rect.top) / rect.height) * size;
+    const reach = Math.max(9, size / 55);
+    let best: { code: string; d: number } | null = null;
+    for (const [code, runs] of arcRunsRef.current) {
+      for (const run of runs) {
+        for (let i = 1; i < run.length; i++) {
+          const [ax, ay] = run[i - 1];
+          const [bx, by] = run[i];
+          const dx = bx - ax;
+          const dy = by - ay;
+          const len2 = dx * dx + dy * dy || 1;
+          const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+          const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+          if (d <= reach && (!best || d < best.d)) best = { code, d };
+        }
+      }
+    }
+    return best?.code ?? null;
+  };
+  const setArcAt = (code: string | null, clientX: number, clientY: number) => {
+    const box = wrap.current?.getBoundingClientRect();
+    if (code !== arcHoverRef.current) {
+      arcHoverRef.current = code;
+      draw();
+    }
+    setArcHover(code && box ? { code, x: clientX - box.left, y: clientY - box.top } : null);
+  };
+
   const sayForCode = (code: string): string => {
     if (describe) return describe(code);
     if (code === 'US') return 'United States: the country these trade actions come from. Press it for the feed as a whole.';
@@ -621,13 +733,15 @@ export function PulseGlobe({
             aria-label={
               ariaLabel ?? 'Globe of every country, coloured by how many U.S. actions named it in the last 30 days. Use the country list below to choose one.'
             }
-            style={{ width: size, height: size, cursor: hoverIsPressable ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
+            style={{ width: size, height: size, cursor: hoverIsPressable || arcHover ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
             className="globe-ring-glow mx-auto block select-none"
             onPointerLeave={() => {
               pointerRef.current = null;
               dragRef.current = null;
               hoverIdRef.current = null;
               setHoverId(null);
+              arcHoverRef.current = null;
+              setArcHover(null);
               draw();
             }}
             onPointerDown={(e) => {
@@ -645,7 +759,10 @@ export function PulseGlobe({
                 return;
               }
               pointerRef.current = { x: e.clientX, y: e.clientY };
-              const id = hitTestId(e.clientX, e.clientY);
+              const overArc = hitTestArc(e.clientX, e.clientY);
+              setArcAt(overArc, e.clientX, e.clientY);
+              // While an arc is under the cursor it takes priority: no country wash behind it.
+              const id = overArc ? null : hitTestId(e.clientX, e.clientY);
               if (id !== hoverIdRef.current) {
                 hoverIdRef.current = id;
                 setHoverId(id);
@@ -656,17 +773,38 @@ export function PulseGlobe({
               const d = dragRef.current;
               dragRef.current = null;
               if (d && !d.moved) {
+                const arcCode = hitTestArc(e.clientX, e.clientY);
+                if (arcCode) {
+                  onSelect(arcCode);
+                  return;
+                }
                 const id = hitTestId(e.clientX, e.clientY);
                 const code = id !== null ? codeFor(id) : null;
                 if (code) onSelect(code);
               }
             }}
           />
+          {arcHover && (
+            <ArcTooltip
+              code={arcHover.code}
+              x={arcHover.x}
+              y={arcHover.y}
+              width={wrap.current?.clientWidth ?? size}
+              count={counts.get(arcHover.code) ?? 0}
+              latest={latestFor.get(arcHover.code) ?? []}
+            />
+          )}
         </div>
       </div>
       <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink">
         {shownMessage ?? (world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…')}
       </p>
+      {live && (
+        <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-hero-ink-faint" title="Counts refresh about every five minutes while this page is open">
+          <span className="live-dot h-1.5 w-1.5 rounded-full bg-clear" aria-hidden="true" />
+          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Hover or press an arc for the latest actions.
+        </p>
+      )}
       {legend ? (
         <p className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-hero-ink-faint" aria-hidden="true">
           {legend.map((l) => (

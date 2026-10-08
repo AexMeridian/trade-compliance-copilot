@@ -6,6 +6,7 @@ import { referenceRoute } from './pulse/reference.js';
 import { marketsNewsRoute } from './pulse/marketsNews.js';
 import { homeRoute } from './pulse/home.js';
 import { feedsRoute } from './pulse/feeds.js';
+import { liveRoute } from './pulse/live.js';
 import { connectionsRoute } from './pulseConnections.js';
 
 // The Pulse read API, composed from one module per area (see ./pulse/):
@@ -25,5 +26,6 @@ pulseRoute.route('/', countryRoute);
 pulseRoute.route('/', referenceRoute);
 pulseRoute.route('/', marketsNewsRoute);
 pulseRoute.route('/', feedsRoute);
+pulseRoute.route('/', liveRoute);
 // /home calls the other routes in-process, so it is given the composed router.
 pulseRoute.route('/', homeRoute(pulseRoute));

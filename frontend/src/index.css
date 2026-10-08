@@ -81,6 +81,7 @@
   --globe-shadow-alpha: 0.22;
   --backdrop-route: rgba(51, 65, 85, 0.2); /* hero backdrop: trade routes and ports (HeroBackdrop.tsx) */
   --backdrop-port: #475569;
+  --backdrop-route-lit: rgba(30, 41, 59, 0.7);
   --hero-glow-alpha: 0.14; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
@@ -119,6 +120,7 @@
   --hero-halo-2: none;
   --backdrop-route: rgba(34, 211, 238, 0.3);
   --backdrop-port: #67e8f9;
+  --backdrop-route-lit: rgba(103, 232, 249, 0.95);
   --globe-shadow-alpha: 0;
   --hero-glow-alpha: 0.48;
 
@@ -346,6 +348,18 @@
    .is-ready after the sweep's duration so the globe doesn't replay it on
    later re-renders. Skipped entirely under reduced motion -- the globe simply
    appears at its resting state. */
+/* The small "Live" indicator under the globe. */
+@media (prefers-reduced-motion: no-preference) {
+  .live-dot {
+    animation: live-dot 2.4s ease-in-out infinite;
+  }
+  @keyframes live-dot {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
 /* Hero backdrop (HeroBackdrop.tsx): trade routes in both themes, stars in dark only. Static
    by default; motion is opt-in and paused while the hero is off screen (.is-paused). */
 .hero-route {
@@ -362,6 +376,27 @@
 .hero-port-ring {
   stroke: var(--backdrop-port);
   opacity: 0.25;
+}
+.hero-cargo-dot {
+  fill: var(--backdrop-port);
+  opacity: 0.9;
+}
+:root[data-theme='dark'] .hero-cargo-dot {
+  filter: drop-shadow(0 0 4px rgba(103, 232, 249, 0.9));
+}
+/* The cursor spotlight: a brighter copy of the routes, revealed in a circle around the pointer. */
+.hero-lit {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  -webkit-mask-image: radial-gradient(circle 260px at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(circle 260px at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0, 0, 0, 0) 100%);
+}
+.hero-backdrop.is-lit .hero-lit {
+  opacity: 1;
+}
+.hero-routes-lit .hero-route {
+  stroke: var(--backdrop-route-lit);
+  stroke-width: 1.7;
 }
 .hero-stars {
   display: none;

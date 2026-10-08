@@ -169,6 +169,11 @@ export function About() {
       <H>Important limits</H>
       <ul className="mt-3 list-disc space-y-2 pl-5">
         <li>
+          <span className="text-ink">The globe's arcs are real; the background routes are decoration.</span> Each arc on the globe runs from the United States to
+          a country named in recent Federal Register actions, and its counts and latest notices refresh about every five minutes while the page is open. The
+          faint routes and dots behind the globe are scenery between invented points and mean nothing.
+        </li>
+        <li>
           <span className="text-ink">Information only.</span> Nothing here is legal, customs, tax, financial or investment advice. For a shipment, a filing or
           an investment decision, talk to a licensed customs broker, trade attorney or financial adviser.
         </li>
