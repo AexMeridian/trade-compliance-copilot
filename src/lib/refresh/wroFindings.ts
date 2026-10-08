@@ -18,6 +18,7 @@
 import type { Env } from '../../types/env.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const DOCUMENT_PAGE = 'https://www.cbp.gov/document/stats/withhold-release-orders-findings';
 const ORIGIN = 'https://www.cbp.gov';
@@ -92,6 +93,8 @@ export async function refreshWroFindings(env: Env): Promise<RefreshResult> {
   // declared in the response headers, so this is read as raw bytes and
   // decoded explicitly rather than trusting fetch's default.
   const text = new TextDecoder('windows-1252').decode(await csvRes.arrayBuffer());
+  const gate = await changeGate(env, 'wro_findings', text);
+  if (gate.unchanged) return { source: 'wro_findings', rows: 0, unchanged: true };
   const allRows = parseCsvFull(text).filter((r) => r.length > 1 || r[0] !== '');
   const dataRows = allRows.slice(1); // drop header
 
@@ -124,5 +127,6 @@ export async function refreshWroFindings(env: Env): Promise<RefreshResult> {
 
   await env.DB.batch([env.DB.prepare('DELETE FROM wro_findings'), ...statements.map((s) => env.DB.prepare(s))]);
 
+  await gate.commit();
   return { source: 'wro_findings', rows: rows.length };
 }

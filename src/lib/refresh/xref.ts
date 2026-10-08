@@ -8,8 +8,14 @@
 // specified 10-digit HTS statistical lines are paired.
 import type { Env } from '../../types/env.js';
 import type { RefreshResult } from './types.js';
+import { changeGate, storedFingerprint } from './changeGate.js';
 
 export async function refreshXref(env: Env): Promise<RefreshResult> {
+  // The join only changes when one of its two inputs did (see changeGate.ts).
+  const inputs = `${await storedFingerprint(env, 'hts')}|${await storedFingerprint(env, 'schedule_b')}`;
+  const gate = await changeGate(env, 'xref', inputs);
+  if (gate.unchanged) return { source: 'xref', rows: 0, unchanged: true };
+
   const result = await env.DB.batch([
     env.DB.prepare('DELETE FROM hts_schedule_b_xref'),
     env.DB.prepare(
@@ -26,5 +32,6 @@ export async function refreshXref(env: Env): Promise<RefreshResult> {
     throw new Error('Cross-reference rebuild produced zero rows -- hts_lines/schedule_b_lines may be empty or stale');
   }
 
+  await gate.commit();
   return { source: 'xref', rows };
 }

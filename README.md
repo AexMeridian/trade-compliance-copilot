@@ -338,30 +338,23 @@ Cron Triggers defined in `wrangler.jsonc` and dispatched from
 | Schedule | Source | Job |
 |---|---|---|
 | Daily, 05:00 UTC | Pulse feed (Federal Register) | `src/lib/pulse/sync.ts` |
-| Weekly, Mon 06:00 UTC | OFAC SDN, BIS/State CSL, UN Security Council sanctions, UK Sanctions List (OFSI), Global Trade Alert, CBP WRO/Findings | `src/lib/refresh/sdn.ts`, `csl.ts`, `unSanctions.ts`, `ukSanctions.ts`, `src/lib/pulse/globalTradeAlert.ts`, `src/lib/refresh/wroFindings.ts` (same trigger, run in sequence — see below) |
-| Weekly, Mon 07:00 UTC | HTS | `src/lib/refresh/hts.ts` |
-| Weekly, Mon 07:30 UTC | Schedule B | `src/lib/refresh/scheduleB.ts` |
-| Weekly, Mon 08:00 UTC | HTS↔Schedule B cross-reference | `src/lib/refresh/xref.ts` (rebuilt from the two above via a plain SQL join, staggered to run after both) |
+| Daily, 05:00 UTC (same trigger) | Bulk reference reloads that are due: OFAC SDN, BIS/State CSL, UN sanctions, UK Sanctions List (OFSI), Global Trade Alert, CBP WRO/Findings, HTS, Schedule B, HTS↔Schedule B cross-reference | `src/lib/refresh/*.ts`, `src/lib/pulse/globalTradeAlert.ts`, chosen by `pickDueBulkJobs` in `src/scheduled.ts` |
 
-That's exactly 5 cron triggers — Workers Free caps an account at 5 total,
-and adding Pulse's daily sync meant something had to give: SDN, CSL, UN
-sanctions, UK sanctions, Global Trade Alert and CBP WRO/Findings (six
-independent jobs) all share one Monday trigger, with `src/scheduled.ts`
-running each in sequence and logging every one to `data_refresh_log`
-separately — one job's failure (e.g. Global Trade Alert's 1000-entries/24h
-rate limit, see "Known limitations") doesn't block the others. SDN/CSL were
-originally daily — a stale sanctions or entity-list hit is a real compliance
-risk, not just a freshness nicety — but each full-reload job does a full
-`DELETE` + full re-`INSERT` of its table (see the safety-design note below),
-and D1's free-tier plan caps writes at 100,000 rows/day account-wide. Full
-daily reloads of SDN (entries + aliases) and CSL combined already routinely
-exceeded that on their own, independent of any other traffic, and block
-**all** D1 writes app-wide until the quota resets; UN/UK sanctions add
-roughly another 22,000 rows to this same Monday run. Weekly keeps this app
-on the free tier; **if you need daily sanctions-list freshness, move the
-affected entries in `src/scheduled.ts`'s job array to their own daily cron
-and upgrade to the Workers Paid plan** ($5/mo minimum, includes 50M rows
-written/month and 1,000 cron triggers — trivial headroom for this workload).
+There is a single cron trigger. D1's free tier caps writes at 100,000 rows/day
+account-wide, **counting index and full-text-search entries**, and the bulk jobs
+each do a full `DELETE` + full re-`INSERT` of their table (see the safety-design
+note below) — SDN alone is ~44,000 rows. Running them all on one Monday used
+to exhaust the quota and block **all** D1 writes app-wide until it reset.
+Now each bulk job is due once a week, and a day only runs due jobs while their
+combined last-known size stays under a 30,000-row budget (always at least one,
+sanctions first), so they spread across the week by themselves. Each job also
+fingerprints the file it downloaded (`src/lib/refresh/changeGate.ts`) and skips
+the rewrite when it is identical to the last load; those runs are logged as
+"unchanged" with 0 rows. The Pulse upserts (markets, news, Federal Register)
+only write rows whose values actually changed. Every job is still logged to
+`data_refresh_log` separately, and one job's failure doesn't block the others.
+If you need daily sanctions-list freshness, upgrade to Workers Paid ($5/mo
+minimum, 50M rows written/month) and lower `BULK_DUE_AFTER_MS`.
 
 **Safety design.** Each job fetches and fully builds its new dataset in
 memory first, then applies it in one atomic `env.DB.batch()` call (a DELETE

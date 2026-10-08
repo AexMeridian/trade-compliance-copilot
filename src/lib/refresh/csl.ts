@@ -8,6 +8,7 @@ import { normalizeNameString } from '../normalize.js';
 import { parseCsvLine } from './csv.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://www.trade.gov/consolidated-screening-list';
 const CSV_URL = 'https://data.trade.gov/downloadable_consolidated_screening_list/v1/consolidated.csv';
@@ -33,6 +34,8 @@ export async function refreshCsl(env: Env): Promise<RefreshResult> {
   const res = await fetch(CSV_URL, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`CSL fetch failed: HTTP ${res.status}`);
   const text = await res.text();
+  const gate = await changeGate(env, 'csl', text);
+  if (gate.unchanged) return { source: 'csl', rows: 0, unchanged: true };
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
   let entryId = 1;
@@ -87,5 +90,6 @@ export async function refreshCsl(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
+  await gate.commit();
   return { source: 'csl', rows: entryRows.length + aliasRows.length };
 }

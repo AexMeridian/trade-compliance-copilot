@@ -79,8 +79,14 @@ export async function refreshNews(env: Env): Promise<NewsRefreshResult> {
       'INSERT INTO world_news (id, title, summary, url, source, category, countries, published_at, fetched_at, image_url) VALUES',
       rows,
       100,
+      // Re-seen stories are rewritten only if their content changed (fetched_at is not
+      // bumped): every refresh re-sends the whole 14-day window, and D1 bills a write
+      // per upserted row even when it is identical.
       `ON CONFLICT(id) DO UPDATE SET title = excluded.title, summary = excluded.summary, category = excluded.category,
-         countries = excluded.countries, fetched_at = excluded.fetched_at, image_url = excluded.image_url`
+         countries = excluded.countries, image_url = excluded.image_url
+       WHERE world_news.title IS NOT excluded.title OR world_news.summary IS NOT excluded.summary
+          OR world_news.category IS NOT excluded.category OR world_news.countries IS NOT excluded.countries
+          OR world_news.image_url IS NOT excluded.image_url`
     ).map((s) => env.DB.prepare(s)),
     env.DB.prepare('DELETE FROM world_news WHERE published_at < ?1').bind(retentionEdge),
   ]);

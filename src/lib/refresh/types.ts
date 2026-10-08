@@ -16,6 +16,9 @@ export interface RefreshResult {
     | 'gta'
     | 'wro_findings';
   rows: number;
+  // Set when a bulk job found its upstream file identical to the last load and skipped the
+  // (write-heavy) table rewrite. rows is 0 in that case.
+  unchanged?: boolean;
   // Set only by pulse sync -- keyword terms that hit the per-term pagination
   // cap with real results still beyond it, so a caller can surface "this
   // run may be missing some historical documents" instead of the gap being

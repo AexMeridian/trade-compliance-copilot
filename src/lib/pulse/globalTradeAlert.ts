@@ -42,6 +42,7 @@
 import type { Env } from '../../types/env.js';
 import { sqlString, sqlJson, buildInsertStatements } from '../refresh/sql.js';
 import type { RefreshResult } from '../refresh/types.js';
+import { changeGate } from '../refresh/changeGate.js';
 
 const API_URL = 'https://api.globaltradealert.org/api/v1/data/';
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -133,6 +134,9 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
     throw new Error('Global Trade Alert refresh produced zero records -- aborting without touching gta_interventions');
   }
 
+  const gate = await changeGate(env, 'gta', JSON.stringify(records));
+  if (gate.unchanged) return { source: 'gta', rows: 0, unchanged: true };
+
   const now = new Date().toISOString();
   const rows = records.map(
     (r) =>
@@ -150,5 +154,6 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
 
   await env.DB.batch([env.DB.prepare('DELETE FROM gta_interventions'), ...statements.map((s) => env.DB.prepare(s))]);
 
+  await gate.commit();
   return { source: 'gta', rows: records.length };
 }

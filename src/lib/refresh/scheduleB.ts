@@ -5,6 +5,7 @@ import type { Env } from '../../types/env.js';
 import { parseCsvLine } from './csv.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt';
 const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
@@ -19,6 +20,8 @@ export async function refreshScheduleB(env: Env): Promise<RefreshResult> {
     : `Census Schedule B (AES Filer CSV), as retrieved ${today}`;
 
   const text = await res.text();
+  const gate = await changeGate(env, 'schedule_b', text);
+  if (gate.unchanged) return { source: 'schedule_b', rows: 0, unchanged: true };
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const header = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
   if (header[0] !== 'hs') {
@@ -56,5 +59,6 @@ export async function refreshScheduleB(env: Env): Promise<RefreshResult> {
     ...insertStatements.map((s) => env.DB.prepare(s)),
   ]);
 
+  await gate.commit();
   return { source: 'schedule_b', rows: rows.length };
 }

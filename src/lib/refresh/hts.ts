@@ -11,6 +11,7 @@
 import type { Env } from '../../types/env.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 import { HTS_PATH_INDEX_BUILD_SQL, HTS_PATH_INDEX_CLEAR_SQL } from './htsPathIndex.js';
 
 const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
@@ -44,6 +45,7 @@ async function fetchChapter(chapter: number): Promise<HtsApiRow[]> {
 export async function refreshHts(env: Env): Promise<RefreshResult> {
   const today = new Date().toISOString().slice(0, 10);
   const revision = `USITC HTS, as retrieved ${today}`;
+  const chapterTexts: string[] = [];
   let globalId = 1;
   let totalRows = 0;
   const insertStatements: string[] = [];
@@ -52,6 +54,7 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
     const chStr = String(chapter).padStart(2, '0');
     const apiRows = await fetchChapter(chapter); // throws -> aborts before any DB write, see header comment
     if (apiRows.length === 0) continue;
+    chapterTexts.push(JSON.stringify(apiRows));
 
     const stack: { indent: number; id: number }[] = [];
     const rowsSql: string[] = [];
@@ -90,6 +93,11 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
     throw new Error('HTS refresh produced zero rows across all chapters -- aborting without touching hts_lines');
   }
 
+  // Nothing upstream changed since the last load: skip the ~100k-write rebuild (rows,
+  // search index and path index).
+  const gate = await changeGate(env, 'hts', chapterTexts.join('|'));
+  if (gate.unchanged) return { source: 'hts', rows: 0, unchanged: true };
+
   await env.DB.batch([
     env.DB.prepare('DELETE FROM hts_lines'),
     ...insertStatements.map((s) => env.DB.prepare(s)),
@@ -99,5 +107,6 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
     env.DB.prepare(HTS_PATH_INDEX_BUILD_SQL),
   ]);
 
+  await gate.commit();
   return { source: 'hts', rows: totalRows };
 }

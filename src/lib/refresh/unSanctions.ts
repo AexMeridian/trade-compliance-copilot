@@ -14,6 +14,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const SOURCE_PAGE = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml';
 const CITATION_URL = 'https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list';
@@ -124,6 +125,8 @@ export async function refreshUnSanctions(env: Env): Promise<RefreshResult> {
   const res = await fetch(SOURCE_PAGE, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`UN consolidated sanctions list fetch failed: HTTP ${res.status}`);
   const xml = await res.text();
+  const gate = await changeGate(env, 'un_sanctions', xml);
+  if (gate.unchanged) return { source: 'un_sanctions', rows: 0, unchanged: true };
   if (!xml.includes('<CONSOLIDATED_LIST')) throw new Error('UN consolidated sanctions list response did not look like the expected XML -- feed may have changed');
 
   const individualBlocks = tagBlocks(xml, 'INDIVIDUAL').map(parseIndividual);
@@ -166,5 +169,6 @@ export async function refreshUnSanctions(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
+  await gate.commit();
   return { source: 'un_sanctions', rows: entryRows.length + aliasRows.length };
 }

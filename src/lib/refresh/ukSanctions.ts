@@ -17,6 +17,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://ofsistorage.blob.core.windows.net/publishlive/2022format/ConList.xml';
 const CITATION_URL = 'https://sanctionslist.fcdo.gov.uk';
@@ -76,6 +77,8 @@ export async function refreshUkSanctions(env: Env): Promise<RefreshResult> {
   const res = await fetch(SOURCE_URL, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`UK sanctions list fetch failed: HTTP ${res.status}`);
   const xml = await res.text();
+  const gate = await changeGate(env, 'uk_sanctions', xml);
+  if (gate.unchanged) return { source: 'uk_sanctions', rows: 0, unchanged: true };
   if (!xml.includes('<ArrayOfFinancialSanctionsTarget') && !xml.includes('<FinancialSanctionsTarget>')) {
     throw new Error('UK sanctions list response did not look like the expected XML -- feed may have changed');
   }
@@ -128,5 +131,6 @@ export async function refreshUkSanctions(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
+  await gate.commit();
   return { source: 'uk_sanctions', rows: entryRows.length + aliasRows.length };
 }

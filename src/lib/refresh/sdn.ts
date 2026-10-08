@@ -15,6 +15,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML';
 const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
@@ -60,6 +61,8 @@ export async function refreshSdn(env: Env): Promise<RefreshResult> {
   const res = await fetch(SOURCE_URL, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error(`OFAC SDN fetch failed: HTTP ${res.status}`);
   const xmlText = await res.text();
+  const gate = await changeGate(env, 'sdn', xmlText);
+  if (gate.unchanged) return { source: 'sdn', rows: 0, unchanged: true };
 
   const parser = new XMLParser({
     ignoreAttributes: true,
@@ -127,5 +130,6 @@ export async function refreshSdn(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
+  await gate.commit();
   return { source: 'sdn', rows: entryRows.length + aliasRows.length };
 }

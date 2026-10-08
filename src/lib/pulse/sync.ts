@@ -84,9 +84,15 @@ export async function runPulseSync(env: Env): Promise<RefreshResult> {
     `ON CONFLICT(document_number) DO UPDATE SET
        title = excluded.title, abstract = excluded.abstract, agency = excluded.agency,
        doc_type = excluded.doc_type, publication_date = excluded.publication_date,
-       tag = excluded.tag, html_url = excluded.html_url, fetched_at = excluded.fetched_at,
+       tag = excluded.tag, html_url = excluded.html_url,
        effective_on = excluded.effective_on, comments_close_on = excluded.comments_close_on,
-       citation = excluded.citation, countries = excluded.countries`
+       citation = excluded.citation, countries = excluded.countries
+     WHERE trade_policy_actions.title IS NOT excluded.title OR trade_policy_actions.abstract IS NOT excluded.abstract
+        OR trade_policy_actions.agency IS NOT excluded.agency OR trade_policy_actions.doc_type IS NOT excluded.doc_type
+        OR trade_policy_actions.publication_date IS NOT excluded.publication_date OR trade_policy_actions.tag IS NOT excluded.tag
+        OR trade_policy_actions.html_url IS NOT excluded.html_url OR trade_policy_actions.effective_on IS NOT excluded.effective_on
+        OR trade_policy_actions.comments_close_on IS NOT excluded.comments_close_on
+        OR trade_policy_actions.citation IS NOT excluded.citation OR trade_policy_actions.countries IS NOT excluded.countries`
   );
 
   await env.DB.batch([

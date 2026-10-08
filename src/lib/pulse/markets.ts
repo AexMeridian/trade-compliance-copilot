@@ -121,14 +121,23 @@ export async function writeSeries(env: Env, meta: SeriesMeta[], rows: { id: stri
       'INSERT INTO market_series (series_id, obs_date, value) VALUES',
       valueRows,
       300,
-      'ON CONFLICT(series_id, obs_date) DO UPDATE SET value = excluded.value'
+      // D1 bills a write for every upserted row even when nothing changed, and each
+      // refresh re-sends the whole 45-day / 3-month window. Only rewrite rows whose
+      // value actually moved (in practice: today's bar), which keeps this job from
+      // eating the free tier's 100,000 rows-written-per-day budget.
+      'ON CONFLICT(series_id, obs_date) DO UPDATE SET value = excluded.value WHERE market_series.value IS NOT excluded.value'
     ).map((s) => env.DB.prepare(s)),
     ...buildInsertStatements(
       'INSERT INTO market_series_meta (series_id, label, unit, source, source_url, last_fetched_at) VALUES',
       metaRows,
       50,
+      // last_fetched_at is deliberately not refreshed here: nothing reads it for these
+      // series (freshness lives in pulse_feed_state), and bumping it would rewrite every
+      // meta row on every run.
       `ON CONFLICT(series_id) DO UPDATE SET label = excluded.label, unit = excluded.unit, source = excluded.source,
-         source_url = excluded.source_url, last_fetched_at = excluded.last_fetched_at`
+         source_url = excluded.source_url
+       WHERE market_series_meta.label IS NOT excluded.label OR market_series_meta.unit IS NOT excluded.unit
+          OR market_series_meta.source IS NOT excluded.source OR market_series_meta.source_url IS NOT excluded.source_url`
     ).map((s) => env.DB.prepare(s)),
   ]);
 }

@@ -28,61 +28,87 @@ import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { logRefresh } from './lib/refresh/log.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
+export const DAILY_CRON = '0 5 * * *';
+
 interface RefreshJob {
   source: RefreshResult['source'];
   run: (env: Env) => Promise<RefreshResult>;
 }
 
-// Workers Free caps an account at 5 cron triggers total, and this app
-// already used all 5 before Pulse needed a 6th daily slot -- rather than
-// dropping a data source or requiring a plan upgrade, one cron string can
-// dispatch multiple independent jobs in sequence, so SDN and CSL (previously
-// 15 minutes apart, with no ordering dependency between them) now share the
-// Monday 06:00 UTC slot. Each job is still logged to data_refresh_log
-// individually, and one job's failure doesn't block the other from running.
-//
-// SDN/CSL were originally daily -- a stale sanctions/entity-list hit is a
-// real compliance risk, not just a freshness nicety. They were moved to
-// weekly because each job does a full DELETE + full re-INSERT of its table
-// (see hts.ts's header comment for why: a partial refresh must never leave a
-// half-deleted table), and D1's free-tier plan caps writes at 100,000 rows/
-// day account-wide -- daily full reloads of SDN+CSL alone routinely exceeded
-// that. Fix is to run less often on the free tier, or move to Workers Paid
-// (50M rows/month, 1,000 cron triggers) for daily SDN/CSL freshness and
-// separate trigger slots -- see README's "Refreshing the data" section.
-const CRON_JOBS: Record<string, RefreshJob[]> = {
-  // Daily backstop for Pulse. Markets/news also refresh on request when stale
-  // (lib/pulse/refreshLazy.ts) -- this slot just guarantees a refresh even on a
-  // day nobody opens the page.
-  '0 5 * * *': [
-    { source: 'pulse', run: runPulseSync },
-    { source: 'pulse_fx', run: refreshFx },
-    { source: 'pulse_quotes', run: (env) => (env.MARKET_QUOTES === 'off' ? Promise.resolve({ source: 'pulse_quotes', rows: 0 }) : refreshQuotes(env)) },
-    { source: 'pulse_news', run: refreshNews },
-    { source: 'pulse_macro', run: refreshMacro },
-    { source: 'pulse_cofer', run: refreshCofer },
-  ],
-  '0 6 * * 1': [
-    { source: 'sdn', run: refreshSdn },
-    { source: 'csl', run: refreshCsl },
-    { source: 'un_sanctions', run: refreshUnSanctions },
-    { source: 'uk_sanctions', run: refreshUkSanctions },
-    { source: 'gta', run: refreshGlobalTradeAlert },
-    { source: 'wro_findings', run: refreshWroFindings },
-  ],
-  '0 7 * * 1': [{ source: 'hts', run: refreshHts }],
-  '30 7 * * 1': [{ source: 'schedule_b', run: refreshScheduleB }],
-  '0 8 * * 1': [{ source: 'xref', run: refreshXref }],
-};
+// Scheduling model. One daily trigger runs the light Pulse jobs, then at most a
+// small, budgeted set of the heavy bulk reference reloads (SDN, CSL, UN, UK, GTA,
+// WRO, HTS, Schedule B, xref). Those jobs replace a whole table, and D1's free tier
+// allows only 100,000 rows written per day account-wide -- counting index and
+// search-index entries -- so running them all on one Monday blew the quota and
+// starved everything else that day. Instead each bulk job is "due" once a week, and a
+// day only runs due jobs while their combined last-known size fits BULK_ROW_BUDGET
+// (always at least one), most safety-critical first. They therefore spread themselves
+// across the week automatically, and each also skips its rewrite entirely when the
+// upstream file is unchanged (see lib/refresh/changeGate.ts). This also uses one
+// cron trigger instead of five, leaving the rest of the Workers Free allowance free.
+const DAILY_JOBS: RefreshJob[] = [
+  // Markets/news also refresh on request when stale (lib/pulse/refreshLazy.ts) -- this
+  // just guarantees a refresh even on a day nobody opens the page.
+  { source: 'pulse', run: runPulseSync },
+  { source: 'pulse_fx', run: refreshFx },
+  { source: 'pulse_quotes', run: (env) => (env.MARKET_QUOTES === 'off' ? Promise.resolve({ source: 'pulse_quotes', rows: 0 }) : refreshQuotes(env)) },
+  { source: 'pulse_news', run: refreshNews },
+  { source: 'pulse_macro', run: refreshMacro },
+  { source: 'pulse_cofer', run: refreshCofer },
+];
+
+// Priority order = sanctions first (a stale list is a real compliance risk).
+// `typicalRows` is the fallback size when a job has never logged a run.
+const BULK_JOBS: (RefreshJob & { typicalRows: number })[] = [
+  { source: 'sdn', run: refreshSdn, typicalRows: 44_000 },
+  { source: 'csl', run: refreshCsl, typicalRows: 7_000 },
+  { source: 'un_sanctions', run: refreshUnSanctions, typicalRows: 3_000 },
+  { source: 'uk_sanctions', run: refreshUkSanctions, typicalRows: 8_000 },
+  { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
+  { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
+  { source: 'hts', run: refreshHts, typicalRows: 32_000 },
+  { source: 'schedule_b', run: refreshScheduleB, typicalRows: 15_000 },
+  { source: 'xref', run: refreshXref, typicalRows: 30_000 },
+];
+const BULK_DUE_AFTER_MS = 7 * 86_400_000 - 3_600_000; // a day-late cron must not slip a whole extra week
+const BULK_ROW_BUDGET = 30_000; // rows per day; with indexes and search tables each costs several writes
+
+export async function pickDueBulkJobs(env: Env, now = Date.now()) {
+  const { results } = await env.DB.prepare(
+    `SELECT source, MAX(rows_affected) AS biggest,
+            MAX(CASE WHEN status = 'success' THEN finished_at END) AS last_ok
+     FROM data_refresh_log GROUP BY source`
+  ).all<{ source: string; biggest: number | null; last_ok: string | null }>();
+  const seen = new Map(results.map((r) => [r.source, r]));
+
+  const picked: typeof BULK_JOBS = [];
+  let spent = 0;
+  for (const job of BULK_JOBS) {
+    const row = seen.get(job.source);
+    const lastOk = row?.last_ok ? Date.parse(row.last_ok) : 0;
+    if (now - lastOk < BULK_DUE_AFTER_MS) continue;
+    const cost = Math.max(row?.biggest ?? 0, job.typicalRows);
+    if (picked.length > 0 && spent + cost > BULK_ROW_BUDGET) continue;
+    picked.push(job);
+    spent += cost;
+  }
+  return picked;
+}
 
 export async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
-  const jobs = CRON_JOBS[controller.cron];
-  if (!jobs) {
-    console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc vs CRON_JOBS`);
+  if (controller.cron !== DAILY_CRON) {
+    console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc vs DAILY_CRON`);
     return;
   }
 
-  for (const job of jobs) {
+  let bulk: typeof BULK_JOBS = [];
+  try {
+    bulk = await pickDueBulkJobs(env);
+  } catch (err) {
+    console.error('Could not work out which bulk reloads are due:', err instanceof Error ? err.message : String(err));
+  }
+
+  for (const job of [...DAILY_JOBS, ...bulk]) {
     const startedAt = new Date().toISOString();
     try {
       const result = await job.run(env);
@@ -90,7 +116,9 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
       // it undefined, so this stays a no-op note for them.
       const note = result.truncatedTerms?.length
         ? `Pagination cap reached for: ${result.truncatedTerms.join(', ')} -- some historical documents may be missing.`
-        : null;
+        : result.unchanged
+          ? 'Source unchanged since the last load; skipped the rewrite to save database writes.'
+          : null;
       await logRefresh(env, result.source, 'success', result.rows, note, startedAt);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -73,22 +73,14 @@
   // Aex Terminal's daily sync. Pulse (live Federal Register feed,
   // src/lib/pulse/sync.ts) is the only daily job -- it's a small incremental
   // upsert, not a full-table reload, so it doesn't carry the D1 write-quota
-  // risk below. The bulk government reference tables (HTS, Schedule B,
-  // xref, SDN, CSL) are weekly, staggered Monday mornings so xref only
-  // rebuilds after both schedules it joins are current -- SDN/CSL were
-  // moved off a daily schedule after a D1 write-quota incident (see
-  // README's "Refreshing the data"): each of those jobs does a full
-  // DELETE + full re-INSERT, and D1's free-tier plan caps writes at
-  // 100,000 rows/day account-wide. Curated legal content (USMCA rules,
+  // risk below. One daily trigger runs the Pulse jobs plus whichever bulk
+  // reference reloads (HTS, Schedule B, xref, SDN, CSL, UN, UK, GTA, WRO) are due
+  // that day, a few at a time so no single day exceeds D1's free-tier cap of
+  // 100,000 rows written -- see the comment at the top of src/scheduled.ts and
+  // src/lib/refresh/changeGate.ts. Curated legal content (USMCA rules,
   // tariff overlays, country chart, ECCN) is NOT on this schedule -- see
   // the comment at the top of src/scheduled.ts for why.
   "triggers": {
-    "crons": [
-      "0 5 * * *",
-      "0 6 * * 1",
-      "0 7 * * 1",
-      "30 7 * * 1",
-      "0 8 * * 1"
-    ]
+    "crons": ["0 5 * * *"]
   }
 }
