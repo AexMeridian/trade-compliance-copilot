@@ -79,11 +79,11 @@ function loadAllSanctionEvents(env: Env): Promise<ConnEvent[]> {
 async function parseSanctionEvents(env: Env): Promise<ConnEvent[]> {
   const since = new Date(Date.now() - SANCTIONS_LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10);
   const [un, uk, csl] = await Promise.all([
-    env.DB.prepare(`SELECT uid, primary_name, un_list_type, listed_on, nationality, addresses, source_url FROM un_sanctions_entries WHERE listed_on >= ?1 ORDER BY listed_on DESC LIMIT 400`)
+    env.DB.prepare(`SELECT uid, primary_name, un_list_type, listed_on, nationality, addresses, source_url FROM un_sanctions_entries WHERE listed_on >= ?1 ORDER BY listed_on DESC, uid LIMIT 400`)
       .bind(since).all<UnRow>().catch(() => ({ results: [] as UnRow[] })),
-    env.DB.prepare(`SELECT uid, primary_name, regime_name, date_listed, addresses, source_url FROM uk_sanctions_entries WHERE date_listed >= ?1 ORDER BY date_listed DESC LIMIT 400`)
+    env.DB.prepare(`SELECT uid, primary_name, regime_name, date_listed, addresses, source_url FROM uk_sanctions_entries WHERE date_listed >= ?1 ORDER BY date_listed DESC, uid LIMIT 400`)
       .bind(since).all<UkRow>().catch(() => ({ results: [] as UkRow[] })),
-    env.DB.prepare(`SELECT id, name, source_list, start_date, addresses, source_url FROM csl_entries WHERE start_date >= ?1 ORDER BY start_date DESC LIMIT 400`)
+    env.DB.prepare(`SELECT id, name, source_list, start_date, addresses, source_url FROM csl_entries WHERE start_date >= ?1 ORDER BY start_date DESC, id LIMIT 400`)
       .bind(since).all<CslRow>().catch(() => ({ results: [] as CslRow[] })),
   ]);
   const out: ConnEvent[] = [];

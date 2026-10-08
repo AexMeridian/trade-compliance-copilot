@@ -8,6 +8,7 @@ import { screeningRoute } from './routes/screening.js';
 import { determinationRoute } from './routes/determination.js';
 import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
+import { edgeCache } from './lib/edgeCache.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -27,6 +28,11 @@ app.use('/api/pulse/*', async (c, next) => {
   }
   return next();
 });
+
+// Slow-changing, comparatively expensive reads are cached at the edge for 5 minutes
+// (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
+const EDGE_CACHED = ['country/*', 'connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'export-control-chart', 'active-measures'];
+for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
 
 // Public Pulse reads are safe for a browser to reuse for a minute (switching tabs
 // or reopening a country re-asks for the same data). Routes that know better set
