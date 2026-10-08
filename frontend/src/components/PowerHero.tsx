@@ -71,9 +71,9 @@ export function PowerHero({
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">
-            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">The U.S. and the world, side by side</h1>
+            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">The U.S. vs. the world</h1>
             <p className="mx-auto mt-3 max-w-xs text-[13px] leading-snug text-hero-ink-muted sm:max-w-sm sm:text-base">
-              U.S. trade measures are rising. The dollar's share of world reserves is slipping. Both, together, not a score.
+              Trade measures rising, the dollar's reserve share slipping. Not a score.
             </p>
           </div>
           {summary ? (

@@ -62,6 +62,9 @@ interface GlobePalette {
   quiet: string; // any real country: no actions this month, tracked or not
   home: string; // the United States
   hovered: string;
+  // Light mode only: the ocean is a lit, glass-like sphere (gradient + limb shading +
+  // specular highlight) instead of a flat fill, so the globe reads as a physical object.
+  sphere?: boolean;
 }
 const PALETTES: Record<Theme, GlobePalette> = {
   dark: {
@@ -77,18 +80,20 @@ const PALETTES: Record<Theme, GlobePalette> = {
     hovered: '#ffffff',
   },
   light: {
-    ocean: '#eef2f8',
-    rim: '#0b1220',
-    graticule: 'rgba(11,18,32,0.16)',
-    outline: 'rgba(11,18,32,0.26)',
-    hoverFill: 'rgba(11,18,32,0.08)',
-    hoverStroke: 'rgba(11,18,32,0.8)',
-    // Same dim-to-bright meaning as dark's ramp, but inverted luminance --
-    // "brightest" can't mean "near-white" on a near-white ocean.
-    ramp: ['#cfe6ef', '#7cc3db', '#1f93ad', '#0a5d73'],
-    quiet: '#9a9aa5',
-    home: '#6d28d9',
+    ocean: '#d6ecfa', // fallback only; the sphere gradient below is what is drawn
+    rim: 'rgba(37,99,235,0.6)',
+    graticule: 'rgba(30,64,175,0.2)',
+    outline: 'rgba(30,64,175,0.28)',
+    hoverFill: 'rgba(30,64,175,0.12)',
+    hoverStroke: 'rgba(30,64,175,0.9)',
+    // Same dim-to-bright meaning as dark's ramp (more actions = stronger), but the
+    // strength comes from saturation and depth, not near-white: teal, cyan-blue,
+    // royal blue, deep navy. Each step stays readable on the pale blue ocean.
+    ramp: ['#2dd4bf', '#0891b2', '#2563eb', '#1e3a8a'],
+    quiet: '#7c8db0',
+    home: '#9333ea',
     hovered: '#0b1220',
+    sphere: true,
   },
 };
 
@@ -300,7 +305,17 @@ export function PulseGlobe({
     // Ocean and rim.
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, r, 0, 2 * Math.PI);
-    ctx.fillStyle = palette.ocean;
+    if (palette.sphere) {
+      // Lit from the upper left: bright sky-white core falling to a deeper blue at the far limb.
+      const lit = ctx.createRadialGradient(size / 2 - r * 0.38, size / 2 - r * 0.42, r * 0.05, size / 2, size / 2, r);
+      lit.addColorStop(0, '#fbfeff');
+      lit.addColorStop(0.45, '#dff0fc');
+      lit.addColorStop(0.85, '#b4d6f2');
+      lit.addColorStop(1, '#8fbce8');
+      ctx.fillStyle = lit;
+    } else {
+      ctx.fillStyle = palette.ocean;
+    }
     ctx.fill();
     ctx.strokeStyle = palette.rim;
     ctx.lineWidth = 1.5;
@@ -365,6 +380,26 @@ export function PulseGlobe({
       }
       ctx.fillStyle = color;
       ctx.fill();
+    }
+
+    // Light mode: limb shading over the dots and a soft specular glint, so the dotted
+    // surface curves away from the viewer instead of sitting flat on a disc.
+    if (palette.sphere) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, r, 0, 2 * Math.PI);
+      ctx.clip();
+      const limb = ctx.createRadialGradient(size / 2, size / 2, r * 0.62, size / 2, size / 2, r);
+      limb.addColorStop(0, 'rgba(30,64,175,0)');
+      limb.addColorStop(1, 'rgba(30,64,175,0.24)');
+      ctx.fillStyle = limb;
+      ctx.fillRect(0, 0, size, size);
+      const glint = ctx.createRadialGradient(size / 2 - r * 0.45, size / 2 - r * 0.5, 0, size / 2 - r * 0.45, size / 2 - r * 0.5, r * 0.55);
+      glint.addColorStop(0, 'rgba(255,255,255,0.5)');
+      glint.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = glint;
+      ctx.fillRect(0, 0, size, size);
+      ctx.restore();
     }
 
     // Trade-flow arcs: a great circle from the U.S. to each hot country,
@@ -569,6 +604,7 @@ export function PulseGlobe({
             a bit larger than the globe and blurred, so it reads as a glow
             the globe sits inside rather than a flat circle on the page. */}
         <div className="globe-halo pointer-events-none absolute -inset-[22%] -z-10 rounded-full blur-3xl" aria-hidden="true" />
+        <div className="globe-shadow pointer-events-none absolute inset-x-[14%] -bottom-[3%] -z-10 h-[7%]" aria-hidden="true" />
         <div ref={wrap} className={`relative w-full min-w-0 rounded-full ${!booted ? 'globe-boot' : ''}`}>
           <canvas
             ref={canvas}

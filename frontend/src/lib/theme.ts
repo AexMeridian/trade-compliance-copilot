@@ -1,6 +1,6 @@
 // Accountless theme persistence -- localStorage only, same philosophy as
 // pulsePrefs.ts's URL-based preference sharing, no login required. The
-// initial theme (system preference, or a previously-saved explicit choice)
+// initial theme (light, or a previously-saved explicit choice)
 // is applied by a small inline script in index.html's <head>, before this
 // module or React even loads, so there's no flash of the wrong theme on
 // first paint. This module is what the in-page toggle button reads and

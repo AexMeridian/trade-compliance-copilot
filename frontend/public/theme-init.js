@@ -1,6 +1,6 @@
 // Sets the theme before any CSS paints, so there's no flash of the wrong
-// theme -- a previously-saved explicit choice wins, otherwise the OS/
-// browser's prefers-color-scheme. See frontend/src/lib/theme.ts, which the
+// theme -- a previously-saved explicit choice wins, otherwise light (the
+// site's default look; the OS preference is deliberately not consulted). See frontend/src/lib/theme.ts, which the
 // in-page toggle button uses after this.
 //
 // This has to be an external file, not an inline <script> in index.html's
@@ -12,7 +12,7 @@
 (function () {
   try {
     var saved = localStorage.getItem('theme');
-    var theme = saved === 'light' || saved === 'dark' ? saved : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var theme = saved === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.colorScheme = theme;
   } catch (e) {}
