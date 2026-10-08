@@ -27,7 +27,7 @@ export function PowerTabs({ active, onChange }: { active: PowerTabId; onChange: 
     <div id="power-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
-        aria-label="U.S. vs. world sections"
+        aria-label="Global standing sections"
         className="flex min-w-0 overflow-x-auto border-b border-hairline-strong sm:border-b-0"
         onKeyDown={(e) => {
           const i = POWER_TABS.findIndex((t) => t.id === active);

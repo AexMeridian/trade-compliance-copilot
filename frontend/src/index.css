@@ -60,7 +60,7 @@
      globe redrawn in black lines on white reads as a broken inversion, not a
      deliberate second treatment). These are the light/day values; the dark
      override block below restores today's exact black-hero look unchanged. */
-  --color-hero-bg: #eaf2fc;
+  --color-hero-bg: #eef3fa;
   --color-hero-ink: #0b1220;
   --color-hero-ink-muted: #45526b;
   --color-hero-ink-faint: #5d697e;
@@ -71,11 +71,11 @@
   --color-hero-btn-bg: #0b1220;
   --color-hero-btn-text: #eef2f8;
   --color-hero-btn-hover: #1b2a4a;
-  --hero-mask-rgb: 234, 242, 252; /* matches --color-hero-bg, for the headline's radial fade */
+  --hero-mask-rgb: 238, 243, 250; /* matches --color-hero-bg, for the headline's radial fade */
   --hero-glow-rgb: 56, 189, 248; /* sky blue: daylight atmosphere behind the globe */
-  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.28) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
+  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
   --globe-shadow-alpha: 0.3;
-  --hero-glow-alpha: 0.34; /* softer in daylight; the dark override brightens it to read as a monitor glow */
+  --hero-glow-alpha: 0.24; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
 }

@@ -49,10 +49,10 @@ const PAGES: SearchEntry[] = [
   },
   {
     id: 'power',
-    title: 'U.S. vs. world',
+    title: 'Global standing',
     description: "U.S. tariffs, sanctions and export controls next to the dollar's share of world reserves and key alliances.",
     type: 'Page',
-    url: '/vs-world',
+    url: '/standing',
   },
   {
     id: 'compare',
@@ -119,7 +119,7 @@ const PAGES: SearchEntry[] = [
     title: 'Alliances',
     description: "Formal membership in NATO, G7, G20, BRICS and USMCA, cross-referenced with this month's U.S. actions.",
     type: 'Page',
-    url: '/vs-world?tab=alliances',
+    url: '/standing?tab=alliances',
   },
   { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader -- no account needed.', type: 'Page', url: '/rss.xml' },
 ];
@@ -131,7 +131,7 @@ const ALLIANCES: SearchEntry[] = (Object.keys(BLOC_FULL_NAMES) as Bloc[]).map((b
   title: bloc,
   description: BLOC_FULL_NAMES[bloc],
   type: 'Alliance',
-  url: '/vs-world?tab=alliances',
+  url: '/standing?tab=alliances',
 }));
 
 // Real programs and lists this app actually screens or rates against, each

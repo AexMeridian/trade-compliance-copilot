@@ -81,7 +81,7 @@ const PALETTES: Record<Theme, GlobePalette> = {
   },
   light: {
     ocean: '#d6ecfa', // fallback only; the sphere gradient below is what is drawn
-    rim: 'rgba(37,99,235,0.6)',
+    rim: 'rgba(37,99,235,0.42)',
     graticule: 'rgba(30,64,175,0.2)',
     outline: 'rgba(30,64,175,0.28)',
     hoverFill: 'rgba(30,64,175,0.12)',
@@ -308,10 +308,10 @@ export function PulseGlobe({
     if (palette.sphere) {
       // Lit from the upper left: bright sky-white core falling to a deeper blue at the far limb.
       const lit = ctx.createRadialGradient(size / 2 - r * 0.38, size / 2 - r * 0.42, r * 0.05, size / 2, size / 2, r);
-      lit.addColorStop(0, '#fbfeff');
-      lit.addColorStop(0.45, '#dff0fc');
-      lit.addColorStop(0.85, '#b4d6f2');
-      lit.addColorStop(1, '#8fbce8');
+      lit.addColorStop(0, '#fcfeff');
+      lit.addColorStop(0.45, '#e8f2fa');
+      lit.addColorStop(0.85, '#cbdff0');
+      lit.addColorStop(1, '#b0cbe6');
       ctx.fillStyle = lit;
     } else {
       ctx.fillStyle = palette.ocean;
@@ -391,7 +391,7 @@ export function PulseGlobe({
       ctx.clip();
       const limb = ctx.createRadialGradient(size / 2, size / 2, r * 0.62, size / 2, size / 2, r);
       limb.addColorStop(0, 'rgba(30,64,175,0)');
-      limb.addColorStop(1, 'rgba(30,64,175,0.24)');
+      limb.addColorStop(1, 'rgba(30,64,175,0.15)');
       ctx.fillStyle = limb;
       ctx.fillRect(0, 0, size, size);
       const glint = ctx.createRadialGradient(size / 2 - r * 0.45, size / 2 - r * 0.5, 0, size / 2 - r * 0.45, size / 2 - r * 0.5, r * 0.55);

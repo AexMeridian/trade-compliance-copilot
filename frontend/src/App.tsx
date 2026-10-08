@@ -24,7 +24,7 @@ const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'Country
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
-const KNOWN_PATHS = ['/', '/calculator', '/footprint', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
+const KNOWN_PATHS = ['/', '/calculator', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -36,7 +36,7 @@ function usePageMeta(pathname: string, tab: string | null) {
       if (t && t.id !== 'overview') title = `${t.label} | ${SITE.name}`;
     } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
     else if (pathname === '/footprint') title = `Global footprint: where U.S. policy lands | ${SITE.name}`;
-    else if (pathname === '/vs-world') title = `U.S. vs. world: trade tools and the dollar | ${SITE.name}`;
+    else if (pathname === '/standing') title = `Global standing: trade tools and the dollar | ${SITE.name}`;
     else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
@@ -133,8 +133,8 @@ export default function App() {
             <NavLink to="/footprint" className={navClass}>
               Footprint
             </NavLink>
-            <NavLink to="/vs-world" className={(s) => `${navClass(s)} hidden sm:block`}>
-              U.S. vs. world
+            <NavLink to="/standing" className={(s) => `${navClass(s)} hidden sm:block`}>
+              Standing
             </NavLink>
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
@@ -151,10 +151,11 @@ export default function App() {
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
           <Route path="/footprint" element={<Influence />} />
-          <Route path="/vs-world" element={<Power />} />
+          <Route path="/standing" element={<Power />} />
+          <Route path="/vs-world" element={<Navigate to={{ pathname: '/standing', search: location.search }} replace />} />
           {/* Old addresses keep working: bookmarks, shared links and search results. */}
           <Route path="/influence" element={<Navigate to={{ pathname: '/footprint', search: location.search }} replace />} />
-          <Route path="/power" element={<Navigate to={{ pathname: '/vs-world', search: location.search }} replace />} />
+          <Route path="/power" element={<Navigate to={{ pathname: '/standing', search: location.search }} replace />} />
           <Route path="/country/:code" element={<CountryDetail />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
@@ -180,8 +181,8 @@ export default function App() {
               <Link to="/footprint" className="text-white no-underline hover:underline">
                 Global footprint
               </Link>
-              <Link to="/vs-world" className="text-white no-underline hover:underline">
-                U.S. vs. world
+              <Link to="/standing" className="text-white no-underline hover:underline">
+                Global standing
               </Link>
               <Link to="/compare" className="text-white no-underline hover:underline">
                 Compare countries
