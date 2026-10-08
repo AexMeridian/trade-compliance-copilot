@@ -79,6 +79,8 @@
   --hero-glow-rgb: 100, 116, 139; /* cool slate: a quiet daylight atmosphere behind the globe */
   --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.07) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
   --globe-shadow-alpha: 0.22;
+  --backdrop-route: rgba(51, 65, 85, 0.2); /* hero backdrop: trade routes and ports (HeroBackdrop.tsx) */
+  --backdrop-port: #475569;
   --hero-glow-alpha: 0.14; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
@@ -101,7 +103,7 @@
   resolves system preference into an explicit attribute before CSS runs.
 */
 :root[data-theme='dark'] {
-  --color-hero-bg: #0a0a0b;
+  --color-hero-bg: #05070d; /* a hair bluer than the page's black, so the starfield sits in night sky, not flat black */
   --color-hero-ink: #ffffff;
   --color-hero-ink-muted: #d8d8dd;
   --color-hero-ink-faint: #b4b4bc;
@@ -112,9 +114,11 @@
   --color-hero-btn-bg: #ffffff;
   --color-hero-btn-text: #0b0b0c;
   --color-hero-btn-hover: #e4e4e7;
-  --hero-mask-rgb: 10, 10, 11;
+  --hero-mask-rgb: 5, 7, 13;
   --hero-glow-rgb: 6, 182, 212; /* --color-hue-cyan, the globe's own hue -- the monitor glow */
   --hero-halo-2: none;
+  --backdrop-route: rgba(34, 211, 238, 0.3);
+  --backdrop-port: #67e8f9;
   --globe-shadow-alpha: 0;
   --hero-glow-alpha: 0.48;
 
@@ -342,6 +346,79 @@
    .is-ready after the sweep's duration so the globe doesn't replay it on
    later re-renders. Skipped entirely under reduced motion -- the globe simply
    appears at its resting state. */
+/* Hero backdrop (HeroBackdrop.tsx): trade routes in both themes, stars in dark only. Static
+   by default; motion is opt-in and paused while the hero is off screen (.is-paused). */
+.hero-route {
+  stroke: var(--backdrop-route);
+  stroke-width: 1;
+}
+.hero-route-flow {
+  stroke-dasharray: 3 7;
+}
+.hero-port {
+  fill: var(--backdrop-port);
+  opacity: 0.85;
+}
+.hero-port-ring {
+  stroke: var(--backdrop-port);
+  opacity: 0.25;
+}
+.hero-stars {
+  display: none;
+  fill: #ffffff;
+}
+:root[data-theme='dark'] .hero-stars {
+  display: block;
+}
+.hero-horizon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+:root[data-theme='dark'] .hero-horizon {
+  background: radial-gradient(ellipse 70% 38% at 50% 108%, rgba(34, 211, 238, 0.26) 0%, rgba(34, 211, 238, 0) 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-route-flow {
+    animation: hero-route-flow 38s linear infinite;
+  }
+  .hero-twinkle {
+    animation: hero-twinkle 5s ease-in-out infinite;
+  }
+  .hero-port-pulse {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hero-port-pulse 4.5s ease-out infinite;
+  }
+  .hero-backdrop.is-paused * {
+    animation-play-state: paused;
+  }
+  @keyframes hero-route-flow {
+    to {
+      stroke-dashoffset: -400;
+    }
+  }
+  @keyframes hero-twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes hero-port-pulse {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .globe-boot {
     animation: globe-boot-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
