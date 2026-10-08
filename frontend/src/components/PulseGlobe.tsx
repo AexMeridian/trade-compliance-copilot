@@ -176,6 +176,7 @@ export function PulseGlobe({
   ariaLabel?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
+  const onScreenRef = useRef(true); // false once the globe has scrolled out of view
   const canvas = useRef<HTMLCanvasElement>(null);
   const [world, setWorld] = useState<World | null>(null);
   const [size, setSize] = useState(440);
@@ -456,8 +457,13 @@ export function PulseGlobe({
     if (!world || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let raf = 0;
     let last = performance.now();
+    // Stop drawing while the globe is scrolled out of view: on a long page it would
+    // otherwise burn CPU/GPU at 30 fps for as long as the visitor reads below it.
+    const el = wrap.current;
+    const io = el ? new IntersectionObserver(([entry]) => { onScreenRef.current = entry.isIntersecting; }) : null;
+    if (el && io) io.observe(el);
     const tick = (now: number) => {
-      if (document.hidden) {
+      if (document.hidden || !onScreenRef.current) {
         last = now;
         raf = requestAnimationFrame(tick);
         return;
@@ -484,7 +490,10 @@ export function PulseGlobe({
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      io?.disconnect();
+    };
     // hitTestId is stable enough for this loop; the loop restarts when the world or selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world, activeCountry, draw]);
