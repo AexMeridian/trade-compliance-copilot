@@ -6,7 +6,7 @@ export const SITE = {
   operator: 'Aex Meridian',
   // Where readers can send corrections and privacy questions. Set this to a
   // monitored address before launch; while empty, no contact line is shown.
-  contactEmail: '',
+  contactEmail: 'CEO@AexMeridian.com',
   // "Last updated" dates on the About, Privacy and Accessibility pages.
   // Change them whenever those pages change.
   aboutUpdated: '2026-10-07',
