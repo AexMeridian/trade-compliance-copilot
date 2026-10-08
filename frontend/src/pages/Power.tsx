@@ -174,7 +174,7 @@ export function Power() {
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
               <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-                <Item label="Biggest hard-power action lately">
+                <Item label="Biggest trade action lately">
                   {topAction ? (
                     <>
                       <a
@@ -191,7 +191,7 @@ export function Power() {
                     <Unavailable loading={loading} />
                   )}
                 </Item>
-                <Item label="Soft power: the dollar's reserve share">
+                <Item label="The dollar's reserve share">
                   {coferLatest ? (
                     <>
                       <p className="text-base font-semibold leading-snug text-ink">
@@ -236,8 +236,8 @@ export function Power() {
                   {SITE.name}
                 </Link>{' '}
                 and{' '}
-                <Link to="/influence" className="text-accent hover:underline">
-                  American influence
+                <Link to="/footprint" className="text-accent hover:underline">
+                  Global footprint
                 </Link>
                 , read as two opposing trends rather than combined into a score. See the Guide tab for exactly what that does and doesn't mean.
               </p>
@@ -247,7 +247,7 @@ export function Power() {
           {tab === 'hard' && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="display text-3xl text-ink">Hard power</h2>
+                <h2 className="display text-3xl text-ink">Trade tools</h2>
                 <p className="mt-1 text-sm text-ink-muted">
                   Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
                   Register.
@@ -301,7 +301,7 @@ export function Power() {
                     {loading ? loadingBlock : <PulseAgencyBreakdown breakdown={summary?.agencyBreakdown ?? []} />}
                   </PulsePanel>
                   <PulsePanel
-                    title="Tempo of coercion"
+                    title="Pace of U.S. trade actions"
                     help="How many actions were published each month. Taller bars mean a busier month. Pick a shorter or longer window with the range buttons."
                     subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`}
                   >
@@ -320,7 +320,7 @@ export function Power() {
           {tab === 'soft' && (
             <div className="flex flex-col gap-8">
               <div>
-                <h2 className="display text-3xl text-ink">Soft power</h2>
+                <h2 className="display text-3xl text-ink">The dollar and diplomacy</h2>
                 <p className="mt-1 text-sm text-ink-muted">
                   The dollar's pull as the world's reserve currency, its reach in world markets, and diplomatic/political news. Not a measure of culture or
                   favorability.

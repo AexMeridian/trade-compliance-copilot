@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
-import { Routes, Route, Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Pulse } from './pages/Pulse';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
@@ -24,7 +24,7 @@ const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'Country
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
-const KNOWN_PATHS = ['/', '/calculator', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
+const KNOWN_PATHS = ['/', '/calculator', '/footprint', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -35,8 +35,8 @@ function usePageMeta(pathname: string, tab: string | null) {
       const t = PULSE_TABS.find((x) => x.id === tab);
       if (t && t.id !== 'overview') title = `${t.label} | ${SITE.name}`;
     } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
-    else if (pathname === '/influence') title = `American influence: pressure and reach | ${SITE.name}`;
-    else if (pathname === '/power') title = `American power: hard and soft | ${SITE.name}`;
+    else if (pathname === '/footprint') title = `Global footprint: where U.S. policy lands | ${SITE.name}`;
+    else if (pathname === '/vs-world') title = `U.S. vs. world: trade tools and the dollar | ${SITE.name}`;
     else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
@@ -130,11 +130,11 @@ export default function App() {
             <NavLink to="/calculator" className={navClass}>
               Calculator
             </NavLink>
-            <NavLink to="/influence" className={navClass}>
-              Influence
+            <NavLink to="/footprint" className={navClass}>
+              Footprint
             </NavLink>
-            <NavLink to="/power" className={(s) => `${navClass(s)} hidden sm:block`}>
-              Power
+            <NavLink to="/vs-world" className={(s) => `${navClass(s)} hidden sm:block`}>
+              U.S. vs. world
             </NavLink>
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
               About
@@ -150,8 +150,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
-          <Route path="/influence" element={<Influence />} />
-          <Route path="/power" element={<Power />} />
+          <Route path="/footprint" element={<Influence />} />
+          <Route path="/vs-world" element={<Power />} />
+          {/* Old addresses keep working: bookmarks, shared links and search results. */}
+          <Route path="/influence" element={<Navigate to={{ pathname: '/footprint', search: location.search }} replace />} />
+          <Route path="/power" element={<Navigate to={{ pathname: '/vs-world', search: location.search }} replace />} />
           <Route path="/country/:code" element={<CountryDetail />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
@@ -174,11 +177,11 @@ export default function App() {
               attorney before relying on them.
             </p>
             <nav aria-label="Site" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
-              <Link to="/influence" className="text-white no-underline hover:underline">
-                American influence
+              <Link to="/footprint" className="text-white no-underline hover:underline">
+                Global footprint
               </Link>
-              <Link to="/power" className="text-white no-underline hover:underline">
-                American power
+              <Link to="/vs-world" className="text-white no-underline hover:underline">
+                U.S. vs. world
               </Link>
               <Link to="/compare" className="text-white no-underline hover:underline">
                 Compare countries

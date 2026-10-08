@@ -16,11 +16,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const QA: [string, string][] = [
   [
-    'Is "American power" a score this page computes?',
-    'No. There is no power index, no weighting, and no single number that claims to answer "is the U.S. more or less powerful." Every figure here is a real, independently sourced count or rate -- hard power and soft power are shown as two separate, real trends, not combined into one.',
+    'Is this page a score of how strong the U.S. is?',
+    "No. There is no index, no weighting, and no single number that claims to answer \"is the U.S. ahead or behind.\" Every figure here is a real, independently sourced count or rate -- the trade tools in use and the dollar's standing are shown as two separate, real trends, not combined into one.",
   ],
   [
-    'Does more tariff/sanctions activity mean the U.S. is more powerful?',
+    'Does more tariff/sanctions activity mean the U.S. is stronger?',
     "It means more of the tracked Federal Register actions took effect. That's real pressure being exercised, but exercising a tool and that tool working are different things -- this page doesn't claim the second.",
   ],
   [
@@ -28,7 +28,7 @@ const QA: [string, string][] = [
     "No single figure supports that claim. It means central banks, in aggregate, hold a smaller share of their reserves in dollars than they did in 1999 -- a real, slow-moving trend, not a prediction about what replaces it or how fast.",
   ],
   [
-    'Why isn\'t there a "cultural power" or "soft power index" section?',
+    'Why isn\'t there a "cultural influence" section?',
     "Because nothing on this page would be a genuine measurement of it. Media reach, cultural influence and similar ideas are real, but this app doesn't have a real, sourced number for them -- so they're left out rather than estimated.",
   ],
   [
@@ -43,25 +43,25 @@ export function PowerGuide() {
       <div>
         <h2 className="display text-3xl text-ink">A short guide to this page</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-          This page puts two real, opposing trends side by side: hard power (the tariffs, sanctions and export controls the U.S. is actively using) and soft
-          power (the dollar's shrinking share of world reserves, plus its market reach and diplomatic headlines). Almost everything here is the same data
+          This page puts two real, opposing trends side by side: trade tools (the tariffs, sanctions and export controls the U.S. is actively using) and the dollar and
+          diplomacy (the dollar's shrinking share of world reserves, plus its market reach and diplomatic headlines). Almost everything here is the same data
           already tracked by{' '}
           <Link to="/" className="text-accent hover:underline">
             {SITE.name}
           </Link>{' '}
           and{' '}
-          <Link to="/influence" className="text-accent hover:underline">
-            American influence
+          <Link to="/footprint" className="text-accent hover:underline">
+            Global footprint
           </Link>
           , read through this specific lens. The one genuinely new piece is the IMF's reserve-currency data (below).
         </p>
       </div>
 
-      <Section title="What counts as “hard power” here">
+      <Section title="What counts as “trade tools” here">
         <p>
           Tariffs, sanctions, export controls and trade agreements published in the Federal Register -- tools that raise costs, cut off access, or condition
-          trade for another country. The same real data as Pulse's U.S.-policy feed and Influence's Pressure tab, framed here as instruments of coercion rather
-          than neutral policy tracking. See the full duty-stack and tariff-program detail on{' '}
+          trade for another country. The same real data as Pulse's U.S.-policy feed and Global footprint's Pressure tab, framed here as instruments of pressure
+          rather than neutral policy tracking. See the full duty-stack and tariff-program detail on{' '}
           <Link to="/?tab=data" className="text-accent hover:underline">
             {SITE.name}'s Data tab
           </Link>
@@ -73,7 +73,7 @@ export function PowerGuide() {
         </p>
       </Section>
 
-      <Section title="What counts as “soft power” here">
+      <Section title="What counts as “the dollar and diplomacy” here">
         <p className="mb-3">
           One genuinely new, real measure, plus the same market and news data Pulse already collects:
         </p>

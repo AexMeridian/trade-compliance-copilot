@@ -4,10 +4,10 @@ export type PowerTabId = 'overview' | 'hard' | 'soft' | 'alliances' | 'guide';
 
 export const POWER_TABS: { id: PowerTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
-  { id: 'hard', label: 'Hard power', hint: 'Tariffs, sanctions and export controls as instruments of coercion' },
-  { id: 'soft', label: 'Soft power', hint: "The dollar's reach and reserve-currency status, and diplomatic headlines" },
+  { id: 'hard', label: 'Trade tools', hint: 'Tariffs, sanctions and export controls the U.S. is using' },
+  { id: 'soft', label: 'Dollar & diplomacy', hint: "The dollar's reach and reserve-currency status, and diplomatic headlines" },
   { id: 'alliances', label: 'Alliances', hint: "Who the U.S. is formally aligned with, and who it's recently targeted" },
-  { id: 'guide', label: 'Guide', hint: 'What "hard power" and "soft power" mean here, and their limits' },
+  { id: 'guide', label: 'Guide', hint: 'What these sections show, where the data comes from, and their limits' },
 ];
 
 // Same accessible tab-bar idiom as PulseTabs/InfluenceTabs, over a third,
@@ -27,7 +27,7 @@ export function PowerTabs({ active, onChange }: { active: PowerTabId; onChange: 
     <div id="power-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
-        aria-label="Power sections"
+        aria-label="U.S. vs. world sections"
         className="flex min-w-0 overflow-x-auto border-b border-hairline-strong sm:border-b-0"
         onKeyDown={(e) => {
           const i = POWER_TABS.findIndex((t) => t.id === active);

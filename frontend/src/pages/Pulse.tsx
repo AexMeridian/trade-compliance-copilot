@@ -541,7 +541,7 @@ export function Pulse() {
                   help="Rather than one list per topic, this shows where several kinds of activity land on the same country. It counts what was published; it is not a risk score. Open a country for its full timeline."
                 >
                   <ConvergencePanel limit={3} />
-                  <Link to="/influence?tab=pressure" className="mt-3 inline-block text-[13px] text-accent hover:underline">
+                  <Link to="/footprint?tab=pressure" className="mt-3 inline-block text-[13px] text-accent hover:underline">
                     More in Influence
                   </Link>
                 </PulsePanel>
