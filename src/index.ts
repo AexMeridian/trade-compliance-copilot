@@ -28,6 +28,16 @@ app.use('/api/pulse/*', async (c, next) => {
   return next();
 });
 
+// Public Pulse reads are safe for a browser to reuse for a minute (switching tabs
+// or reopening a country re-asks for the same data). Routes that know better set
+// their own Cache-Control first (e.g. /home, /connections); this only fills the gap.
+app.use('/api/pulse/*', async (c, next) => {
+  await next();
+  if (c.req.method === 'GET' && c.res.status === 200 && !c.res.headers.has('Cache-Control')) {
+    c.res.headers.set('Cache-Control', 'public, max-age=60');
+  }
+});
+
 const CLAUDE_CALLING_SUFFIXES = ['/classification', '/origin', '/screening', '/determination'];
 
 // This is a public demo Worker with no auth in front of it, and these 4

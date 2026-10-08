@@ -11,16 +11,6 @@ export function sqlJson(value: unknown): string {
   return sqlString(JSON.stringify(value ?? null));
 }
 
-export function sqlNum(value: number | null | undefined): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return 'NULL';
-  return String(value);
-}
-
-export function sqlInt(value: number | null | undefined): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return 'NULL';
-  return String(Math.trunc(value));
-}
-
 /**
  * Writes `rows` (each already a parenthesized "(...)" value tuple string) as one
  * or more INSERT statements, capping each statement's row count so the rendered

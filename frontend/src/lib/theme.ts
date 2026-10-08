@@ -25,10 +25,6 @@ function safeSetItem(key: string, value: string): void {
   }
 }
 
-export function getSystemTheme(): Theme {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 /** The theme actually applied to the page right now, read from the
  * `data-theme` attribute the inline script (or a previous call to
  * setTheme()) already set on <html>. */

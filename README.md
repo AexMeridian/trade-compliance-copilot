@@ -186,15 +186,21 @@ migrations/              D1 schema + small curated seed data (country chart subs
 scripts/                 Bulk data loaders (HTS, Schedule B, OFAC SDN, CSL) +
                           scripts/refresh_data.md (how to re-run each one later)
 src/
-  routes/                One Hono route file per module + cases.ts (create/report/samples) + pulse.ts
+  routes/                One Hono route file per compliance module + cases.ts (create/report/samples)
+  routes/pulse.ts        Composes the Pulse read API from routes/pulse/ (policy, country, reference,
+                          marketsNews, home) and routes/pulseConnections.ts (cross-topic links)
   lib/                    D1 query helpers, fuzzy matcher, duty-stack math, Anthropic wrapper
   lib/pulse/              Federal Register client, keyword tagging, incremental sync (see "Refreshing the data"),
-                          markets.ts (Yahoo/Frankfurter) + macro.ts (BLS) + cofer.ts (IMF)
+                          markets.ts (Yahoo/Frankfurter) + macro.ts (BLS) + cofer.ts (IMF),
+                          topic.ts + links.ts (deterministic cross-topic linking: same country, shared
+                          topic, close in time -- no LLM)
   lib/refresh/            Cron-triggered bulk reference-table refresh jobs (HTS, SDN, CSL, ...)
   prompts/                System prompts + tool schemas, one file per module
   types/case.ts           The shared CaseFile type every module reads/writes
 frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse, Influence)
-tests/                    golden-cases.json + the accuracy-test runner
+tests/                    golden-cases.json + the live accuracy runner (test:golden), deterministic
+                          unit tests (test:unit), and a browser route smoke test (test:smoke)
+.github/workflows/ci.yml  Typecheck + unit tests + frontend build on every push and PR
 ```
 
 ## Data sources & provenance
