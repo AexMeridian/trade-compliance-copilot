@@ -20,6 +20,8 @@ const VIOLET = hue('text-hue-violet-ink', 'bg-hue-violet', 'border-hue-violet', 
 const CYAN = hue('text-hue-cyan-ink', 'bg-hue-cyan', 'border-hue-cyan', 'var(--color-hue-cyan)');
 const PINK = hue('text-hue-pink-ink', 'bg-hue-pink', 'border-hue-pink', 'var(--color-hue-pink)');
 const INDIGO = hue('text-hue-indigo-ink', 'bg-hue-indigo', 'border-hue-indigo', 'var(--color-hue-indigo)');
+const BLUE = hue('text-hue-blue-ink', 'bg-hue-blue', 'border-hue-blue', 'var(--color-hue-blue)');
+const GREEN = hue('text-hue-green-ink', 'bg-hue-green', 'border-hue-green', 'var(--color-hue-green)');
 const GRAY = hue('text-hue-gray-ink', 'bg-hue-gray', 'border-hue-gray', 'var(--color-hue-gray)');
 
 export const TAG_HUE: Record<string, Hue> = {
@@ -55,5 +57,5 @@ export const INFLUENCE_SECTION_HUE = { pressure: ORANGE, reach: INDIGO, alliance
 
 // One hue per bloc, for the Influence page's globe and alliance table. GRAY
 // marks a country that isn't a member of any bloc tracked here (see pulseBlocs.ts).
-export const BLOC_HUE: Record<Bloc, Hue> = { NATO: CYAN, G7: ORANGE, G20: INDIGO, BRICS: VIOLET, USMCA: PINK };
+export const BLOC_HUE: Record<Bloc, Hue> = { NATO: CYAN, G7: ORANGE, G20: BLUE, BRICS: GREEN, USMCA: PINK };
 export const UNALIGNED_HUE = GRAY;

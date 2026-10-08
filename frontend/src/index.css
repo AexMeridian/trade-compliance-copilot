@@ -51,6 +51,10 @@
   --color-hue-pink-ink: #be185d;
   --color-hue-indigo: #6366f1;
   --color-hue-indigo-ink: #4338ca;
+  --color-hue-blue: #3b82f6; /* with green: the alliance-bloc colors on the globe (kept off violet/indigo on purpose) */
+  --color-hue-blue-ink: #1d4ed8;
+  --color-hue-green: #10b981;
+  --color-hue-green-ink: #047857;
   --color-hue-gray: #8a8a94;
   --color-hue-gray-ink: #47474e;
 
@@ -137,6 +141,8 @@
   --color-hue-cyan-ink: #22d3ee;
   --color-hue-pink-ink: #f472b6;
   --color-hue-indigo-ink: #818cf8;
+  --color-hue-blue-ink: #60a5fa;
+  --color-hue-green-ink: #34d399;
   --color-hue-gray-ink: #c4c4cc;
 }
 

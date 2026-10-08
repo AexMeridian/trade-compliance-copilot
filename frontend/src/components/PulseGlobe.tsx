@@ -76,7 +76,7 @@ const PALETTES: Record<Theme, GlobePalette> = {
     hoverStroke: 'rgba(255,255,255,0.9)',
     ramp: ['#0e7490', '#06b6d4', '#67e8f9', '#ecfeff'],
     quiet: '#8a8a94',
-    home: '#a78bfa',
+    home: '#fbbf24',
     hovered: '#ffffff',
   },
   light: {
@@ -91,10 +91,19 @@ const PALETTES: Record<Theme, GlobePalette> = {
     // royal blue, deep navy. Each step stays readable on the pale blue ocean.
     ramp: ['#2dd4bf', '#0891b2', '#2563eb', '#1e3a8a'],
     quiet: '#7c8db0',
-    home: '#9333ea',
+    home: '#d99a00',
     hovered: '#0b1220',
     sphere: true,
   },
+};
+
+// A <canvas> cannot read a CSS variable: assigning 'var(--color-hue-green)' to fillStyle is
+// silently ignored and the previous colour is reused. The alliance globe colours countries
+// by theme-aware CSS variables, so they are resolved to real colours here before drawing.
+const resolveColor = (color: string): string => {
+  const m = /^var\((--[\w-]+)\)$/.exec(color);
+  if (!m) return color;
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || '#8a8a94';
 };
 
 type Country = Feature<Geometry, { name: string }> & { id: number };
@@ -378,7 +387,7 @@ export function PulseGlobe({
         ctx.moveTo(p[0] + dotR, p[1]);
         ctx.arc(p[0], p[1], dotR, 0, 2 * Math.PI);
       }
-      ctx.fillStyle = color;
+      ctx.fillStyle = resolveColor(color);
       ctx.fill();
     }
 
