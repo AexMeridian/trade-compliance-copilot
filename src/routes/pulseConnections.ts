@@ -59,8 +59,25 @@ const SANCTIONS_LOOKBACK_DAYS = 365;
 // CSL address strings). The country is read from that text with the same
 // extractor used for news -- best-effort, and only ever matched on a country
 // the text actually names.
-async function loadAllSanctionEvents(env: Env, days: number): Promise<ConnEvent[]> {
-  const since = new Date(Date.now() - Math.max(days, SANCTIONS_LOOKBACK_DAYS) * 86_400_000).toISOString().slice(0, 10);
+// The lists only change when the weekly refresh runs, and reading country names
+// out of several hundred designations is the costliest step of a connections
+// request (a bloc view used to repeat it once per member). Keep the parsed
+// result per Worker isolate for a short while; a failed load is never cached.
+const SANCTIONS_CACHE_TTL_MS = 30 * 60 * 1000;
+let sanctionsCache: { at: number; value: Promise<ConnEvent[]> } | null = null;
+
+function loadAllSanctionEvents(env: Env): Promise<ConnEvent[]> {
+  if (sanctionsCache && Date.now() - sanctionsCache.at < SANCTIONS_CACHE_TTL_MS) return sanctionsCache.value;
+  const value = parseSanctionEvents(env);
+  sanctionsCache = { at: Date.now(), value };
+  value.catch(() => {
+    if (sanctionsCache?.value === value) sanctionsCache = null;
+  });
+  return value;
+}
+
+async function parseSanctionEvents(env: Env): Promise<ConnEvent[]> {
+  const since = new Date(Date.now() - SANCTIONS_LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10);
   const [un, uk, csl] = await Promise.all([
     env.DB.prepare(`SELECT uid, primary_name, un_list_type, listed_on, nationality, addresses, source_url FROM un_sanctions_entries WHERE listed_on >= ?1 ORDER BY listed_on DESC LIMIT 400`)
       .bind(since).all<UnRow>().catch(() => ({ results: [] as UnRow[] })),
@@ -98,14 +115,14 @@ async function loadAllSanctionEvents(env: Env, days: number): Promise<ConnEvent[
   return out;
 }
 
-async function loadSanctionEvents(env: Env, code: string, days: number): Promise<ConnEvent[]> {
-  return (await loadAllSanctionEvents(env, days)).filter((e) => e.countries.includes(code));
+async function loadSanctionEvents(env: Env, code: string): Promise<ConnEvent[]> {
+  return (await loadAllSanctionEvents(env)).filter((e) => e.countries.includes(code));
 }
 
 async function loadCountryEvents(env: Env, code: string, name: string | null, days: number): Promise<ConnEvent[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const [sanctions, actions, news, wro, gta] = await Promise.all([
-    loadSanctionEvents(env, code, days),
+    loadSanctionEvents(env, code),
     env.DB.prepare(`SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%' AND publication_date >= ?2 ORDER BY publication_date DESC LIMIT 120`)
       .bind(code, since).all<PulseAction>().catch(() => ({ results: [] as PulseAction[] })),
     env.DB.prepare(`SELECT id, title, summary, url, source, countries, published_at FROM world_news WHERE countries LIKE '%"' || ?1 || '"%' AND published_at >= ?2 ORDER BY published_at DESC LIMIT 80`)
@@ -262,6 +279,7 @@ connectionsRoute.get('/connections', async (c) => {
     return { ...e, reactions };
   });
 
+  c.header('Cache-Control', 'public, max-age=300');
   return c.json({ country: isGroup ? null : code, countries: isGroup ? group : [code], days, topic: wanted, events: out, topicCounts, omitted, reactionNote: REACTION_NOTE });
 });
 
@@ -301,6 +319,7 @@ connectionsRoute.get('/related', async (c) => {
     })
     .slice(0, 8);
 
+  c.header('Cache-Control', 'public, max-age=300');
   return c.json({ subject: { kind: subject.kind, id: subject.id, topics: subject.topics, countries: subject.countries }, windowDays, links: unique });
 });
 
@@ -308,7 +327,7 @@ connectionsRoute.get('/related', async (c) => {
 async function loadAllEvents(env: Env, days: number): Promise<ConnEvent[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const [sanctions, actions, news, wro] = await Promise.all([
-    loadAllSanctionEvents(env, days),
+    loadAllSanctionEvents(env),
     env.DB.prepare(`SELECT * FROM trade_policy_actions WHERE publication_date >= ?1 AND countries IS NOT NULL AND countries != '[]' ORDER BY publication_date DESC LIMIT 800`)
       .bind(since).all<PulseAction>().catch(() => ({ results: [] as PulseAction[] })),
     env.DB.prepare(`SELECT id, title, summary, url, source, countries, published_at FROM world_news WHERE published_at >= ?1 AND countries IS NOT NULL AND countries != '[]' ORDER BY published_at DESC LIMIT 500`)
@@ -337,6 +356,7 @@ connectionsRoute.get('/convergence', async (c) => {
   const limit = clampInt(c.req.query('limit'), 8, 1, 20);
   const events = await loadAllEvents(c.env, days);
   const rows = converge(events, { limit, exclude: ['US'] });
+  c.header('Cache-Control', 'public, max-age=300');
   return c.json({
     days,
     rows,

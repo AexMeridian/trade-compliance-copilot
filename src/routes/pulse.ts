@@ -43,6 +43,12 @@ function csvParam(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/** The UI shows at most two lines of an abstract; sending the full text on list endpoints is most of their weight. */
+function slimAction<T extends { abstract: string | null }>(a: T): T {
+  const max = 280;
+  return a.abstract && a.abstract.length > max ? { ...a, abstract: `${a.abstract.slice(0, max).trimEnd()}…` } : a;
+}
+
 pulseRoute.get('/feed', async (c) => {
   const limit = clampInt(c.req.query('limit'), { default: 30, min: 1, max: 100 });
   const tags = csvParam(c.req.query('tag'));
@@ -396,7 +402,7 @@ pulseRoute.get('/country/:code', async (c) => {
   const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings, snapshot] = await Promise.all([
     c.env.DB.prepare(
       `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
-       ORDER BY publication_date DESC, document_number DESC LIMIT 200`
+       ORDER BY publication_date DESC, document_number DESC LIMIT 100`
     )
       .bind(code)
       .all<PulseAction>()
@@ -551,7 +557,9 @@ pulseRoute.get('/country/:code', async (c) => {
 
   return c.json({
     code,
-    actions: actions.results,
+    // The query is capped at the newest 100; the monthly tempo counts every action, so its sum is the true total.
+    actions: actions.results.map(slimAction),
+    actionsTotal: tempo.results.reduce((n, m) => n + m.count, 0),
     tempo: tempo.results,
     tariffs: {
       forcedLabor: forcedLabor ? { ratePct: forcedLabor.ratePct, sourceUrl: forcedLabor.sourceUrl, asOf: forcedLabor.asOf, legalBasis: forcedLabor.legalBasis } : null,
@@ -1054,7 +1062,7 @@ pulseRoute.get('/home', async (c) => {
     settle('/summary'),
     settle('/tempo'),
     settle('/active-measures'),
-    settle('/feed?limit=100'),
+    settle<{ actions: PulseAction[] }>('/feed?limit=100'),
     settle('/markets'),
     settle('/news?limit=60'),
   ]);
@@ -1088,7 +1096,7 @@ pulseRoute.get('/home', async (c) => {
     summary,
     tempo,
     overlays,
-    recent,
+    recent: recent && { ...recent, actions: recent.actions.map(slimAction) },
     markets,
     news,
     status: {

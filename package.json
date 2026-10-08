@@ -7,7 +7,7 @@
     "dev": "npm run build:frontend && wrangler dev",
     "build:frontend": "npm run build --workspace frontend",
     "deploy": "npm run build:frontend && wrangler deploy",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace frontend",
     "test:unit": "tsx tests/duty-stack.test.ts && tsx tests/connections.test.ts",
     "db:migrate:local": "wrangler d1 migrations apply trade-compliance-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply trade-compliance-db --remote",
@@ -19,7 +19,11 @@
     "seed:samples": "tsx scripts/seed-sample-cases.ts",
     "seed:load-local": "tsx scripts/load-batches.ts --local",
     "seed:load-remote": "tsx scripts/load-batches.ts --remote",
-    "test:golden": "tsx tests/run-golden-cases.ts"
+    "seed:path-index": "tsx scripts/rebuild-hts-path-index.ts",
+    "test:golden": "tsx tests/run-golden-cases.ts",
+    "test:smoke": "node tests/smoke-routes.mjs",
+    "lint": "npm run lint --workspace frontend",
+    "check": "npm run typecheck && npm run test:unit && npm run build:frontend"
   },
   "workspaces": [
     "frontend"
@@ -27,6 +31,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260921.1",
     "@types/node": "^22.9.0",
+    "playwright": "^1.63.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "wrangler": "^4.136.3"
@@ -39,6 +44,6 @@
   "allowScripts": {
     "esbuild@0.28.2": true,
     "esbuild@0.28.1": true,
-    "workerd@1.20260921.1": true
+    "workerd@1.20261006.1": true
   }
 }

@@ -1,23 +1,28 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { Routes, Route, Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
-import { Landing } from './pages/Landing';
-import { CaseWizard } from './pages/CaseWizard';
-import { Report } from './pages/Report';
 import { Pulse } from './pages/Pulse';
-import { Influence } from './pages/Influence';
-import { Power } from './pages/Power';
-import { CountryDetail } from './pages/CountryDetail';
-import { About } from './pages/About';
-import { Privacy } from './pages/Privacy';
-import { Accessibility } from './pages/Accessibility';
-import { CountryCompare } from './pages/CountryCompare';
-import { Snapshot } from './pages/Snapshot';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SiteSearch } from './components/SiteSearch';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
+
+// Everything except the home page loads on demand, so a first visit downloads only
+// what it shows (the home page is the entry point for most visitors).
+const lazyPage = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => load().then((m) => ({ default: m[name] })));
+const Landing = lazyPage(() => import('./pages/Landing'), 'Landing');
+const CaseWizard = lazyPage(() => import('./pages/CaseWizard'), 'CaseWizard');
+const Report = lazyPage(() => import('./pages/Report'), 'Report');
+const Influence = lazyPage(() => import('./pages/Influence'), 'Influence');
+const Power = lazyPage(() => import('./pages/Power'), 'Power');
+const CountryDetail = lazyPage(() => import('./pages/CountryDetail'), 'CountryDetail');
+const About = lazyPage(() => import('./pages/About'), 'About');
+const Privacy = lazyPage(() => import('./pages/Privacy'), 'Privacy');
+const Accessibility = lazyPage(() => import('./pages/Accessibility'), 'Accessibility');
+const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'CountryCompare');
+const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
+
 
 const KNOWN_PATHS = ['/', '/calculator', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
 
@@ -141,6 +146,7 @@ export default function App() {
       </header>
 
       <div id="main" className="flex-1">
+        <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>
           <Route path="/" element={<Pulse />} />
           <Route path="/calculator" element={<Landing />} />
@@ -156,6 +162,7 @@ export default function App() {
           <Route path="/snapshot/:id" element={<Snapshot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </div>
 
       <footer className="no-print mt-16 bg-bar text-[#b4b4bc]">

@@ -11,20 +11,9 @@
 import type { Env } from '../../types/env.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { HTS_PATH_INDEX_BUILD_SQL, HTS_PATH_INDEX_CLEAR_SQL } from './htsPathIndex.js';
 
 const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
-// Rebuilds the ancestor-text index; identical to the backfill in migration 0023.
-const HTS_PATH_INDEX_SQL = `WITH RECURSIVE anc(leaf, node, depth) AS (
-  SELECT id, superior_id, 1 FROM hts_lines WHERE htsno != '' AND superior_id IS NOT NULL
-  UNION ALL
-  SELECT anc.leaf, h.superior_id, anc.depth + 1
-  FROM anc JOIN hts_lines h ON h.id = anc.node
-  WHERE h.superior_id IS NOT NULL AND anc.depth < 8
-)
-INSERT INTO hts_path_search(rowid, path)
-SELECT anc.leaf, group_concat(h.description, ' ')
-FROM anc JOIN hts_lines h ON h.id = anc.node
-GROUP BY anc.leaf`;
 const CHAPTERS =Array.from({ length: 97 }, (_, i) => i + 1).filter((c) => c !== 77);
 
 interface HtsApiRow {
@@ -105,9 +94,9 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
     env.DB.prepare('DELETE FROM hts_lines'),
     ...insertStatements.map((s) => env.DB.prepare(s)),
     // hts_path_search is derived from hts_lines and has no sync triggers, so it
-    // is rebuilt here (same SQL as migrations/0023_schema_hts_path_search.sql).
-    env.DB.prepare('DELETE FROM hts_path_search'),
-    env.DB.prepare(HTS_PATH_INDEX_SQL),
+    // is rebuilt in the same atomic batch (see htsPathIndex.ts).
+    env.DB.prepare(HTS_PATH_INDEX_CLEAR_SQL),
+    env.DB.prepare(HTS_PATH_INDEX_BUILD_SQL),
   ]);
 
   return { source: 'hts', rows: totalRows };

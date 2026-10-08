@@ -73,17 +73,19 @@ export function ConnectionsPanel({ code, name, compact = false, group }: { code:
   const [topic, setTopic] = useState<string | null>(null);
   const [data, setData] = useState<ConnectionsResponse | null>(null);
   const [failed, setFailed] = useState(false);
+  // A stable key, so a new array with the same members does not refetch.
+  const groupKey = group?.join(',') ?? '';
 
   useEffect(() => {
     let live = true;
     setFailed(false);
-    getPulseConnections(code, { name, days: 60, topic: topic ?? undefined, countries: group })
+    getPulseConnections(code, { name, days: 60, topic: topic ?? undefined, countries: groupKey ? groupKey.split(',') : undefined })
       .then((r) => live && setData(r))
       .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
-  }, [code, name, topic, group?.join(',')]);
+  }, [code, name, topic, groupKey]);
 
   if (failed) return <p className="text-sm text-ink-faint">Couldn't load connections right now.</p>;
   if (!data) return <p className="text-sm text-ink-faint">Loading…</p>;

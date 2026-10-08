@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { getPulseCountry, getPulseHome } from '../lib/api';
+import { getPulseCountry, getPulseMarkets, getPulseNews } from '../lib/api';
 import { COUNTRY_TABS, CountryTabs, type CountryTabId } from '../components/CountryTabs';
 import { CountryGuide } from '../components/CountryGuide';
 import { ConnectionsPanel } from '../components/ConnectionsPanel';
@@ -54,12 +54,14 @@ export function CountryDetail() {
     const reqId = ++requestId.current;
     setLoading(true);
     setError(null);
-    Promise.all([getPulseCountry(code, name), getPulseHome()])
-      .then(([detail, home]) => {
+    // The two small endpoints this page actually reads, not the whole home payload.
+    // Markets and news are nice-to-have: one failing never blanks the country.
+    Promise.all([getPulseCountry(code, name), getPulseMarkets().catch(() => null), getPulseNews(undefined, 60).catch(() => null)])
+      .then(([detail, mkts, newsRes]) => {
         if (reqId !== requestId.current) return;
         setData(detail);
-        if (home.markets) setMarkets(home.markets);
-        if (home.news) setNews(home.news.items);
+        if (mkts) setMarkets(mkts);
+        if (newsRes) setNews(newsRes.items);
       })
       .catch((e) => {
         if (reqId === requestId.current) setError((e as Error).message);
@@ -152,7 +154,7 @@ export function CountryDetail() {
               </PulsePanel>
             )}
             <PulsePanel title="U.S. policy actions naming it">
-              <p className="text-3xl font-bold tabular-nums text-ink">{data.actions.length}</p>
+              <p className="text-3xl font-bold tabular-nums text-ink">{data.actionsTotal.toLocaleString('en-US')}</p>
               <p className="mt-1 text-sm text-ink-faint">In the full Federal Register history this app tracks.</p>
             </PulsePanel>
             <PulsePanel title="Section 301 forced-labor rate">
@@ -208,7 +210,7 @@ export function CountryDetail() {
             <PulsePanel title="Policy tempo" subtitle="Every month this country was named in a U.S. trade action, full history.">
               <PulseTempoChart months={data.tempo} trendPct={null} />
             </PulsePanel>
-            <PulsePanel title={`All ${data.actions.length} actions naming ${name}`}>
+            <PulsePanel title={`${data.actions.length < data.actionsTotal ? `Newest ${data.actions.length} of ${data.actionsTotal.toLocaleString('en-US')}` : `All ${data.actionsTotal}`} actions naming ${name}`}>
               <PulseFeedList actions={data.actions} />
             </PulsePanel>
             <PulsePanel

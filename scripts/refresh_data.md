@@ -31,6 +31,18 @@ npm run seed:load-local -- --only=hts
 `hts_lines` will repopulate `hts_search` automatically as part of the
 DELETE + re-INSERT.
 
+`hts_path_search` (the ancestor-heading search index, migration 0023) has **no
+triggers**: it is derived from `hts_lines` and keyed by line id, and ids shift
+between HTS revisions, so a stale copy would attach the wrong lines to a
+search. `seed:load-local` / `seed:load-remote` rebuild it automatically after
+loading HTS, and the scheduled refresh rebuilds it in the same atomic batch.
+If you load HTS any other way, run it yourself:
+
+```bash
+npm run seed:path-index              # local
+npm run seed:path-index -- --remote  # deployed
+```
+
 ## Schedule B (`npm run seed:schedule-b`)
 
 Source: Census's AES Filer concordance CSV

@@ -10,7 +10,10 @@ import type { Env } from '../types/env.js';
 export const CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 export function getClient(env: Env): Anthropic {
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  // Explicit limits: the SDK default is a 10-minute timeout, long enough for one hung
+  // call to hold a request (and a user) far past any useful answer. 60s covers the
+  // slowest legitimate forced-tool call; two retries absorb transient 429/5xx.
+  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 2 });
 }
 
 export class ClaudeGroundingError extends Error {}

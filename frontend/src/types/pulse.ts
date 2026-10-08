@@ -169,7 +169,9 @@ export interface WroFindingRow {
 
 export interface PulseCountryDetail {
   code: string;
+  /** The newest actions only (capped); `actionsTotal` is the full count. */
   actions: PulseAction[];
+  actionsTotal: number;
   tempo: TempoPoint[];
   tariffs: {
     forcedLabor: { ratePct: number; sourceUrl: string; asOf: string; legalBasis: string } | null;

@@ -10,6 +10,7 @@
 
 import { readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { rebuildHtsPathIndex } from './rebuild-hts-path-index.js';
 
 const DB_NAME = 'trade-compliance-db';
 const DIRS = [
@@ -63,6 +64,9 @@ function main() {
       process.exit(1);
     }
   }
+  // The ancestor-text search index is derived from hts_lines (ids shift between
+  // revisions), so it must be rebuilt after every HTS load.
+  if (dirs.some((d) => d.endsWith('/hts'))) rebuildHtsPathIndex(mode as '--local' | '--remote');
   const mins = ((Date.now() - start) / 60000).toFixed(1);
   console.log(`Done in ${mins} min.`);
 }

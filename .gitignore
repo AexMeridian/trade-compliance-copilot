@@ -6,3 +6,6 @@ frontend/dist/
 *.log
 .DS_Store
 scripts/seed-sql/
+
+# TypeScript incremental build cache (rewritten on every typecheck)
+*.tsbuildinfo
