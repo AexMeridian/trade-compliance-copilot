@@ -236,8 +236,8 @@ export function Power() {
                   {SITE.name}
                 </Link>{' '}
                 and{' '}
-                <Link to="/footprint" className="text-accent hover:underline">
-                  Global footprint
+                <Link to="/abroad" className="text-accent hover:underline">
+                  U.S. abroad
                 </Link>
                 , read as two opposing trends rather than combined into a score. See the Guide tab for exactly what that does and doesn't mean.
               </p>

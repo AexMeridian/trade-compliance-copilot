@@ -17,7 +17,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const QA: [string, string][] = [
   [
     'Is this an editorial judgment about who is "winning"?',
-    'No. Every figure on this page is a real, sourced count or a real, sourced membership list -- never a computed "footprint score." Where a real concept (like cultural reach) can\'t be measured here without inventing a number, it is left off the page rather than estimated.',
+    'No. Every figure on this page is a real, sourced count or a real, sourced membership list -- never a computed "U.S.-abroad score." Where a real concept (like cultural reach) can\'t be measured here without inventing a number, it is left off the page rather than estimated.',
   ],
   [
     'Does a bigger tariff/sanctions count mean the U.S. sees that country as an adversary?',

@@ -42,17 +42,17 @@ const PAGES: SearchEntry[] = [
   },
   {
     id: 'influence',
-    title: 'Global footprint',
+    title: 'U.S. abroad',
     description: "Who the U.S. is pressuring with tariffs and sanctions, and who it's formally aligned with.",
     type: 'Page',
-    url: '/footprint',
+    url: '/abroad',
   },
   {
     id: 'power',
-    title: 'Global standing',
+    title: 'Dollar & allies',
     description: "U.S. tariffs, sanctions and export controls next to the dollar's share of world reserves and key alliances.",
     type: 'Page',
-    url: '/standing',
+    url: '/allies',
   },
   {
     id: 'compare',
@@ -119,7 +119,7 @@ const PAGES: SearchEntry[] = [
     title: 'Alliances',
     description: "Formal membership in NATO, G7, G20, BRICS and USMCA, cross-referenced with this month's U.S. actions.",
     type: 'Page',
-    url: '/standing?tab=alliances',
+    url: '/allies?tab=alliances',
   },
   { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader -- no account needed.', type: 'Page', url: '/rss.xml' },
 ];
@@ -131,7 +131,7 @@ const ALLIANCES: SearchEntry[] = (Object.keys(BLOC_FULL_NAMES) as Bloc[]).map((b
   title: bloc,
   description: BLOC_FULL_NAMES[bloc],
   type: 'Alliance',
-  url: '/standing?tab=alliances',
+  url: '/allies?tab=alliances',
 }));
 
 // Real programs and lists this app actually screens or rates against, each

@@ -24,7 +24,7 @@ export function Accessibility() {
           content, for keyboard and screen-reader users.
         </li>
         <li>
-          <span className="text-ink">Keyboard-operable tab bars.</span> Every section tab bar (Pulse, Global footprint, Global standing and country pages) is a native ARIA
+          <span className="text-ink">Keyboard-operable tab bars.</span> Every section tab bar (Pulse, U.S. abroad, Dollar & allies and country pages) is a native ARIA
           tab list with arrow-key, Home and End navigation and a roving tab stop, not a row of styled links.
         </li>
         <li>
@@ -36,7 +36,7 @@ export function Accessibility() {
           risk of losing access to a case or a saved filter because of a timeout.
         </li>
         <li>
-          <span className="text-ink">Plain-language support.</span> The Guide tabs on Pulse, Global footprint, Global standing and country pages, and the glossary in the
+          <span className="text-ink">Plain-language support.</span> The Guide tabs on Pulse, U.S. abroad, Dollar & allies and country pages, and the glossary in the
           compliance calculator, explain the site's own jargon (RVC, ECCN, EAR99 and so on) in context rather than assuming it.
         </li>
       </ul>

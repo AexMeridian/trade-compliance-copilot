@@ -50,8 +50,8 @@ export function PowerGuide() {
             {SITE.name}
           </Link>{' '}
           and{' '}
-          <Link to="/footprint" className="text-accent hover:underline">
-            Global footprint
+          <Link to="/abroad" className="text-accent hover:underline">
+            U.S. abroad
           </Link>
           , read through this specific lens. The one genuinely new piece is the IMF's reserve-currency data (below).
         </p>
@@ -60,7 +60,7 @@ export function PowerGuide() {
       <Section title="What counts as “trade tools” here">
         <p>
           Tariffs, sanctions, export controls and trade agreements published in the Federal Register -- tools that raise costs, cut off access, or condition
-          trade for another country. The same real data as Pulse's U.S.-policy feed and Global footprint's Pressure tab, framed here as instruments of pressure
+          trade for another country. The same real data as Pulse's U.S.-policy feed and the U.S. abroad page's Pressure tab, framed here as instruments of pressure
           rather than neutral policy tracking. See the full duty-stack and tariff-program detail on{' '}
           <Link to="/?tab=data" className="text-accent hover:underline">
             {SITE.name}'s Data tab

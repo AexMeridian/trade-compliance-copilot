@@ -9,7 +9,7 @@ const B = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
 const b = await chromium.launch();
 const { samples } = await (await (await b.newPage()).request.get(`${B}/api/cases/samples`)).json();
 const s = samples[0];
-const routes = ['/', '/?tab=policy', '/?tab=markets', '/?tab=news', '/?tab=data', '/?tab=guide', '/calculator', '/footprint', '/footprint?tab=alliances', '/footprint?tab=sanctions', '/standing', '/standing?tab=soft', '/vs-world', '/influence', '/power',
+const routes = ['/', '/?tab=policy', '/?tab=markets', '/?tab=news', '/?tab=data', '/?tab=guide', '/calculator', '/abroad', '/abroad?tab=alliances', '/abroad?tab=sanctions', '/allies', '/allies?tab=soft', '/footprint', '/standing', '/vs-world', '/influence', '/power',
   '/country/cn', '/country/ng', '/compare?countries=CN,IN', '/about', '/privacy', '/accessibility', `/case/${s.id}`, `/case/${s.id}/report`, '/definitely-not-a-page'];
 let bad = 0;
 for (const [name, w] of [['desktop', 1280], ['mobile', 390]]) {

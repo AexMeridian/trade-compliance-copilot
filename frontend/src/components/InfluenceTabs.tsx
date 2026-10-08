@@ -26,7 +26,7 @@ export function InfluenceTabs({ active, onChange, children }: { active: Influenc
     <div id="influence-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
-        aria-label="Global footprint sections"
+        aria-label="U.S. abroad sections"
         className="flex min-w-0 overflow-x-auto border-b border-hairline-strong sm:border-b-0"
         onKeyDown={(e) => {
           const i = INFLUENCE_TABS.findIndex((t) => t.id === active);

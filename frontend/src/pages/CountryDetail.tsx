@@ -382,7 +382,7 @@ export function CountryDetail() {
                   </p>
                   <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
                   <Link
-                    to={`/footprint?tab=sanctions&country=${encodeURIComponent(name)}`}
+                    to={`/abroad?tab=sanctions&country=${encodeURIComponent(name)}`}
                     className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
                   >
                     Browse these entries &rarr;

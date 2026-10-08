@@ -8,7 +8,7 @@ coherent compliance report. A separate live dashboard, the **Pulse** feed
 (`/pulse`), turns the same real-data-only philosophy into a
 continuously-updated feed of actual U.S. trade-policy actions rather than a
 static essay — see [Refreshing the data](#refreshing-the-data). **Influence**
-(`/footprint`, formerly `/influence`) reframes that same real data (plus one new static reference
+(`/abroad`, formerly `/influence`) reframes that same real data (plus one new static reference
 file, `frontend/src/lib/pulseBlocs.ts`) as U.S. economic pressure and reach
 abroad — no new data source of its own except alliance membership, no LLM,
 nothing fabricated. Built as a resume piece for an International Business
