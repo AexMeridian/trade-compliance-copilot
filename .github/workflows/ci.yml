@@ -21,3 +21,28 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build:frontend
+
+  # Ships main to Cloudflare once the checks pass. Needs two repository secrets
+  # (Settings > Secrets and variables > Actions): CLOUDFLARE_API_TOKEN (the
+  # "Edit Cloudflare Workers" template plus D1 Edit) and CLOUDFLARE_ACCOUNT_ID.
+  # Migrations run first and are idempotent: wrangler skips ones already applied.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
