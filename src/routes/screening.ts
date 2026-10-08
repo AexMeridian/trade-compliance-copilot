@@ -32,6 +32,8 @@ const HARD_STOP_LIST_FRAGMENTS = ['Entity List', 'Denied Persons List'];
 // trade.gov's own CSL CSV) -- no new ingestion needed, just this check.
 const MEU_LIST_FRAGMENT = 'Military End User';
 
+class PartyScreeningFailure extends Error {}
+
 screeningRoute.post('/:id/screening', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
@@ -43,9 +45,12 @@ screeningRoute.post('/:id/screening', async (c) => {
   if (!Array.isArray(body.parties) || body.parties.length === 0) {
     return c.json({ error: 'At least one party ({ role, name }) is required to run screening.' }, 400);
   }
-  const partyResults: PartyScreeningResult[] = [];
-
-  for (const party of body.parties) {
+  // Each party is an independent search + one Claude call, so screen them
+  // concurrently (results keep the request order). A grounding failure on any
+  // party fails the whole request, as before.
+  let partyResults: PartyScreeningResult[];
+  try {
+  partyResults = await Promise.all(body.parties.map(async (party): Promise<PartyScreeningResult> => {
     const rawCandidates = await searchPartyCandidates(c.env, party.name);
     await logCaseEvent(c.env, caseId, 'screening', 'candidate_set', { party: party.name, rawCandidates });
 
@@ -65,8 +70,7 @@ screeningRoute.post('/:id/screening', async (c) => {
     const ranked = rankCandidates(party.name, deduped, { limit: 5, minScore: 0.55 });
 
     if (ranked.length === 0) {
-      partyResults.push({ role: party.role, input_name: party.name, matches: [] });
-      continue;
+      return { role: party.role, input_name: party.name, matches: [] };
     }
 
     // Fetch full entity detail for prompt context and final persistence. Each
@@ -165,7 +169,7 @@ screeningRoute.post('/:id/screening', async (c) => {
         tool: buildScreeningTool(enriched.map((e) => e.candidate_ref)),
       });
     } catch (err) {
-      if (err instanceof ClaudeGroundingError) return c.json({ error: `Screening engine error: ${err.message}` }, 502);
+      if (err instanceof ClaudeGroundingError) throw new PartyScreeningFailure(`Screening engine error: ${err.message}`);
       throw err;
     }
 
@@ -195,8 +199,12 @@ screeningRoute.post('/:id/screening', async (c) => {
       };
     });
 
-    partyResults.push({ role: party.role, input_name: party.name, matches });
     await logCaseEvent(c.env, caseId, 'screening', 'claude_response', { party: party.name, output });
+    return { role: party.role, input_name: party.name, matches };
+  }));
+  } catch (err) {
+    if (err instanceof PartyScreeningFailure) return c.json({ error: err.message }, 502);
+    throw err;
   }
 
   const trueMatches = partyResults.flatMap((p) => p.matches.filter((m) => m.verdict === 'true_match'));
