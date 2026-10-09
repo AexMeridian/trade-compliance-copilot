@@ -163,6 +163,16 @@ export function getNatoDefenseSpending() {
   return request<{ countries: Record<string, NatoDefenseCountry> }>('/pulse/nato-defense');
 }
 
+export interface SanctionCounts {
+  asOf: string;
+  total: number;
+  countries: { country: string; count: number }[];
+}
+
+export function getSanctionCounts() {
+  return request<SanctionCounts>('/pulse/sanction-counts');
+}
+
 export function syncPulse() {
   // request() already throws with the server's `error` message on a non-2xx
   // response (429 cooldown, 502 Federal Register failure) -- a resolved call

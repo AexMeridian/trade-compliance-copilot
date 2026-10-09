@@ -1,22 +1,18 @@
-import { lazy, Suspense } from 'react';
-import { HeroBackdrop } from './HeroBackdrop';
+import { useMemo, useState } from 'react';
 import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
+import type { NatoDefenseCountry } from '../lib/api';
 import { PulseCountryCard } from './PulseCountryCard';
-import { COUNTRY_LABELS } from '../lib/pulseCountries';
-import { blocsFor, BLOC_LABELS } from '../lib/pulseBlocs';
-import { BLOC_GLOBE_LEGEND, blocGroupColorFor } from '../lib/pulseBlocGlobe';
+import { MeasureHero, type HeroMeasure } from './MeasureHero';
+import { RankedBars, type BarRow } from './RankedBars';
+import { PowerCoferChart } from './PowerCoferChart';
+import { PulseCurrencyMovers } from './PulseCharts';
 import { PulseDelta } from './PulseDelta';
-// Loaded on its own so the map library and outlines don't slow the first paint.
-const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
+import { COUNTRY_LABELS } from '../lib/pulseCountries';
 
-const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-w-[760px] rounded-full border border-hero-border" aria-hidden="true" />;
+type MeasureId = 'reserves' | 'defense' | 'currencies';
 
-// Same centered-globe-with-overlay hero as Pulse/Influence, colored by
-// alliance membership like Influence's -- but the stat sentence pairs two
-// real, opposing trends instead of one: hard power (more tariff/sanctions
-// actions) and soft power (the dollar's declining reserve-currency share).
-// Neither trend is invented; both are the same real data used elsewhere on
-// the site, just read side by side for once.
+// Top of the Dollar & allies page: three plain measures of where the dollar and the U.S. alliance
+// network stand, each with its own real, sourced figure and picture. No globe here; it lives on Pulse.
 export function PowerHero({
   summary,
   markets,
@@ -30,8 +26,8 @@ export function PowerHero({
   updatedText,
   syncing,
   onRefresh,
-  coferLatest,
-  coferEarliest,
+  coferPoints,
+  natoDefense,
 }: {
   summary: PulseSummary | null;
   markets: PulseMarkets | null;
@@ -45,150 +41,107 @@ export function PowerHero({
   updatedText: string;
   syncing: boolean;
   onRefresh: () => void;
-  coferLatest: { value: number; date: string } | null;
-  coferEarliest: { value: number; date: string } | null;
+  coferPoints: [string, number][];
+  natoDefense: Record<string, NatoDefenseCountry>;
 }) {
+  const [measure, setMeasure] = useState<MeasureId>('reserves');
+
+  const coferLatest = coferPoints.length > 0 ? coferPoints[coferPoints.length - 1] : null;
+  const coferFirst = coferPoints.length > 0 ? coferPoints[0] : null;
+
+  const defenseRows: BarRow[] = useMemo(
+    () =>
+      Object.entries(natoDefense)
+        .map(([code, d]) => ({ code, latest: d.points[d.points.length - 1] }))
+        .filter((r) => r.latest)
+        .sort((a, b) => b.latest[1] - a.latest[1])
+        .map(({ code, latest }) => ({ code, label: `${code === 'US' ? 'United States' : COUNTRY_LABELS[code] ?? code} (${latest[0].slice(0, 4)})`, value: latest[1], text: `${latest[1].toFixed(1)}%` })),
+    [natoDefense]
+  );
+  const us = defenseRows.find((r) => r.code === 'US');
+  const dxy = markets?.tiles.find((t) => t.id === 'DX-Y.NYB') ?? null;
+
+  const measures: HeroMeasure<MeasureId>[] = [
+    {
+      id: 'reserves',
+      label: "Dollar's reserve share",
+      figure: coferLatest ? `${coferLatest[1].toFixed(0)}%` : 'n/a',
+      caption:
+        coferLatest && coferFirst ? (
+          <>
+            of the world's central-bank foreign-currency reserves are held in U.S. dollars, down from{' '}
+            <span className="text-hero-ink">{coferFirst[1].toFixed(0)}%</span> in {coferFirst[0].slice(0, 4)}. Source: the IMF, updated quarterly.
+          </>
+        ) : (
+          'The IMF reserve data is not available right now.'
+        ),
+      body: <PowerCoferChart points={coferPoints} />,
+    },
+    {
+      id: 'defense',
+      label: 'Defense spending',
+      figure: us ? us.text : 'n/a',
+      caption: us ? (
+        <>
+          of the U.S. economy goes to defense ({us.label.match(/\((\d{4})\)/)?.[1]}), shown against the allies NATO publishes figures for. NATO's own target is
+          2%. These are NATO's estimates, refreshed about once a year.
+        </>
+      ) : (
+        'NATO defense-spending figures are not available right now.'
+      ),
+      body: <RankedBars rows={defenseRows} activeCountry={activeCountry} onSelect={onCountry} />,
+    },
+    {
+      id: 'currencies',
+      label: 'Dollar vs. currencies',
+      figure: dxy ? dxy.value.toFixed(1) : 'n/a',
+      caption: dxy ? (
+        <>
+          The U.S. dollar index{' '}
+          {dxy.changePct !== null && <PulseDelta change={dxy.changePct} text={`${Math.abs(dxy.changePct).toFixed(1)}%`} className="font-semibold" />}
+          . It tracks the dollar against a basket of major currencies; higher means a dollar buys more abroad. The bars show 30-day moves against each currency.
+        </>
+      ) : (
+        'Currency data is not available right now.'
+      ),
+      body: <PulseCurrencyMovers rows={markets?.currencies ?? []} />,
+    },
+  ];
+
   const breakdown = summary?.countryBreakdown ?? [];
-  const countryCount = breakdown.length;
-  const top = breakdown.slice(0, 6);
-  const others = Object.keys(COUNTRY_LABELS)
-    .filter((c) => !top.some((t) => t.country === c))
-    .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
-  const counts = new Map(breakdown.map((b) => [b.country, b.count]));
-
-  const describe = (code: string) => {
-    if (code === 'US') return 'United States: the country this page compares with the rest of the world.';
-    const blocs = blocsFor(code);
-    const blocText = blocs.length ? `Belongs to ${blocs.map((b) => BLOC_LABELS[b]).join(', ')}.` : 'Not a member of a bloc tracked here.';
-    const n = counts.get(code) ?? 0;
-    return `${COUNTRY_LABELS[code] ?? code}: ${blocText} ${n === 0 ? 'No U.S. economic actions' : `${n} U.S. economic ${n === 1 ? 'action' : 'actions'}`} in the last 30 days.`;
-  };
-
-  const coferDrop = coferLatest && coferEarliest ? coferEarliest.value - coferLatest.value : null;
-  const coferStartYear = coferEarliest?.date.slice(0, 4) ?? null;
+  const card =
+    activeCountry && summary ? (
+      <PulseCountryCard
+        code={activeCountry}
+        count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
+        rank={(() => {
+          const i = breakdown.findIndex((b) => b.country === activeCountry);
+          return i >= 0 ? i + 1 : null;
+        })()}
+        summary={summary}
+        markets={markets}
+        actions={recent}
+        news={news}
+        onSeeAll={onSeeAll}
+        onClose={onClearCountry}
+      />
+    ) : null;
 
   return (
-    <section className="relative isolate overflow-x-clip bg-hero-bg text-hero-ink">
-      <HeroBackdrop />
-      <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
-        <div className="relative mx-auto w-full max-w-[760px]">
-          <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">
-            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">The dollar, allies and trade tools</h1>
-            <p className="mx-auto mt-3 max-w-xs text-[13px] leading-snug text-hero-ink-muted sm:max-w-sm sm:text-base">
-              Trade measures rising, the dollar's reserve share slipping. Not a score.
-            </p>
-          </div>
-          {summary ? (
-            <Suspense fallback={<GlobePlaceholder />}>
-              <PulseGlobe
-                breakdown={breakdown}
-                activeCountry={activeCountry}
-                onSelect={onCountry}
-                groupColorFor={blocGroupColorFor}
-                describe={describe}
-                legend={BLOC_GLOBE_LEGEND}
-                ariaLabel="Globe of the United States and the countries it trades with, colored by alliance membership (NATO, G7, G20, BRICS, USMCA). Use the country list below to choose one."
-              />
-            </Suspense>
-          ) : (
-            <GlobePlaceholder />
-          )}
-        </div>
-
-        {summary && (
-          <>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onCountry('US')}
-                aria-pressed={activeCountry === 'US'}
-                className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                  activeCountry === 'US'
-                    ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
-                    : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
-                }`}
-              >
-                United States
-              </button>
-              {top.map((b) => (
-                <button
-                  key={b.country}
-                  type="button"
-                  onClick={() => onCountry(b.country)}
-                  aria-pressed={activeCountry === b.country}
-                  className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === b.country
-                      ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
-                      : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
-                  }`}
-                >
-                  {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
-                </button>
-              ))}
-              <select
-                aria-label="Choose another country"
-                value=""
-                onChange={(e) => e.target.value && onCountry(e.target.value)}
-                className="border border-hero-border bg-hero-bg px-2 py-1 text-[13px] font-semibold text-hero-ink"
-              >
-                <option value="">More countries…</option>
-                {others.map((c) => (
-                  <option key={c} value={c}>
-                    {COUNTRY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activeCountry && (
-              <div className="mt-4 text-left">
-                <PulseCountryCard
-                  code={activeCountry}
-                  count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
-                  rank={(() => {
-                    const i = breakdown.findIndex((b) => b.country === activeCountry);
-                    return i >= 0 ? i + 1 : null;
-                  })()}
-                  summary={summary}
-                  markets={markets}
-                  actions={recent}
-                  news={news}
-                  onSeeAll={onSeeAll}
-                  onClose={onClearCountry}
-                />
-              </div>
-            )}
-
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <button type="button" onClick={onExplore} className="btn-hero">
-                See the instruments
-              </button>
-              <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
-                {syncing ? 'Checking…' : 'Check for updates'}
-              </button>
-            </div>
-            <p className="mt-4 text-base leading-snug text-hero-ink">
-              <span className="font-semibold">{countryCount}</span> countries facing new U.S. tariffs, sanctions or export controls this month
-              {summary.trendPct !== null && (
-                <>
-                  {' '}
-                  (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} className="font-semibold" />)
-                </>
-              )}
-              {coferLatest && coferDrop !== null && coferStartYear ? (
-                <>
-                  {' '}
-                  — meanwhile the dollar's share of world reserves has slipped to <span className="font-semibold">{coferLatest.value.toFixed(0)}%</span>, down
-                  from {coferEarliest!.value.toFixed(0)}% in {coferStartYear}.
-                </>
-              ) : (
-                '.'
-              )}
-            </p>
-            <p className="mt-2 text-[13px] text-hero-ink-faint">{updatedText}</p>
-          </>
-        )}
-      </div>
-    </section>
+    <MeasureHero
+      title="The dollar, allies and trade tools"
+      sub="Where the dollar stands in the world's reserves, how allies spend on defense, and how currencies are moving."
+      measures={measures}
+      active={measure}
+      onMeasure={setMeasure}
+      activeCountry={activeCountry}
+      onCountry={onCountry}
+      card={card}
+      primary={{ label: 'See trade tools', onClick: onExplore }}
+      onRefresh={onRefresh}
+      syncing={syncing}
+      updatedText={updatedText}
+      ready={summary !== null}
+    />
   );
 }

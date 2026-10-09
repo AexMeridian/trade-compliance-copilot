@@ -58,9 +58,9 @@ export function PulseHero({
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">
-            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">New U.S. trade actions, mapped</h1>
+            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">New U.S. trade notices, mapped</h1>
             <p className="mx-auto mt-3 max-w-xs text-[13px] leading-snug text-hero-ink-muted sm:max-w-sm sm:text-base">
-              Every country the U.S. is hitting with tariffs, sanctions or export limits right now.
+              Every country named in new U.S. government notices on tariffs, sanctions or export limits.
             </p>
           </div>
           {summary ? (
@@ -146,7 +146,7 @@ export function PulseHero({
             </div>
             <p className="mt-4 text-base leading-snug text-hero-ink">
               <span className="font-semibold">{activeMeasures ?? '…'}</span> measures in force, <span className="font-semibold">{summary.last30}</span> new
-              actions in the last 30 days
+              official notices in the last 30 days
               {summary.trendPct !== null && (
                 <>
                   {' '}

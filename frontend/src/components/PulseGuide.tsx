@@ -34,7 +34,7 @@ const MARKET_TERMS: [string, string][] = [
 const SOURCES: { name: string; what: string; fresh: string }[] = [
   {
     name: 'Federal Register',
-    what: 'Official U.S. government trade actions (tariffs, sanctions, export controls).',
+    what: 'Official U.S. government notices about trade: tariffs, sanctions, export controls and trade agreements. This site calls each one a notice.',
     fresh: 'Checked daily, or press "Check for updates".',
   },
   {

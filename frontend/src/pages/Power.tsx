@@ -157,8 +157,8 @@ export function Power() {
         updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
         syncing={syncing}
         onRefresh={handleRefresh}
-        coferLatest={coferLatest}
-        coferEarliest={coferEarliest}
+        coferPoints={coferPoints}
+        natoDefense={natoDefense}
       />
 
       <div className="relative mx-auto -mt-10 max-w-7xl px-4 pb-8">

@@ -1,19 +1,21 @@
-import { lazy, Suspense } from 'react';
-import { HeroBackdrop } from './HeroBackdrop';
+import { useEffect, useMemo, useState } from 'react';
 import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
 import { PulseCountryCard } from './PulseCountryCard';
-import { COUNTRY_LABELS } from '../lib/pulseCountries';
-import { BLOC_LABELS, blocsFor } from '../lib/pulseBlocs';
-import { BLOC_GLOBE_LEGEND, blocGroupColorFor } from '../lib/pulseBlocGlobe';
+import { MeasureHero, type HeroMeasure } from './MeasureHero';
+import { RankedBars, type BarRow } from './RankedBars';
 import { PulseDelta } from './PulseDelta';
-// Loaded on its own so the map library and outlines don't slow the first paint.
-const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
+import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
+import { getSanctionCounts, type SanctionCounts } from '../lib/api';
 
-const GlobePlaceholder = () => <div className="mx-auto aspect-square w-full max-w-[760px] rounded-full border border-hero-border" aria-hidden="true" />;
+type MeasureId = 'tariff' | 'sanctions' | 'notices';
 
-// Same centered-globe-with-overlay hero treatment as PulseHero, recolored by
-// alliance membership instead of by how many actions named a country -- see
-// lib/pulseBlocs.ts for what "membership" means here and its limits.
+const nameOf = (code: string) => TARIFF_COUNTRY_LABELS[code] ?? COUNTRY_LABELS[code] ?? code;
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+// Top of the U.S. abroad page. Three real measures of how U.S. policy reaches other countries,
+// each in plain words: the extra tariff in force, the number of sanctioned parties located there,
+// and the count of new official notices. No globe here; it lives on Pulse.
 export function InfluenceHero({
   summary,
   markets,
@@ -41,137 +43,163 @@ export function InfluenceHero({
   syncing: boolean;
   onRefresh: () => void;
 }) {
-  const breakdown = summary?.countryBreakdown ?? [];
-  const countryCount = breakdown.length;
-  const top = breakdown.slice(0, 6);
-  const others = Object.keys(COUNTRY_LABELS)
-    .filter((c) => !top.some((t) => t.country === c))
-    .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
-  const counts = new Map(breakdown.map((b) => [b.country, b.count]));
+  const [measure, setMeasure] = useState<MeasureId>('sanctions');
+  const [sanctions, setSanctions] = useState<SanctionCounts | null>(null);
+  const [sanctionsFailed, setSanctionsFailed] = useState(false);
 
-  const describe = (code: string) => {
-    if (code === 'US') return 'United States: the country whose policy abroad this page follows.';
-    const blocs = blocsFor(code);
-    const blocText = blocs.length ? `Belongs to ${blocs.map((b) => BLOC_LABELS[b]).join(', ')}.` : 'Not a member of a bloc tracked here.';
-    const n = counts.get(code) ?? 0;
-    return `${COUNTRY_LABELS[code] ?? code}: ${blocText} ${n === 0 ? 'No U.S. economic actions' : `${n} U.S. economic ${n === 1 ? 'action' : 'actions'}`} in the last 30 days.`;
-  };
+  // Only fetched once someone opens the Sanctioned parties measure; the endpoint is cached for hours.
+  useEffect(() => {
+    if (measure !== 'sanctions' || sanctions || sanctionsFailed) return;
+    let live = true;
+    getSanctionCounts()
+      .then((s) => live && setSanctions(s))
+      .catch(() => live && setSanctionsFailed(true));
+    return () => {
+      live = false;
+    };
+  }, [measure, sanctions, sanctionsFailed]);
+
+  const tariffRows: BarRow[] = useMemo(
+    () => (summary?.countryTariffs.forcedLabor ?? []).map((f) => ({ code: f.country, label: nameOf(f.country), value: f.ratePct, text: `${f.ratePct}%` })).sort((a, b) => b.value - a.value),
+    [summary]
+  );
+  const sanctionRows: BarRow[] = useMemo(
+    () => (sanctions?.countries ?? []).map((c) => ({ code: c.country, label: nameOf(c.country), value: c.count, text: fmt(c.count) })),
+    [sanctions]
+  );
+  const noticeRows: BarRow[] = useMemo(
+    () => (summary?.countryBreakdown ?? []).filter((b) => b.country !== 'US').map((b) => ({ code: b.country, label: nameOf(b.country), value: b.count, text: fmt(b.count) })),
+    [summary]
+  );
+
+  const forcedLaborDate = summary?.countryTariffs.forcedLabor[0]?.asOf;
+  const canadaExtra = summary?.countryTariffs.extra[0];
+  // The extra tariff only takes a couple of distinct rates, so a ranked bar chart would be a
+  // wall of identical bars. Group the countries by rate instead.
+  const tiers = [...new Set(tariffRows.map((r) => r.value))].sort((x, y) => y - x).map((rate) => ({ rate, rows: tariffRows.filter((r) => r.value === rate) }));
+  const measures: HeroMeasure<MeasureId>[] = [
+    {
+      id: 'sanctions',
+      label: 'Sanctioned parties',
+      figure: sanctions ? fmt(sanctions.total) : sanctionsFailed ? 'n/a' : '…',
+      caption: sanctionsFailed ? (
+        'The sanctions lists could not be counted just now.'
+      ) : (
+        <>
+          People and companies on the U.S. (OFAC, Commerce and State), UN and UK sanctions lists
+          {sanctionRows[0] ? (
+            <>
+              . <span className="text-hero-ink">{sanctionRows[0].label}</span> has the most, {sanctionRows[0].text}.
+            </>
+          ) : (
+            '.'
+          )}{' '}
+          Counted by the country in each listed address, so it is a text match, not a legal finding.
+        </>
+      ),
+      body: sanctionsFailed ? (
+        <p className="text-sm text-hero-ink-faint">Not available right now.</p>
+      ) : sanctions ? (
+        <RankedBars rows={sanctionRows} activeCountry={activeCountry} onSelect={onCountry} />
+      ) : (
+        <p className="text-sm text-hero-ink-faint">Counting the lists…</p>
+      ),
+    },
+    {
+      id: 'tariff',
+      label: 'Extra tariffs',
+      figure: tariffRows.length > 0 ? String(tariffRows.length) : 'None',
+      caption:
+        tariffRows.length > 0 ? (
+          <>
+            countries and economies face an extra U.S. tariff on nearly all their goods, on top of the normal rate (the Section 301 forced-labor determination
+            {forcedLaborDate ? `, data as of ${forcedLaborDate}` : ''}).
+            {canadaExtra && ` Canada also faces ${canadaExtra.ratePct}% on ${canadaExtra.note}.`}
+          </>
+        ) : (
+          'No country-specific extra tariff is on record right now.'
+        ),
+      body: (
+        <div className="flex flex-col gap-5">
+          {tiers.map((t) => (
+            <div key={t.rate}>
+              <p className="text-sm font-semibold">
+                {t.rate}% extra <span className="font-normal text-hero-ink-muted">on {t.rows.length} countries</span>
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {t.rows.map((r) => (
+                  <button
+                    key={r.code}
+                    type="button"
+                    onClick={() => onCountry(r.code)}
+                    aria-pressed={activeCountry === r.code}
+                    className={`rounded-full border px-2.5 py-1 text-[12.5px] ${
+                      activeCountry === r.code ? 'border-hue-orange bg-hue-orange/15 text-hue-orange-ink' : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'notices',
+      label: 'New notices',
+      figure: summary ? fmt(summary.last30) : '…',
+      caption: summary ? (
+        <>
+          Official U.S. government notices about tariffs, sanctions or export rules published in the last 30 days
+          {summary.trendPct !== null && (
+            <>
+              {' '}
+              (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} className="font-semibold" /> on the 30 days before)
+            </>
+          )}
+          . A notice can name several countries.
+        </>
+      ) : null,
+      body: <RankedBars rows={noticeRows} activeCountry={activeCountry} onSelect={onCountry} />,
+    },
+  ];
+
+  const breakdown = summary?.countryBreakdown ?? [];
+  const card =
+    activeCountry && summary ? (
+      <PulseCountryCard
+        code={activeCountry}
+        count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
+        rank={(() => {
+          const i = breakdown.findIndex((b) => b.country === activeCountry);
+          return i >= 0 ? i + 1 : null;
+        })()}
+        summary={summary}
+        markets={markets}
+        actions={recent}
+        news={news}
+        onSeeAll={onSeeAll}
+        onClose={onClearCountry}
+      />
+    ) : null;
 
   return (
-    <section className="relative isolate overflow-x-clip bg-hero-bg text-hero-ink">
-      <HeroBackdrop />
-      <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
-        <div className="relative mx-auto w-full max-w-[760px]">
-          <div className="hero-mask pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pb-20 pt-2">
-            <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">U.S. policy abroad, mapped</h1>
-            <p className="mx-auto mt-3 max-w-xs text-[13px] leading-snug text-hero-ink-muted sm:max-w-sm sm:text-base">
-              Who the U.S. is pressuring with tariffs and sanctions, and who it's formally aligned with.
-            </p>
-          </div>
-          {summary ? (
-            <Suspense fallback={<GlobePlaceholder />}>
-              <PulseGlobe
-                breakdown={breakdown}
-                activeCountry={activeCountry}
-                onSelect={onCountry}
-                groupColorFor={blocGroupColorFor}
-                describe={describe}
-                legend={BLOC_GLOBE_LEGEND}
-                ariaLabel="Globe of the United States and the countries it trades with, colored by alliance membership (NATO, G7, G20, BRICS, USMCA). Use the country list below to choose one."
-              />
-            </Suspense>
-          ) : (
-            <GlobePlaceholder />
-          )}
-        </div>
-
-        {summary && (
-          <>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onCountry('US')}
-                aria-pressed={activeCountry === 'US'}
-                className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                  activeCountry === 'US'
-                    ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
-                    : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
-                }`}
-              >
-                United States
-              </button>
-              {top.map((b) => (
-                <button
-                  key={b.country}
-                  type="button"
-                  onClick={() => onCountry(b.country)}
-                  aria-pressed={activeCountry === b.country}
-                  className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${
-                    activeCountry === b.country
-                      ? 'border-hero-btn-bg bg-hero-btn-bg text-hero-btn-text'
-                      : 'border-hero-border text-hero-ink hover:border-hero-border-strong hover:bg-hero-card-bg'
-                  }`}
-                >
-                  {COUNTRY_LABELS[b.country] ?? b.country} <span className="tabular-nums opacity-70">{b.count}</span>
-                </button>
-              ))}
-              <select
-                aria-label="Choose another country"
-                value=""
-                onChange={(e) => e.target.value && onCountry(e.target.value)}
-                className="border border-hero-border bg-hero-bg px-2 py-1 text-[13px] font-semibold text-hero-ink"
-              >
-                <option value="">More countries…</option>
-                {others.map((c) => (
-                  <option key={c} value={c}>
-                    {COUNTRY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activeCountry && (
-              <div className="mt-4 text-left">
-                <PulseCountryCard
-                  code={activeCountry}
-                  count={breakdown.find((b) => b.country === activeCountry)?.count ?? 0}
-                  rank={(() => {
-                    const i = breakdown.findIndex((b) => b.country === activeCountry);
-                    return i >= 0 ? i + 1 : null;
-                  })()}
-                  summary={summary}
-                  markets={markets}
-                  actions={recent}
-                  news={news}
-                  onSeeAll={onSeeAll}
-                  onClose={onClearCountry}
-                />
-              </div>
-            )}
-
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <button type="button" onClick={onExplore} className="btn-hero">
-                See pressure tools
-              </button>
-              <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
-                {syncing ? 'Checking…' : 'Check for updates'}
-              </button>
-            </div>
-            <p className="mt-4 text-base leading-snug text-hero-ink">
-              <span className="font-semibold">{countryCount}</span> countries facing new U.S. tariffs, sanctions or export controls,{' '}
-              <span className="font-semibold">{summary.last30}</span> pressure actions in total
-              {summary.trendPct !== null && (
-                <>
-                  {' '}
-                  (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} className="font-semibold" />)
-                </>
-              )}
-              {summary.leadingTag ? `, mostly ${summary.leadingTag.toLowerCase()}` : ''}.
-            </p>
-            <p className="mt-2 text-[13px] text-hero-ink-faint">{updatedText}</p>
-          </>
-        )}
-      </div>
-    </section>
+    <MeasureHero
+      title="How U.S. policy reaches other countries"
+      sub="Pick a measure to see which countries are affected most, then open any country for the full picture."
+      measures={measures}
+      active={measure}
+      onMeasure={setMeasure}
+      activeCountry={activeCountry}
+      onCountry={onCountry}
+      card={card}
+      primary={{ label: 'See pressure tools', onClick: onExplore }}
+      onRefresh={onRefresh}
+      syncing={syncing}
+      updatedText={updatedText}
+      ready={summary !== null}
+    />
   );
 }

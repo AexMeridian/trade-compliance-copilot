@@ -195,7 +195,7 @@ function ArcTooltip({
         U.S. to {name}
       </p>
       <p className="text-xs text-hero-ink-muted">
-        {count} action{count === 1 ? '' : 's'} in the last 30 days. Press to open.
+        {count} notice{count === 1 ? '' : 's'} in the last 30 days. Press to open.
       </p>
       {latest.length > 0 && (
         <ul className="mt-2 space-y-1.5 border-t border-hero-divider pt-2">
@@ -702,9 +702,9 @@ export function PulseGlobe({
 
   const sayForCode = (code: string): string => {
     if (describe) return describe(code);
-    if (code === 'US') return 'United States: the country these trade actions come from. Press it for the feed as a whole.';
+    if (code === 'US') return 'United States: the country these notices come from. Press it for the feed as a whole.';
     const n = counts.get(code) ?? 0;
-    return `${COUNTRY_LABELS[code] ?? code}: ${n === 0 ? 'no U.S. actions' : `${n} U.S. ${n === 1 ? 'action' : 'actions'}`} in the last 30 days`;
+    return `${COUNTRY_LABELS[code] ?? code}: ${n === 0 ? 'no U.S. notices' : `${n} U.S. ${n === 1 ? 'notice' : 'notices'}`} in the last 30 days`;
   };
   const sayForId = (id: number): string => {
     const code = codeFor(id);
@@ -731,7 +731,7 @@ export function PulseGlobe({
             ref={canvas}
             role="img"
             aria-label={
-              ariaLabel ?? 'Globe of every country, coloured by how many U.S. actions named it in the last 30 days. Use the country list below to choose one.'
+              ariaLabel ?? 'Globe of every country, coloured by how many U.S. government notices named it in the last 30 days. Use the country list below to choose one.'
             }
             style={{ width: size, height: size, cursor: hoverIsPressable || arcHover ? 'pointer' : dragRef.current ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
             className="globe-ring-glow mx-auto block select-none"
@@ -802,7 +802,7 @@ export function PulseGlobe({
       {live && (
         <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-hero-ink-faint" title="Counts refresh about every five minutes while this page is open">
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-clear" aria-hidden="true" />
-          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Hover or press an arc for the latest actions.
+          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Hover or press an arc for the latest notices.
         </p>
       )}
       {legend ? (
@@ -822,7 +822,7 @@ export function PulseGlobe({
               <span key={c} className="h-2.5 w-4 rounded-sm" style={{ background: c }} />
             ))}
           </span>
-          actions
+          notices
         </p>
       )}
     </div>
