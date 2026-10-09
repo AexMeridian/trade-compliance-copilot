@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { downloadCsv } from '../lib/downloadCsv';
 import { getPulseSanctions, type SanctionRow } from '../lib/api';
 
 const PAGE_SIZE = 20;
@@ -79,7 +80,7 @@ export function PulseSanctionsBrowser({ initialCountry = '' }: { initialCountry?
             <option value="csl">CSL only</option>
           </select>
         </div>
-        <button type="submit" className="rounded bg-ink px-3 py-1.5 text-sm font-semibold text-white">
+        <button type="submit" className="rounded bg-ink px-3 py-1.5 text-sm font-semibold text-paper">
           Search
         </button>
         {country && (
@@ -95,6 +96,20 @@ export function PulseSanctionsBrowser({ initialCountry = '' }: { initialCountry?
             Clear
           </button>
         )}
+        <button
+          type="button"
+          disabled={combined.length === 0}
+          onClick={() =>
+            downloadCsv(
+              `sanctions-${country ? country.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'all'}-page-${page + 1}.csv`,
+              ['List', 'Name', 'Program or list', 'Source URL'],
+              combined.map((r) => [r.list, r.name, r.list === 'SDN' ? r.programs : r.source_list, r.source_url])
+            )
+          }
+          className="text-sm text-accent hover:underline disabled:pointer-events-none disabled:text-ink-faint disabled:no-underline"
+        >
+          Download this page (CSV)
+        </button>
         <span className="ml-auto text-xs text-ink-faint">{total} matching entries</span>
       </form>
       <p className="mb-3 text-xs text-ink-faint">{note}</p>

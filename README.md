@@ -199,7 +199,7 @@ src/
   types/case.ts           The shared CaseFile type every module reads/writes
 frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse, Influence)
 tests/                    golden-cases.json + the live accuracy runner (test:golden), deterministic
-                          unit tests (test:unit), and a browser route smoke test (test:smoke)
+                          unit tests (test:unit), a browser route smoke test (test:smoke) and an axe accessibility check (test:a11y)
 .github/workflows/ci.yml  Typecheck + unit tests + frontend build on every push and PR
 ```
 

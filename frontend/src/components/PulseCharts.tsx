@@ -117,7 +117,7 @@ export function PulseLineChart({
               type="button"
               onClick={() => onRangeChange(r.id)}
               aria-pressed={range === r.id}
-              className={`rounded px-2 py-1 text-xs font-semibold ${range === r.id ? 'bg-ink text-white' : 'text-ink-muted hover:bg-hairline'}`}
+              className={`rounded px-2 py-1 text-xs font-semibold ${range === r.id ? 'bg-ink text-paper' : 'text-ink-muted hover:bg-hairline'}`}
             >
               {r.label}
             </button>

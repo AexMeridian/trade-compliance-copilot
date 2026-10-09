@@ -59,7 +59,7 @@ const MARKET_GROUPS = [
 
 // Filter-button styling for the activity list.
 const CHIP = 'border px-3 py-1 text-[13px] font-semibold';
-const CHIP_ON = 'border-ink bg-ink text-white';
+const CHIP_ON = 'border-ink bg-ink text-paper';
 const CHIP_OFF = 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink';
 
 const TAGS: PulseTag[] = ['Tariff', 'Sanctions', 'Export Control', 'Trade Agreement', 'Other'];

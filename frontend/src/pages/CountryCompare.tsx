@@ -102,6 +102,7 @@ export function CountryCompare() {
         {codes.map((code, i) => (
           <span key={i} className="flex items-center gap-1">
             <select
+              aria-label={`Country ${i + 1}`}
               value={code}
               onChange={(e) => setCodeAt(i, e.target.value)}
               className="border border-hairline-strong bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"

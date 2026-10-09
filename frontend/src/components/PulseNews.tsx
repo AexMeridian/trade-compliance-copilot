@@ -57,7 +57,7 @@ export function PulseNews({
   categories?: NewsCategory[];
 }) {
   const chip = (active: boolean) =>
-    `inline-flex items-center gap-1.5 border px-3 py-1 text-[13px] font-semibold ${active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'}`;
+    `inline-flex items-center gap-1.5 border px-3 py-1 text-[13px] font-semibold ${active ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'}`;
 
   return (
     <div>

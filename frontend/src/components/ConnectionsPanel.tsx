@@ -92,7 +92,7 @@ export function ConnectionsPanel({ code, name, compact = false, group }: { code:
 
   const events = compact ? data.events.slice(0, 5) : data.events;
   const chip = (active: boolean) =>
-    `border px-2.5 py-1 text-xs font-semibold ${active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'}`;
+    `border px-2.5 py-1 text-xs font-semibold ${active ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'}`;
 
   return (
     <div>
@@ -103,7 +103,7 @@ export function ConnectionsPanel({ code, name, compact = false, group }: { code:
           </button>
           {data.topicCounts.map((t) => (
             <button key={t.topic} type="button" onClick={() => setTopic(t.topic)} aria-pressed={topic === t.topic} className={chip(topic === t.topic)}>
-              {t.topic} <span className="ml-1 tabular-nums opacity-70">{t.count}</span>
+              {t.topic} <span className="ml-1 tabular-nums">{t.count}</span>
             </button>
           ))}
         </div>

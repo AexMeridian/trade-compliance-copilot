@@ -9,11 +9,11 @@ export function BetaBanner() {
         <span className="rounded-sm border border-review px-1.5 py-px text-[11px] font-bold tracking-wide">BETA</span>
         <span>
           This tool uses an AI model and a limited rule set, and can be wrong. It is not legal or customs advice and does not replace OFAC's own{' '}
-          <a href="https://sanctionssearch.ofac.treas.gov/" target="_blank" rel="noreferrer" className="font-semibold underline">
+          <a href="https://sanctionssearch.ofac.treas.gov/" target="_blank" rel="noreferrer" className="font-semibold text-inherit underline">
             Sanctions List Search
           </a>{' '}
           or a licensed broker. Please do not enter personal or confidential information: cases are deleted after 30 days.{' '}
-          <Link to="/methodology#coverage" className="font-semibold underline">
+          <Link to="/methodology#coverage" className="font-semibold text-inherit underline">
             What it covers
           </Link>
           .

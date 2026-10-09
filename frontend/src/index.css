@@ -354,6 +354,18 @@
   }
 }
 
+/* In dark theme the accent is a light indigo, so a primary button needs dark text on it (white on it is 3:1). */
+:root[data-theme='dark'] .btn-primary {
+  color: #0b0b0c;
+}
+
+/* Links inside running text are underlined, so they are recognisable without relying on colour alone
+   (WCAG 1.4.1). Buttons, footer and navigation links opt out with .btn / .no-underline. */
+#main :where(p, li, dd) a:not(.btn):not(.no-underline) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Hero backdrop (HeroBackdrop.tsx): a starfield and horizon glow in dark theme only. Static by
    default; the twinkle is paused while the hero is off screen (.is-paused) and off under reduced motion. */
 .hero-stars {

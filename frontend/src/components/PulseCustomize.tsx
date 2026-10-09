@@ -22,7 +22,7 @@ function Chip({ on, onClick, dot, title, children }: { on: boolean; onClick: () 
       aria-pressed={on}
       title={title}
       className={`inline-flex items-center gap-1.5 border px-3 py-1.5 text-[13px] font-semibold ${
-        on ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+        on ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
       }`}
     >
       {dot && <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden="true" />}

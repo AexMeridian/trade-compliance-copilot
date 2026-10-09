@@ -219,14 +219,21 @@ export default function App() {
                 RSS feed
               </a>
               {SITE.contactEmail && (
-                <a href={`mailto:${SITE.contactEmail}`} className="text-white no-underline hover:underline">
-                  Contact
+                <a
+                  href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent('Correction or question')}&body=${encodeURIComponent(`Page: ${window.location.href}
+Date: ${new Date().toISOString().slice(0, 10)}
+
+What I saw, and what the source says:
+`)}`}
+                  className="text-white no-underline hover:underline"
+                >
+                  Report an error or contact us
                 </a>
               )}
             </nav>
           </div>
           <p className="mt-8 text-[13px]">
-            &copy; {new Date().getFullYear()} {SITE.operator}
+            &copy; {new Date().getFullYear()} {SITE.operator}. Independent and informational; not affiliated with any government. Version {__BUILD__}.
           </p>
         </div>
       </footer>

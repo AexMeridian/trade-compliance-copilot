@@ -8,7 +8,7 @@
     "build:frontend": "npm run build --workspace frontend",
     "deploy": "npm run build:frontend && wrangler deploy",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace frontend",
-    "test:unit": "tsx tests/duty-stack.test.ts && tsx tests/connections.test.ts && tsx tests/scheduler.test.ts && tsx tests/feed.test.ts && tsx tests/sanction-counts.test.ts && tsx tests/naming.test.ts",
+    "test:unit": "tsx tests/duty-stack.test.ts && tsx tests/connections.test.ts && tsx tests/scheduler.test.ts && tsx tests/feed.test.ts && tsx tests/sanction-counts.test.ts && tsx tests/naming.test.ts && tsx tests/csv.test.ts",
     "db:migrate:local": "wrangler d1 migrations apply trade-compliance-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply trade-compliance-db --remote",
     "seed:hts": "tsx scripts/fetch-hts.ts",
@@ -21,6 +21,7 @@
     "seed:load-remote": "tsx scripts/load-batches.ts --remote",
     "seed:path-index": "tsx scripts/rebuild-hts-path-index.ts",
     "test:golden": "tsx tests/run-golden-cases.ts",
+    "test:a11y": "node tests/a11y-routes.mjs",
     "test:smoke": "node tests/smoke-routes.mjs",
     "lint": "npm run lint --workspace frontend",
     "check": "npm run typecheck && npm run test:unit && npm run build:frontend"
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260921.1",
     "@types/node": "^22.9.0",
+    "axe-core": "^4.14.0",
     "playwright": "^1.63.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",

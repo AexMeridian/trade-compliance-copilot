@@ -50,11 +50,11 @@ export function InfluenceBlocs({
                         onClick={() => onSelect(c)}
                         aria-pressed={active}
                         className={`border px-2 py-1 text-[12px] font-semibold ${
-                          active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+                          active ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
                         }`}
                       >
                         {COUNTRY_LABELS[c] ?? c}
-                        {n > 0 && <span className="ml-1 tabular-nums opacity-70">{n}</span>}
+                        {n > 0 && <span className="ml-1 tabular-nums">{n}</span>}
                       </button>
                     </li>
                   );
@@ -109,11 +109,11 @@ export function InfluenceBlocs({
                   onClick={() => onSelect(c)}
                   aria-pressed={active}
                   className={`border px-2 py-1 text-[12px] font-semibold ${
-                    active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+                    active ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
                   }`}
                 >
                   {COUNTRY_LABELS[c] ?? c}
-                  {n > 0 && <span className="ml-1 tabular-nums opacity-70">{n}</span>}
+                  {n > 0 && <span className="ml-1 tabular-nums">{n}</span>}
                 </button>
               </li>
             );
@@ -137,11 +137,11 @@ export function InfluenceBlocs({
                   onClick={() => onSelect(c)}
                   aria-pressed={active}
                   className={`border px-2 py-1 text-[12px] font-semibold ${
-                    active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+                    active ? 'border-ink bg-ink text-paper' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
                   }`}
                 >
                   {COUNTRY_LABELS[c] ?? c}
-                  {n > 0 && <span className="ml-1 tabular-nums opacity-70">{n}</span>}
+                  {n > 0 && <span className="ml-1 tabular-nums">{n}</span>}
                 </button>
               </li>
             );
