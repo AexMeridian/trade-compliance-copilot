@@ -79,9 +79,6 @@
   --hero-glow-rgb: 100, 116, 139; /* cool slate: a quiet daylight atmosphere behind the globe */
   --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.07) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
   --globe-shadow-alpha: 0.22;
-  --backdrop-route: rgba(51, 65, 85, 0.2); /* hero backdrop: trade routes and ports (HeroBackdrop.tsx) */
-  --backdrop-port: #475569;
-  --backdrop-route-lit: rgba(30, 41, 59, 0.7);
   --hero-glow-alpha: 0.14; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
   --radius-control: 8px;
@@ -118,9 +115,6 @@
   --hero-mask-rgb: 5, 7, 13;
   --hero-glow-rgb: 6, 182, 212; /* --color-hue-cyan, the globe's own hue -- the monitor glow */
   --hero-halo-2: none;
-  --backdrop-route: rgba(34, 211, 238, 0.3);
-  --backdrop-port: #67e8f9;
-  --backdrop-route-lit: rgba(103, 232, 249, 0.95);
   --globe-shadow-alpha: 0;
   --hero-glow-alpha: 0.48;
 
@@ -360,44 +354,8 @@
   }
 }
 
-/* Hero backdrop (HeroBackdrop.tsx): trade routes in both themes, stars in dark only. Static
-   by default; motion is opt-in and paused while the hero is off screen (.is-paused). */
-.hero-route {
-  stroke: var(--backdrop-route);
-  stroke-width: 1;
-}
-.hero-route-flow {
-  stroke-dasharray: 3 7;
-}
-.hero-port {
-  fill: var(--backdrop-port);
-  opacity: 0.85;
-}
-.hero-port-ring {
-  stroke: var(--backdrop-port);
-  opacity: 0.25;
-}
-.hero-cargo-dot {
-  fill: var(--backdrop-port);
-  opacity: 0.9;
-}
-:root[data-theme='dark'] .hero-cargo-dot {
-  filter: drop-shadow(0 0 4px rgba(103, 232, 249, 0.9));
-}
-/* The cursor spotlight: a brighter copy of the routes, revealed in a circle around the pointer. */
-.hero-lit {
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  -webkit-mask-image: radial-gradient(circle 260px at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0, 0, 0, 0) 100%);
-  mask-image: radial-gradient(circle 260px at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0, 0, 0, 0) 100%);
-}
-.hero-backdrop.is-lit .hero-lit {
-  opacity: 1;
-}
-.hero-routes-lit .hero-route {
-  stroke: var(--backdrop-route-lit);
-  stroke-width: 1.7;
-}
+/* Hero backdrop (HeroBackdrop.tsx): a starfield and horizon glow in dark theme only. Static by
+   default; the twinkle is paused while the hero is off screen (.is-paused) and off under reduced motion. */
 .hero-stars {
   display: none;
   fill: #ffffff;
@@ -414,24 +372,11 @@
   background: radial-gradient(ellipse 70% 38% at 50% 108%, rgba(34, 211, 238, 0.26) 0%, rgba(34, 211, 238, 0) 100%);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .hero-route-flow {
-    animation: hero-route-flow 38s linear infinite;
-  }
   .hero-twinkle {
     animation: hero-twinkle 5s ease-in-out infinite;
   }
-  .hero-port-pulse {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: hero-port-pulse 4.5s ease-out infinite;
-  }
   .hero-backdrop.is-paused * {
     animation-play-state: paused;
-  }
-  @keyframes hero-route-flow {
-    to {
-      stroke-dashoffset: -400;
-    }
   }
   @keyframes hero-twinkle {
     0%,
@@ -440,16 +385,6 @@
     }
     50% {
       opacity: 1;
-    }
-  }
-  @keyframes hero-port-pulse {
-    0% {
-      transform: scale(0.6);
-      opacity: 0.5;
-    }
-    100% {
-      transform: scale(2.2);
-      opacity: 0;
     }
   }
 }
