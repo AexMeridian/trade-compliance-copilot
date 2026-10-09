@@ -436,6 +436,27 @@ Things only the site's owner can decide or set. Everything else in this list is 
 7. **Monitoring.** Workers observability is on. Point an uptime monitor at `/api/health`, and check `data_refresh_log` and `pulse_feed_state` (D1) if a source looks stale.
 8. **Alerts by email.** Not built: it needs an email provider and a way to confirm and unsubscribe addresses. Feeds (`/rss.xml`, `/atom.xml`, `/feed.json`; see "Public feeds" below) are the no-account alternative.
 
+## Running on the Cloudflare free plan
+
+The site is built to stay inside the free limits (100,000 Worker requests and 100,000 D1 row writes a day):
+static pages and assets cost nothing, a page view makes about three API calls (most served from the edge
+cache), so capacity is on the order of 25,000 page views a day. What protects the limits:
+
+- **Writes.** The only anonymous writes are creating a calculator case and saving a citable snapshot, each capped
+  at 10 per minute per IP (`WRITE_RATE_LIMITER`). Data refreshes only rewrite rows that changed, and bulk reloads
+  are spread across the week and skipped when the source file is unchanged (`src/scheduled.ts`).
+- **AI cost.** 20 Claude-calling requests per minute per IP, and a daily ceiling across everyone
+  (`CLAUDE_DAILY_CAP`, default 300, counted in D1). Past it the calculator says it is at capacity.
+- **Privacy.** Calculator cases expire after 30 days (daily cron) and can be deleted early by their creator with a
+  secret token that is stored hashed (`migrations/0025_case_expiry.sql`).
+- **Third-party terms.** `MARKET_QUOTES` (Yahoo Finance) and `NEWS_IMAGES` (publisher photos) are `off` in
+  `wrangler.jsonc`; nothing depends on them. Citable snapshots are rebuilt from the database server-side, never
+  from what the browser sends.
+- **Monitoring.** `GET /api/health` for uptime; `GET /api/pulse/data-status` lists every source's last
+  successful refresh (shown on the Methodology page). `/.well-known/security.txt` is the disclosure contact.
+
+If traffic outgrows the free plan, Workers Paid (about $5 a month) removes the daily caps; nothing else changes.
+
 ## Public feeds (RSS, Atom, JSON Feed)
 
 `/rss.xml`, `/atom.xml` and `/feed.json` (aliases for `/api/pulse/rss`, `/atom`, `/feed.json`) syndicate

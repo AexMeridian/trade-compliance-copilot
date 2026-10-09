@@ -13,11 +13,44 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function createCase(direction: Direction) {
-  return request<{ id: string; case_file: CaseFile }>('/cases', {
+// The secret that lets the browser which created a case delete it early is kept only here, in
+// this browser's local storage; the server stores just a hash of it.
+const tokenKey = (id: string) => `caseToken:${id}`;
+export function hasCaseToken(id: string): boolean {
+  try {
+    return !!localStorage.getItem(tokenKey(id));
+  } catch {
+    return false;
+  }
+}
+
+export async function createCase(direction: Direction) {
+  const res = await request<{ id: string; case_file: CaseFile; delete_token?: string; retention_days?: number }>('/cases', {
     method: 'POST',
     body: JSON.stringify({ direction }),
   });
+  try {
+    if (res.delete_token) localStorage.setItem(tokenKey(res.id), res.delete_token);
+  } catch {
+    // Storage blocked: the case still works and expires on schedule; it just cannot be deleted early from here.
+  }
+  return res;
+}
+
+export async function deleteCase(id: string) {
+  let token = '';
+  try {
+    token = localStorage.getItem(tokenKey(id)) ?? '';
+  } catch {
+    // fall through with an empty token; the server will refuse
+  }
+  const out = await request<{ deleted: boolean }>(`/cases/${id}`, { method: 'DELETE', headers: { 'X-Delete-Token': token } });
+  try {
+    localStorage.removeItem(tokenKey(id));
+  } catch {
+    // ignore
+  }
+  return out;
 }
 
 export function getCase(id: string) {
@@ -163,6 +196,22 @@ export function getNatoDefenseSpending() {
   return request<{ countries: Record<string, NatoDefenseCountry> }>('/pulse/nato-defense');
 }
 
+export interface DataStatus {
+  asOf: string;
+  sources: { source: string; lastSuccess: string | null; lastError: string | null }[];
+}
+export function getDataStatus() {
+  return request<DataStatus>('/pulse/data-status');
+}
+
+export interface DataStats {
+  asOf: string;
+  counts: Record<string, number | null>;
+}
+export function getDataStats() {
+  return request<DataStats>('/pulse/stats');
+}
+
 export interface SanctionCounts {
   asOf: string;
   total: number;
@@ -213,7 +262,8 @@ export interface PulseSnapshot<TData = unknown, TParams = unknown> {
   created_at: string;
 }
 
-export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer'; title: string; params: unknown; data: unknown; source_note: string }) {
+// The server rebuilds the snapshot's data itself; only the chart type and its range are taken from the request.
+export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer'; title?: string; params: unknown; data?: unknown; source_note?: string }) {
   return request<{ id: string; created_at: string }>('/pulse/snapshots', { method: 'POST', body: JSON.stringify(args) });
 }
 

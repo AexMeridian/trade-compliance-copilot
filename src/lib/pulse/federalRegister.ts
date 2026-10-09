@@ -4,7 +4,7 @@
 // returns zero results instead of erroring, so these are pinned as constants
 // rather than re-derived at request time.
 const BASE = 'https://www.federalregister.gov/api/v1';
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from '../refresh/userAgent.js';
 const REQUEST_TIMEOUT_MS = 10_000;
 
 // USTR/BIS/OFAC/CBP alone miss two entire regulatory domains this feed

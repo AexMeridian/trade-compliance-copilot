@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CaseFile, Direction, Verdict } from '../types/case';
-import { createCase, getReport, listSamples } from '../lib/api';
+import { createCase, getDataStats, getReport, listSamples } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
 import { SITE } from '../lib/site';
 
@@ -24,38 +24,45 @@ const SAMPLE_LABELS: Record<string, { title: string; note: string }> = {
   },
 };
 
-const REFERENCE_DATA = [
-  {
-    dataset: 'Harmonized Tariff Schedule',
-    count: '31,860 tariff lines',
-    source: 'U.S. International Trade Commission',
-    note: 'Full 8/10-digit US import schedule, general and special (USMCA) rate columns.',
-  },
-  {
-    dataset: 'Schedule B export codes',
-    count: '9,746 lines',
-    source: 'U.S. Census Bureau, Foreign Trade Division',
-    note: 'Cross-referenced against HTS on every classification for import/export symmetry.',
-  },
-  {
-    dataset: 'Denied- and restricted-party lists',
-    count: '26,146 screened records',
-    source: 'OFAC Specially Designated Nationals List + BIS/State Consolidated Screening List',
-    note: 'Fuzzy name matching with a documented false-positive rationale on every candidate.',
-  },
-  {
-    dataset: 'USMCA rules of origin',
-    count: 'Curated rule set',
-    source: 'General Note 11, HTSUS',
-    note: 'Tariff-shift and regional-value-content thresholds by HS chapter.',
-  },
-  {
-    dataset: 'Export control classifications',
-    count: 'Curated ECCN set',
-    source: 'BIS Commerce Control List',
-    note: 'Reasons-for-control and country-chart license determinations.',
-  },
-];
+// What the calculator is built on. Counts come from the database (/api/pulse/stats), never typed in,
+// and the curated sets are described as what they are: small, hand-verified subsets.
+const fmt = (n: number | null | undefined) => (n == null ? null : n.toLocaleString('en-US'));
+function referenceData(c: Record<string, number | null>) {
+  const parties = [c.sdnEntries, c.cslEntries, c.unEntries, c.ukEntries];
+  const partyTotal = parties.every((x) => x != null) ? (parties as number[]).reduce((a, b) => a + b, 0) : null;
+  return [
+    {
+      dataset: 'Harmonized Tariff Schedule',
+      count: fmt(c.htsLines) ? `${fmt(c.htsLines)} tariff lines` : 'Loading…',
+      source: 'U.S. International Trade Commission',
+      note: 'The full 8- and 10-digit U.S. import schedule, with general and special (USMCA) rate columns.',
+    },
+    {
+      dataset: 'Schedule B export codes',
+      count: fmt(c.scheduleBLines) ? `${fmt(c.scheduleBLines)} codes` : 'Loading…',
+      source: 'U.S. Census Bureau, Foreign Trade Division',
+      note: 'Cross-referenced against the HTS on every classification.',
+    },
+    {
+      dataset: 'Sanctions and restricted-party lists',
+      count: fmt(partyTotal) ? `${fmt(partyTotal)} listed parties` : 'Loading…',
+      source: 'OFAC SDN, Commerce/State Consolidated Screening List, UN Security Council, UK Sanctions List',
+      note: 'Name matching with a written rationale on every candidate. Lists are refreshed weekly; use the official OFAC search for any real decision.',
+    },
+    {
+      dataset: 'USMCA rules of origin',
+      count: fmt(c.usmcaRules) ? `${fmt(c.usmcaRules)} curated rules` : 'Loading…',
+      source: 'General Note 11, HTSUS',
+      note: 'A hand-verified subset of the HTSUS chapters. Products outside it are reported as not covered.',
+    },
+    {
+      dataset: 'Export control classifications',
+      count: fmt(c.eccnEntries) ? `${fmt(c.eccnEntries)} curated ECCNs` : 'Loading…',
+      source: 'BIS Commerce Control List and Country Chart',
+      note: 'A small, hand-verified subset of the Commerce Control List. Anything outside it is reported as not covered, never guessed.',
+    },
+  ];
+}
 
 const METHOD_STEPS = [
   {
@@ -68,7 +75,7 @@ const METHOD_STEPS = [
   },
   {
     title: 'Party screening',
-    body: 'Buyer, seller, and intermediary names are fuzzy-matched against the OFAC SDN list and the BIS/State Consolidated Screening List, with a written rationale for every candidate, including the false positives.',
+    body: 'Buyer, seller, and intermediary names are matched against the OFAC SDN list, the Commerce/State Consolidated Screening List, the UN Security Council list and the UK Sanctions List, with a written rationale for every candidate, including the false positives.',
   },
   {
     title: 'Determination',
@@ -82,6 +89,12 @@ export function Landing() {
   const [creating, setCreating] = useState(false);
   const [preview, setPreview] = useState<{ case_file: CaseFile; verdict: Verdict } | null>(null);
   const navigate = useNavigate();
+  const [counts, setCounts] = useState<Record<string, number | null>>({});
+  useEffect(() => {
+    getDataStats()
+      .then((s) => setCounts(s.counts))
+      .catch(() => setCounts({}));
+  }, []);
 
   useEffect(() => {
     listSamples()
@@ -234,7 +247,7 @@ export function Landing() {
           date.
         </p>
         <div className="card mt-4 divide-y divide-hairline">
-          {REFERENCE_DATA.map((row) => (
+          {referenceData(counts).map((row) => (
             <div key={row.dataset} className="grid gap-x-6 gap-y-1 px-4 py-3 sm:grid-cols-[1fr_11rem_1.3fr]">
               <div className="text-sm font-medium text-ink">{row.dataset}</div>
               <div className="text-sm tabular-nums text-ink-muted">{row.count}</div>

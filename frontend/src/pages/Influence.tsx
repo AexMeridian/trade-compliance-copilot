@@ -11,7 +11,6 @@ import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseCurrencyMovers } from '../components/PulseCharts';
-import { PulseDelta } from '../components/PulseDelta';
 import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
@@ -126,7 +125,9 @@ export function Influence() {
   const topAction = rankSignals(recentAll, 1)[0] ?? null;
   const politicalNews = (news?.items ?? []).filter((n) => n.category === 'Elections & Politics' || n.category === 'Official');
   const headline = politicalNews[0] ?? null;
-  const dxy = markets?.tiles.find((t) => t.id === 'DX-Y.NYB') ?? null;
+  // Based on the ECB reference rates (always on), not on a stock-quote feed.
+  const fx = (markets?.currencies ?? []).filter((r) => r.change30dPct !== null);
+  const dollarUp = fx.filter((r) => (r.change30dPct ?? 0) > 0).length;
   const tilesIn = (group: string) => (markets?.tiles ?? []).filter((t) => t.group === group);
   const priceTiles = (markets?.tiles ?? []).filter((t) => t.id === 'BLS:IMPORT_PX' || t.id === 'BLS:EXPORT_PX');
   const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
@@ -166,7 +167,7 @@ export function Influence() {
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
               <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-                <Item label="Biggest pressure action lately">
+                <Item label="Biggest trade measure lately">
                   {topAction ? (
                     <>
                       <a
@@ -184,15 +185,15 @@ export function Influence() {
                   )}
                 </Item>
                 <Item label="The dollar's reach">
-                  {dxy ? (
+                  {fx.length > 0 ? (
                     <>
                       <p className="text-base font-semibold leading-snug text-ink">
-                        <PulseDelta change={dxy.changePct} text={`${Math.abs(dxy.changePct ?? 0).toFixed(1)}%`} className="mr-1.5 text-sm" />
-                        U.S. dollar index, {dxy.value.toFixed(1)}
+                        <span className="mr-1.5 text-2xl tabular-nums">
+                          {dollarUp} of {fx.length}
+                        </span>
+                        currencies fell against the dollar
                       </p>
-                      <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
-                        A gauge of the dollar against a basket of major currencies. Higher means the dollar buys more abroad.
-                      </p>
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">Over the last 30 days, using the European Central Bank's daily reference rates.</p>
                     </>
                   ) : (
                     <Unavailable loading={!markets && !marketsFailed} />
@@ -225,7 +226,7 @@ export function Influence() {
                 <Link to="/" className="text-accent hover:underline">
                   {SITE.name}
                 </Link>
-                , reframed as pressure and reach. See the Guide tab for exactly what that does and doesn't mean.
+                , organized by trade measures and reach. See the Guide tab for what that does and doesn't mean.
               </p>
             </div>
           )}
@@ -233,15 +234,15 @@ export function Influence() {
           {tab === 'pressure' && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="display text-3xl text-ink">Pressure</h2>
+                <h2 className="display text-3xl text-ink">Trade measures</h2>
                 <p className="mt-1 text-sm text-ink-muted">
                   Tariffs, sanctions and export controls: the tools the U.S. uses to raise costs or cut off access, as published in the Federal Register.
                 </p>
               </div>
               <PulsePanel
-                title="Where pressure converges"
+                title="Where measures converge"
                 subtitle="Countries named by several different kinds of source at once, last 60 days"
-                help="Pressure rarely arrives from one direction. This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by how many topics. It is a count of what was published, not a risk score. Open a country to see its full timeline."
+                help="Measures rarely come from one direction. This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by how many topics. It is a count of what was published, not a risk score. Open a country to see its full timeline."
               >
                 <ConvergencePanel />
               </PulsePanel>
@@ -257,7 +258,7 @@ export function Influence() {
                 </div>
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
-                    title="Who is actually under pressure"
+                    title="Which countries face the most measures"
                     help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
@@ -267,7 +268,7 @@ export function Influence() {
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel
                     title="Active measures"
-                    help="Extra taxes on imports the U.S. currently charges under specific laws -- an ongoing exercise of pressure, not a one-time announcement."
+                    help="Extra taxes on imports the U.S. currently charges under specific laws -- an ongoing measure, not a one-time announcement."
                     subtitle="Section 232, 301 and 338 measures in force."
                   >
                     {loading ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}
@@ -282,7 +283,7 @@ export function Influence() {
                     {loading ? loadingBlock : <PulseAgencyBreakdown breakdown={summary?.agencyBreakdown ?? []} />}
                   </PulsePanel>
                   <PulsePanel
-                    title="Tempo of pressure"
+                    title="Pace of U.S. trade notices"
                     help="How many actions were published each month. Taller bars mean a busier month. Pick a shorter or longer window with the range buttons."
                     subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`}
                   >
@@ -330,7 +331,7 @@ export function Influence() {
               </section>
               {priceTiles.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h3 className="font-display text-xl font-bold text-ink">Is pressure reaching prices?</h3>
+                  <h3 className="font-display text-xl font-bold text-ink">Are trade measures reaching prices?</h3>
                   <p className="text-sm text-ink-muted">
                     What the U.S. actually pays for imports, and what buyers abroad actually pay for U.S. exports -- the closest real, published read on whether
                     tariffs (and the dollar's moves) are showing up in prices, not just in policy announcements.

@@ -14,7 +14,7 @@ import type { RefreshResult } from './types.js';
 import { changeGate } from './changeGate.js';
 import { HTS_PATH_INDEX_BUILD_SQL, HTS_PATH_INDEX_CLEAR_SQL } from './htsPathIndex.js';
 
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from './userAgent.js';
 const CHAPTERS =Array.from({ length: 97 }, (_, i) => i + 1).filter((c) => c !== 77);
 
 interface HtsApiRow {

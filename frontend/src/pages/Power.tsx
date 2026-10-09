@@ -254,9 +254,9 @@ export function Power() {
                 </p>
               </div>
               <PulsePanel
-                title="Where pressure converges"
+                title="Where measures converge"
                 subtitle="Countries named by several different kinds of source at once, last 60 days"
-                help="Pressure rarely arrives from one direction. This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by how many topics. It is a count of what was published, not a risk score. Open a country to see its full timeline."
+                help="Measures rarely come from one direction. This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by how many topics. It is a count of what was published, not a risk score. Open a country to see its full timeline."
               >
                 <ConvergencePanel />
               </PulsePanel>
@@ -272,7 +272,7 @@ export function Power() {
                 </div>
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
-                    title="Who is actually under pressure"
+                    title="Which countries face the most measures"
                     help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
@@ -286,7 +286,7 @@ export function Power() {
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel
                     title="Active measures"
-                    help="Extra taxes on imports the U.S. currently charges under specific laws -- an ongoing exercise of pressure, not a one-time announcement."
+                    help="Extra taxes on imports the U.S. currently charges under specific laws -- an ongoing measure, not a one-time announcement."
                     subtitle="Section 232, 301 and 338 measures in force."
                   >
                     {loading ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}

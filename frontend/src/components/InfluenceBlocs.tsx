@@ -1,4 +1,4 @@
-import { BLOC_FULL_NAMES, BLOC_LABELS, BLOC_MEMBERS, PARTNER_COUNTRIES, type Bloc } from '../lib/pulseBlocs';
+import { BLOC_FULL_NAMES, BLOC_LABELS, BLOC_MEMBERS, BLOC_NON_COUNTRY_MEMBERS, BLOC_SOURCES, BLOCS_AS_OF, BRICS_PARTNERS, PARTNER_COUNTRIES, type Bloc } from '../lib/pulseBlocs';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { BLOC_HUE } from '../lib/pulseColors';
 import { useState } from 'react';
@@ -36,7 +36,7 @@ export function InfluenceBlocs({
               <h3 className="font-display text-lg font-bold text-ink">{BLOC_LABELS[bloc]}</h3>
               <p className="mt-0.5 text-xs text-ink-faint">{BLOC_FULL_NAMES[bloc]}</p>
               <p className="mt-2 text-sm text-ink-muted">
-                <span className="font-semibold text-ink">{total}</span> U.S. {total === 1 ? 'action' : 'actions'} in the last 30 days named a member of this
+                <span className="font-semibold text-ink">{total}</span> U.S. {total === 1 ? 'notice' : 'notices'} in the last 30 days named a member of this
                 group.
               </p>
               <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -60,6 +60,16 @@ export function InfluenceBlocs({
                   );
                 })}
               </ul>
+              {BLOC_NON_COUNTRY_MEMBERS[bloc] && (
+                <p className="mt-2 text-xs text-ink-faint">Also a member, not a country: {BLOC_NON_COUNTRY_MEMBERS[bloc]!.join(', ')}.</p>
+              )}
+              <p className="mt-2 text-xs text-ink-faint">
+                {members.length} countries{bloc === 'BRICS' ? ' (as listed by the BRICS presidency)' : ''}. Source:{' '}
+                <a href={BLOC_SOURCES[bloc].url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                  {BLOC_SOURCES[bloc].label}
+                </a>
+                , checked {BLOCS_AS_OF}.
+              </p>
               <button
                 type="button"
                 onClick={() => setOpen(open === bloc ? null : bloc)}
@@ -82,6 +92,34 @@ export function InfluenceBlocs({
           <ConnectionsPanel code={groupFor(open)[0]} name={BLOC_LABELS[open]} group={groupFor(open)} />
         </div>
       )}
+      <div className="card p-4">
+        <h3 className="font-display text-base font-bold text-ink">BRICS partner countries</h3>
+        <p className="mt-0.5 text-xs text-ink-faint">
+          A category created in 2024: partners take part in selected BRICS activities but are not members. Shown separately from the BRICS card above on
+          purpose.
+        </p>
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {BRICS_PARTNERS.map((c) => {
+            const n = counts.get(c) ?? 0;
+            const active = activeCountry === c;
+            return (
+              <li key={c}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(c)}
+                  aria-pressed={active}
+                  className={`border px-2 py-1 text-[12px] font-semibold ${
+                    active ? 'border-ink bg-ink text-white' : 'border-hairline-strong bg-paper-raised text-ink-muted hover:border-ink hover:text-ink'
+                  }`}
+                >
+                  {COUNTRY_LABELS[c] ?? c}
+                  {n > 0 && <span className="ml-1 tabular-nums opacity-70">{n}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
       <div className="card p-4">
         <h3 className="font-display text-base font-bold text-ink">NATO partners</h3>
         <p className="mt-0.5 text-xs text-ink-faint">

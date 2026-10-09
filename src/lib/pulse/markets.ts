@@ -15,7 +15,7 @@ import { buildInsertStatements, sqlString } from '../refresh/sql.js';
 import type { RefreshResult } from '../refresh/types.js';
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-const FX_UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as FX_UA } from '../refresh/userAgent.js';
 const REQUEST_TIMEOUT_MS = 10_000;
 
 // Every currency Frankfurter/the ECB actually publishes a reference rate

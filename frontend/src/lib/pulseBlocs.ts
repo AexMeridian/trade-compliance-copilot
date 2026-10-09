@@ -10,22 +10,25 @@
 // "other countries" this app tags, so it's never a code here either, even
 // where the U.S. is a real member (G7, G20, NATO, USMCA).
 //
-// As of: 2026-09-26.
+// As of: 2026-10-09 (re-verified against the sources in BLOC_SOURCES below).
 //   NATO -- 32 members since Sweden's March 2024 accession (nato.int); 31
 //     listed here plus the always-implicit US.
 //   G7 -- Canada, France, Germany, Italy, Japan, UK, US; the EU also
 //     participates in every G7 summit without being a member state (g7.org).
-//   G20 -- the 19 member countries plus the EU (g20.org). The African Union
-//     joined as a member in 2023, but has no ISO country code of its own and
-//     is commonly abbreviated "AU" -- the same code this app already uses
-//     for Australia -- so it's left out rather than risk that collision;
-//     there is no synthetic marker for it the way 'EU' is for the European
-//     Union.
-//   BRICS -- founding five (Brazil, Russia, India, China, South Africa,
-//     2010). The 2024 expansion (Egypt, Ethiopia, Iran, UAE, Saudi Arabia) is
-//     left out to avoid disputed/partial membership as of this date -- Iran
-//     and the UAE are tracked countries but not counted as BRICS members
-//     here.
+//   G20 -- 19 member countries plus two regional organizations, the EU and
+//     the African Union (a member since the September 2023 New Delhi summit).
+//     The African Union has no ISO country code of its own and is commonly
+//     abbreviated "AU" -- the same code this app uses for Australia -- so it
+//     is not a clickable country here. It is listed as a non-country member
+//     in BLOC_NON_COUNTRY_MEMBERS and named wherever the G20 is described.
+//   BRICS -- 11 full members: the founding five (Brazil, Russia, India,
+//     China, South Africa), Egypt, Ethiopia, Iran, the UAE and Saudi Arabia
+//     (the 2024 expansion), and Indonesia (January 2025). Saudi Arabia is
+//     listed as the BRICS presidency lists it; its own participation has
+//     been described differently over time, so the UI says "as listed by the
+//     BRICS presidency". Ten "partner countries" (a category created at the
+//     2024 Kazan summit) are held separately in BRICS_PARTNERS: partners are
+//     not members.
 //   USMCA -- the U.S.-Mexico-Canada Agreement, in force since 2020, the
 //     successor to NAFTA (ustr.gov).
 export type Bloc = 'NATO' | 'G7' | 'G20' | 'BRICS' | 'USMCA';
@@ -42,7 +45,7 @@ export const BLOC_FULL_NAMES: Record<Bloc, string> = {
   NATO: 'North Atlantic Treaty Organization',
   G7: 'Group of Seven',
   G20: 'Group of Twenty',
-  BRICS: 'Brazil, Russia, India, China, South Africa',
+  BRICS: 'Brazil, Russia, India, China, South Africa and later members',
   USMCA: 'United States-Mexico-Canada Agreement',
 };
 
@@ -53,9 +56,26 @@ export const BLOC_MEMBERS: Record<Bloc, string[]> = {
   ],
   G7: ['CA', 'FR', 'DE', 'IT', 'JP', 'GB', 'EU'],
   G20: ['AR', 'AU', 'BR', 'CA', 'CN', 'FR', 'DE', 'IN', 'ID', 'IT', 'JP', 'MX', 'RU', 'SA', 'ZA', 'KR', 'TR', 'GB', 'EU'],
-  BRICS: ['BR', 'RU', 'IN', 'CN', 'ZA'],
+  BRICS: ['BR', 'RU', 'IN', 'CN', 'ZA', 'EG', 'ET', 'IR', 'AE', 'SA', 'ID'],
   USMCA: ['CA', 'MX'],
 };
+
+// Members that are organizations, not countries, so they have no clickable country code.
+export const BLOC_NON_COUNTRY_MEMBERS: Partial<Record<Bloc, string[]>> = { G20: ['African Union'] };
+
+// BRICS "partner countries" (category created at the 2024 Kazan summit). Partners take part in
+// selected BRICS activities; they are not members. As of 2026-10-09.
+export const BRICS_PARTNERS: string[] = ['BY', 'BO', 'CU', 'KZ', 'MY', 'NG', 'TH', 'UG', 'UZ', 'VN'];
+
+// Where each list comes from, shown in the UI so a reader can check it.
+export const BLOC_SOURCES: Record<Bloc, { label: string; url: string }> = {
+  NATO: { label: 'NATO: member countries', url: 'https://www.nato.int/cps/en/natohq/topics_52044.htm' },
+  G7: { label: 'G7 presidency', url: 'https://www.g7.utoronto.ca/' },
+  G20: { label: 'G20: members', url: 'https://www.g20.org/' },
+  BRICS: { label: 'BRICS: about the group', url: 'https://brics.br/en/about-the-brics' },
+  USMCA: { label: 'USTR: USMCA', url: 'https://ustr.gov/trade-agreements/free-trade-agreements/united-states-mexico-canada-agreement' },
+};
+export const BLOCS_AS_OF = '2026-10-09';
 
 // NATO's own "partners across the globe" program (nato.int) -- a real,
 // named relationship, but a different kind of fact than formal membership

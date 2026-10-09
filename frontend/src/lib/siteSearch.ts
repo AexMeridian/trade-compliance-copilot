@@ -28,7 +28,7 @@ const PAGES: SearchEntry[] = [
   {
     id: 'pulse',
     title: 'Pulse',
-    description: 'New U.S. trade actions, mapped. Every country the U.S. is hitting with tariffs, sanctions or export limits right now.',
+    description: 'New U.S. trade notices, mapped. Every country named in recent U.S. government notices on tariffs, sanctions or export limits.',
     type: 'Page',
     url: '/',
   },
@@ -43,7 +43,7 @@ const PAGES: SearchEntry[] = [
   {
     id: 'influence',
     title: 'U.S. abroad',
-    description: "Who the U.S. is pressuring with tariffs and sanctions, and who it's formally aligned with.",
+    description: 'Sanctioned parties, extra tariffs and recent notices by country, and which countries belong to the main alliances.',
     type: 'Page',
     url: '/abroad',
   },

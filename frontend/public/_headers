@@ -6,6 +6,10 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ichef.bbci.co.uk https://i.guim.co.uk; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 
+/case/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 

@@ -14,7 +14,8 @@ export interface RefreshResult {
     | 'pulse_macro'
     | 'pulse_cofer'
     | 'gta'
-    | 'wro_findings';
+    | 'wro_findings'
+    | 'case_expiry';
   rows: number;
   // Set when a bulk job found its upstream file identical to the last load and skipped the
   // (write-heavy) table rewrite. rows is 0 in that case.

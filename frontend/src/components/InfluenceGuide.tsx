@@ -20,7 +20,7 @@ const QA: [string, string][] = [
     'No. Every figure on this page is a real, sourced count or a real, sourced membership list -- never a computed "U.S.-abroad score." Where a real concept (like cultural reach) can\'t be measured here without inventing a number, it is left off the page rather than estimated.',
   ],
   [
-    'Does a bigger tariff/sanctions count mean the U.S. sees that country as an adversary?',
+    'Does a bigger tariff or sanctions count mean the U.S. treats that country as an adversary?',
     'Not necessarily. It only means more of the tracked Federal Register actions named that country in the last 30 days. A routine renewal, a new sanction and a trade-agreement update all count the same way; the count is a tally of activity, not a judgment.',
   ],
   [
@@ -39,8 +39,8 @@ export function InfluenceGuide() {
       <div>
         <h2 className="display text-3xl text-ink">A short guide to this page</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-          This page reframes real {SITE.name} data through a "pressure and reach" lens -- what tools the U.S. uses to apply pressure abroad, what gives
-          the dollar and U.S. diplomacy reach, and who it's formally allied with. Nothing here is a new data source built just for this framing except the
+          This page organizes real {SITE.name} data around "trade measures and reach" -- which tariffs, sanctions and export controls the U.S. applies to
+          other countries, what gives the dollar and U.S. diplomacy reach, and which countries belong to the main alliances. Nothing here is a new data source built just for this framing except the
           alliance list below; everything else is the same figures used on{' '}
           <Link to="/" className="text-accent hover:underline">
             {SITE.name}
@@ -49,11 +49,11 @@ export function InfluenceGuide() {
         </p>
       </div>
 
-      <Section title="What counts as “pressure” here">
+      <Section title="What counts as a “trade measure” here">
         <p>
-          Tariffs, sanctions, export controls and trade agreements published in the Federal Register -- the tools a government can use to raise costs, cut off,
-          or condition access for another country. The Pressure tab is Pulse's own U.S.-policy data (activity by country, by agency, and over time), simply
-          framed as instruments of pressure rather than neutral policy tracking.
+          Tariffs, sanctions, export controls and trade agreements published in the Federal Register -- measures that raise costs on, or restrict or
+          condition access to, another country's trade. The Trade measures tab is Pulse's own U.S.-policy data (activity by country, by agency, and over
+          time), presented by country. It reports what was published and takes no position on whether a measure is justified.
         </p>
       </Section>
 

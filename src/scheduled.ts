@@ -26,6 +26,7 @@ import { refreshCofer } from './lib/pulse/cofer.js';
 import { refreshNews } from './lib/pulse/news.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { logRefresh } from './lib/refresh/log.js';
+import { purgeExpiredCases } from './lib/caseStore.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
 export const DAILY_CRON = '0 5 * * *';
@@ -55,6 +56,8 @@ const DAILY_JOBS: RefreshJob[] = [
   { source: 'pulse_news', run: refreshNews },
   { source: 'pulse_macro', run: refreshMacro },
   { source: 'pulse_cofer', run: refreshCofer },
+  // Privacy: remove calculator cases past their 30-day retention (src/lib/caseStore.ts).
+  { source: 'case_expiry', run: async (env) => ({ source: 'case_expiry', rows: await purgeExpiredCases(env) }) },
 ];
 
 // Priority order = sanctions first (a stale list is a real compliance risk).

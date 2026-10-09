@@ -5,6 +5,7 @@ import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SiteSearch } from './components/SiteSearch';
+import { BetaBanner } from './components/BetaBanner';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
@@ -18,13 +19,15 @@ const Influence = lazyPage(() => import('./pages/Influence'), 'Influence');
 const Power = lazyPage(() => import('./pages/Power'), 'Power');
 const CountryDetail = lazyPage(() => import('./pages/CountryDetail'), 'CountryDetail');
 const About = lazyPage(() => import('./pages/About'), 'About');
+const Methodology = lazyPage(() => import('./pages/Methodology'), 'Methodology');
+const Terms = lazyPage(() => import('./pages/Terms'), 'Terms');
 const Privacy = lazyPage(() => import('./pages/Privacy'), 'Privacy');
 const Accessibility = lazyPage(() => import('./pages/Accessibility'), 'Accessibility');
 const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'CountryCompare');
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
-const KNOWN_PATHS = ['/', '/calculator', '/abroad', '/allies', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
+const KNOWN_PATHS = ['/', '/methodology', '/terms', '/calculator', '/abroad', '/allies', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -37,7 +40,9 @@ function usePageMeta(pathname: string, tab: string | null) {
     } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
     else if (pathname === '/abroad') title = `U.S. abroad: where U.S. policy lands | ${SITE.name}`;
     else if (pathname === '/allies') title = `Dollar & allies: trade tools, the dollar and alliances | ${SITE.name}`;
-    else if (pathname === '/about') title = `About and sources | ${SITE.name}`;
+    else if (pathname === '/about') title = `About | ${SITE.name}`;
+    else if (pathname === '/methodology') title = `Methodology and sources | ${SITE.name}`;
+    else if (pathname === '/terms') title = `Terms of use | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
     else if (pathname === '/compare') title = `Compare countries | ${SITE.name}`;
@@ -128,7 +133,7 @@ export default function App() {
               Pulse
             </NavLink>
             <NavLink to="/calculator" className={navClass}>
-              Calculator
+              Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide opacity-70 sm:inline">Beta</span>
             </NavLink>
             <NavLink to="/abroad" className={navClass}>
               U.S. abroad
@@ -146,6 +151,7 @@ export default function App() {
       </header>
 
       <div id="main" className="flex-1">
+        {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>
           <Route path="/" element={<Pulse />} />
@@ -163,6 +169,8 @@ export default function App() {
           <Route path="/case/:id/report" element={<Report />} />
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/methodology" element={<Methodology />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/compare" element={<CountryCompare />} />
           <Route path="/snapshot/:id" element={<Snapshot />} />
@@ -189,8 +197,14 @@ export default function App() {
               <Link to="/compare" className="text-white no-underline hover:underline">
                 Compare countries
               </Link>
+              <Link to="/methodology" className="text-white no-underline hover:underline">
+                Methodology and sources
+              </Link>
               <Link to="/about" className="text-white no-underline hover:underline">
-                About and sources
+                About
+              </Link>
+              <Link to="/terms" className="text-white no-underline hover:underline">
+                Terms
               </Link>
               <Link to="/?tab=guide" className="text-white no-underline hover:underline">
                 Guide

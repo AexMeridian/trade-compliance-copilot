@@ -6,7 +6,6 @@ import { MeasureHero, type HeroMeasure } from './MeasureHero';
 import { RankedBars, type BarRow } from './RankedBars';
 import { PowerCoferChart } from './PowerCoferChart';
 import { PulseCurrencyMovers } from './PulseCharts';
-import { PulseDelta } from './PulseDelta';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 
 type MeasureId = 'reserves' | 'defense' | 'currencies';
@@ -59,7 +58,9 @@ export function PowerHero({
     [natoDefense]
   );
   const us = defenseRows.find((r) => r.code === 'US');
-  const dxy = markets?.tiles.find((t) => t.id === 'DX-Y.NYB') ?? null;
+  // Based on the ECB reference rates (always on), not on a stock-quote feed.
+  const fx = (markets?.currencies ?? []).filter((r) => r.change30dPct !== null);
+  const dollarUp = fx.filter((r) => (r.change30dPct ?? 0) > 0).length;
 
   const measures: HeroMeasure<MeasureId>[] = [
     {
@@ -94,12 +95,11 @@ export function PowerHero({
     {
       id: 'currencies',
       label: 'Dollar vs. currencies',
-      figure: dxy ? dxy.value.toFixed(1) : 'n/a',
-      caption: dxy ? (
+      figure: fx.length > 0 ? `${dollarUp} of ${fx.length}` : 'n/a',
+      caption: fx.length > 0 ? (
         <>
-          The U.S. dollar index{' '}
-          {dxy.changePct !== null && <PulseDelta change={dxy.changePct} text={`${Math.abs(dxy.changePct).toFixed(1)}%`} className="font-semibold" />}
-          . It tracks the dollar against a basket of major currencies; higher means a dollar buys more abroad. The bars show 30-day moves against each currency.
+          currencies fell against the U.S. dollar over the last 30 days (ECB daily reference rates). Each bar shows how far the dollar moved against one
+          currency; a longer bar to the right means the dollar bought more of it.
         </>
       ) : (
         'Currency data is not available right now.'

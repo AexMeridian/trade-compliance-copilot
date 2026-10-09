@@ -2,7 +2,7 @@ import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import type { PulseSummary } from '../types/pulse';
 
 // Replaces a plain "mentioned in the news N times" ranking with something
-// that actually answers "how much pressure is this country under": the
+// that actually answers "which countries face an extra U.S. tariff": the
 // Section 301 forced-labor determination is the one tariff program in this
 // app's data that is both country-specific and broad (it applies across
 // nearly the whole HTS schedule, not one product category), so it is the

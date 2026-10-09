@@ -10,8 +10,32 @@ import { WORLD_NAME_FOR } from './worldCountries';
 // hardcoded "United States" text rather than this table. 'EU' isn't a real
 // country (it has no numeric id in the map data) -- it means "a document
 // named the European Union itself", so it's added back by hand.
+//
+// Naming policy: full, current English short names in the style the United Nations uses, never
+// the map file's abbreviations ("Dem. Rep. Congo", "Macedonia"). Naming a place here is for
+// identification only and does not imply recognition of its status; that line is repeated on
+// the About and Methodology pages. Overrides below replace the map's own label.
+const NAME_OVERRIDES: Record<string, string> = {
+  BA: 'Bosnia and Herzegovina',
+  SB: 'Solomon Islands',
+  CF: 'Central African Republic',
+  CG: 'Republic of the Congo',
+  CD: 'Democratic Republic of the Congo',
+  DO: 'Dominican Republic',
+  GQ: 'Equatorial Guinea',
+  FK: 'Falkland Islands (Malvinas)',
+  TF: 'French Southern Territories',
+  SS: 'South Sudan',
+  EH: 'Western Sahara',
+  SZ: 'Eswatini',
+  TR: 'Türkiye',
+  MK: 'North Macedonia',
+  PS: 'State of Palestine',
+};
+
 export const COUNTRY_LABELS: Record<string, string> = {
   ...Object.fromEntries(Object.entries(WORLD_NAME_FOR).filter(([code]) => code !== 'US')),
+  ...NAME_OVERRIDES,
   EU: 'European Union',
 };
 

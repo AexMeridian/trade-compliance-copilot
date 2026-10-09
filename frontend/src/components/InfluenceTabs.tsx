@@ -4,11 +4,11 @@ export type InfluenceTabId = 'overview' | 'pressure' | 'reach' | 'alliances' | '
 
 export const INFLUENCE_TABS: { id: InfluenceTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
-  { id: 'pressure', label: 'Pressure', hint: 'Tariffs, sanctions and export controls, as tools of pressure' },
+  { id: 'pressure', label: 'Trade measures', hint: 'Tariffs, sanctions and export controls the U.S. applies to other countries' },
   { id: 'reach', label: 'Reach', hint: "The dollar's reach, and diplomatic and political headlines" },
-  { id: 'alliances', label: 'Alliances', hint: "Who the U.S. is formally aligned with, and who it's recently targeted" },
+  { id: 'alliances', label: 'Alliances', hint: 'Which countries belong to NATO, G7, G20, BRICS and USMCA, and recent U.S. measures naming them' },
   { id: 'sanctions', label: 'Sanctions', hint: 'Browse the OFAC and Commerce/State sanctioned-entity lists by country' },
-  { id: 'guide', label: 'Guide', hint: 'What "pressure" and "reach" mean on this page, and their limits' },
+  { id: 'guide', label: 'Guide', hint: 'What the trade-measures and reach sections show, where the data comes from, and their limits' },
 ];
 
 const TAB_BORDER: Record<InfluenceTabId, string> = {

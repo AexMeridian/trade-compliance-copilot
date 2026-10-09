@@ -6,7 +6,7 @@ export const POWER_TABS: { id: PowerTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
   { id: 'hard', label: 'Trade tools', hint: 'Tariffs, sanctions and export controls the U.S. is using' },
   { id: 'soft', label: 'Dollar & diplomacy', hint: "The dollar's reach and reserve-currency status, and diplomatic headlines" },
-  { id: 'alliances', label: 'Alliances', hint: "Who the U.S. is formally aligned with, and who it's recently targeted" },
+  { id: 'alliances', label: 'Alliances', hint: 'Which countries belong to NATO, G7, G20, BRICS and USMCA, and recent U.S. measures naming them' },
   { id: 'guide', label: 'Guide', hint: 'What these sections show, where the data comes from, and their limits' },
 ];
 

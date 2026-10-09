@@ -15,9 +15,9 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
     coverageKey: 'federal_register',
   },
   {
-    name: 'Yahoo Finance',
+    name: 'Yahoo Finance (currently switched off)',
     used: 'Stock indexes, company shares, oil, natural gas, gold, copper, the 10-year Treasury yield and the dollar index.',
-    terms: 'Public chart data, roughly 15 minutes delayed, provided for personal, informational use. Not an official or guaranteed feed.',
+    terms: 'Not shown while the terms of this unofficial source are reviewed. Nothing on the site depends on it.',
     coverageKey: 'yahoo_finance',
   },
   {
@@ -72,13 +72,34 @@ export function About() {
     <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">About {SITE.name}</h1>
       <p className="mt-3 text-base text-ink">
-        {SITE.name} explains what is changing in world trade, in plain English: new U.S. tariff, sanctions and export-control actions, the markets they move,
-        and the news around them. It is free and needs no sign-up.
+        {SITE.name} tracks what governments have published about trade: new U.S. tariff, sanctions and export-control notices, how they reach other
+        countries, and the markets and news around them, in plain English and with a source on every item. It is free and needs no sign-up.
       </p>
       <p className="mt-3">
-        It is published by {SITE.operator}. The site is built so that anyone, expert or not, can see what changed today, why it might matter and where the
-        information came from. Last updated {SITE.aboutUpdated}.
+        It is published by {SITE.legalName || SITE.operator}
+        {SITE.location ? `, ${SITE.location}` : ''}. It is independent, non-partisan and informational: it reports what was published and takes no position
+        on any policy or country. It is not affiliated with or endorsed by any government or international organization. Last updated {SITE.aboutUpdated}.
+        Read the{' '}
+        <Link to="/methodology" className="text-accent">
+          methodology and full source list
+        </Link>
+        .
       </p>
+
+      {SITE.team.length > 0 && (
+        <>
+          <H>Who is behind it</H>
+          <ul className="mt-3 grid gap-4 sm:grid-cols-2">
+            {SITE.team.map((p) => (
+              <li key={p.name} className="border border-hairline p-4">
+                <p className="font-semibold text-ink">{p.name}</p>
+                <p className="text-ink-faint">{p.role}</p>
+                <p className="mt-2">{p.bio}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <H>Where the information comes from</H>
       <ul className="mt-3 divide-y divide-hairline border border-hairline">
@@ -181,6 +202,12 @@ export function About() {
           to, belong to their owners. Their inclusion does not imply endorsement.
         </li>
       </ul>
+
+      <H>Names and boundaries</H>
+      <p className="mt-3">
+        Place names follow the current English short names used by the United Nations. Names, borders and territories are shown for reference and do not
+        imply recognition of any status or claim.
+      </p>
 
       <H>Corrections and contact</H>
       <p className="mt-3">

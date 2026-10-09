@@ -195,7 +195,7 @@ export function InfluenceHero({
       activeCountry={activeCountry}
       onCountry={onCountry}
       card={card}
-      primary={{ label: 'See pressure tools', onClick: onExplore }}
+      primary={{ label: 'See trade measures', onClick: onExplore }}
       onRefresh={onRefresh}
       syncing={syncing}
       updatedText={updatedText}

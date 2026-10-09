@@ -9,7 +9,7 @@ import type { RefreshResult } from '../refresh/types.js';
 import { parseRss } from './rss.js';
 import { NEWS_FEEDS, tagNews } from './newsTag.js';
 
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from '../refresh/userAgent.js';
 const REQUEST_TIMEOUT_MS = 10_000;
 const NEWS_MAX_AGE_DAYS = 14;
 const NEWS_RETENTION_DAYS = 30;

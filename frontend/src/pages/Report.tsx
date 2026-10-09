@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { CaseFile, PartyMatch, Verdict } from '../types/case';
-import { getReport, submitScreening } from '../lib/api';
+import { deleteCase, getReport, hasCaseToken, submitScreening } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
 import { DutyStackTable } from '../components/DutyStackTable';
 import { LicensePath } from '../components/LicensePath';
 import { ReasoningPanel } from '../components/ReasoningPanel';
 import { ScreeningRedFlags } from '../components/ScreeningRedFlags';
+import { ListsAsOf } from '../components/ListsAsOf';
 import { SummaryList } from '../components/SummaryList';
 import { IssueList, type ParsedIssue } from '../components/IssueList';
 import { Facts, ReportSection, StatusChip, type Tone } from '../components/ReportBits';
@@ -42,6 +43,8 @@ export function Report() {
   const [data, setData] = useState<{ case_file: CaseFile; verdict: Verdict; generated_at: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rescreening, setRescreening] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +52,18 @@ export function Report() {
       .then(setData)
       .catch((e) => setLoadError((e as Error).message));
   }, [id]);
+
+  async function handleDelete() {
+    if (!id || !window.confirm('Delete this case and everything entered in it? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await deleteCase(id);
+      navigate('/calculator');
+    } catch (e) {
+      setLoadError((e as Error).message);
+      setDeleting(false);
+    }
+  }
 
   async function handleRescreen() {
     if (!id || !data) return;
@@ -196,6 +211,7 @@ export function Report() {
           </button>
         }
       >
+        <ListsAsOf />
         {cf.screening.screened_at && (
           <p className="text-xs text-ink-faint">Screened {agoText(cf.screening.screened_at)}. Watchlists change; re-screen before acting on an older result.</p>
         )}
@@ -286,6 +302,14 @@ export function Report() {
         Trade compliance determinations depend on facts not captured here. Consult a licensed customs broker or trade attorney before relying on this for an
         actual transaction.
       </p>
+      <div className="no-print mt-4 flex max-w-prose flex-wrap items-center gap-3 text-xs text-ink-faint">
+        <span>This case is kept for 30 days and then deleted automatically. Anyone with the link can open it.</span>
+        {id && hasCaseToken(id) && (
+          <button type="button" onClick={handleDelete} disabled={deleting} className="btn text-xs">
+            {deleting ? 'Deleting…' : 'Delete this case now'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

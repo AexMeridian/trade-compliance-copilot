@@ -22,7 +22,7 @@ import { changeGate } from './changeGate.js';
 
 const DOCUMENT_PAGE = 'https://www.cbp.gov/document/stats/withhold-release-orders-findings';
 const ORIGIN = 'https://www.cbp.gov';
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from './userAgent.js';
 
 function parseCsvFull(text: string): string[][] {
   const rows: string[][] = [];

@@ -21,7 +21,7 @@ const QA: [string, string][] = [
   ],
   [
     'Does more tariff/sanctions activity mean the U.S. is stronger?',
-    "It means more of the tracked Federal Register actions took effect. That's real pressure being exercised, but exercising a tool and that tool working are different things -- this page doesn't claim the second.",
+    "It means more of the tracked Federal Register actions took effect. Those are real measures taking effect, but applying a measure and that measure working are different things -- this page doesn't claim the second.",
   ],
   [
     "Does the dollar's falling reserve share mean the dollar is being replaced?",
@@ -60,8 +60,8 @@ export function PowerGuide() {
       <Section title="What counts as “trade tools” here">
         <p>
           Tariffs, sanctions, export controls and trade agreements published in the Federal Register -- tools that raise costs, cut off access, or condition
-          trade for another country. The same real data as Pulse's U.S.-policy feed and the U.S. abroad page's Pressure tab, framed here as instruments of pressure
-          rather than neutral policy tracking. See the full duty-stack and tariff-program detail on{' '}
+          trade for another country. The same real data as Pulse's U.S.-policy feed and the U.S. abroad page's Trade measures tab, shown here next to the
+          dollar's standing. It reports what was published and takes no position on any measure. See the full duty-stack and tariff-program detail on{' '}
           <Link to="/?tab=data" className="text-accent hover:underline">
             {SITE.name}'s Data tab
           </Link>

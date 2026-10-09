@@ -22,9 +22,7 @@ const SYNC_COOLDOWN_MS = 60_000;
 // existing last_updated/data_as_of column. Already covered by index.ts's
 // blanket /api/pulse/* rate limit (120/min/IP), same as every other route
 // here -- no extra limiter needed just for the write.
-const SNAPSHOT_CHART_TYPES = new Set(['tempo', 'markets', 'cofer']);
 
-const MAX_SNAPSHOT_JSON_BYTES = 200_000;
 
 export function homeRoute(root: PulseApp): PulseApp {
   const homeRoute: PulseApp = new Hono<{ Bindings: Env }>();
@@ -145,32 +143,70 @@ homeRoute.get('/home', async (c) => {
 
  // generous for chart data (a few hundred points), well under D1's 100KB-per-value column limit headroom when combined with the rest of the row
 
+// A citable snapshot must be something the site itself published, so the data is never taken from the
+// request: the server reads it from its own database, and the title and source note are fixed text.
+// (Taking client-supplied data would let anyone mint a "citable" chart of numbers that never existed.)
+// Market charts are not offered: their source is not currently shown (MARKET_QUOTES is off).
+const SNAPSHOT_SPECS = {
+  tempo: {
+    title: 'Policy tempo: U.S. trade notices per month',
+    note: 'Federal Register (federalregister.gov), monthly count of tracked trade-policy notices.',
+  },
+  cofer: {
+    title: "U.S. dollar's share of world FX reserves",
+    note: 'International Monetary Fund, COFER (data.imf.org), quarterly, share of allocated reserves.',
+  },
+} as const;
+
 homeRoute.post('/snapshots', async (c) => {
-  const body = await c.req
-    .json<{ chart_type?: string; title?: string; params?: unknown; data?: unknown; source_note?: string }>()
-    .catch(() => null);
+  const body = await c.req.json<{ chart_type?: string; params?: { months?: unknown } }>().catch(() => null);
   if (!body) return c.json({ error: 'Invalid JSON body.' }, 400);
-  const { chart_type, title, params, data, source_note } = body;
-
-  if (!chart_type || !SNAPSHOT_CHART_TYPES.has(chart_type)) {
-    return c.json({ error: `chart_type must be one of: ${[...SNAPSHOT_CHART_TYPES].join(', ')}` }, 400);
+  const type = body.chart_type as keyof typeof SNAPSHOT_SPECS;
+  if (!type || !(type in SNAPSHOT_SPECS)) {
+    return c.json({ error: `chart_type must be one of: ${Object.keys(SNAPSHOT_SPECS).join(', ')}` }, 400);
   }
-  if (!title || typeof title !== 'string') return c.json({ error: 'title is required.' }, 400);
-  if (!source_note || typeof source_note !== 'string') return c.json({ error: 'source_note is required.' }, 400);
-  if (data === undefined) return c.json({ error: 'data is required.' }, 400);
 
-  const paramsJson = JSON.stringify(params ?? {});
+  let params: Record<string, unknown> = {};
+  let data: unknown;
+  if (type === 'cofer') {
+    const { results } = await c.env.DB.prepare(`SELECT obs_date, value FROM market_series WHERE series_id = 'COFER:USD_SHARE' ORDER BY obs_date`).all<{ obs_date: string; value: number }>();
+    if (results.length === 0) return c.json({ error: 'No data to save yet.' }, 409);
+    data = { points: results.map((r) => [r.obs_date, r.value]) };
+  } else {
+    const months = clampInt(typeof body.params?.months === 'number' ? String(body.params.months) : undefined, { default: 24, min: 6, max: 120 });
+    const since = new Date();
+    since.setUTCMonth(since.getUTCMonth() - months);
+    const [series, trend] = await Promise.all([
+      c.env.DB.prepare(`SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count FROM trade_policy_actions WHERE publication_date >= ?1 GROUP BY month ORDER BY month`)
+        .bind(since.toISOString().slice(0, 10))
+        .all<{ month: string; count: number }>(),
+      c.env.DB.prepare(
+        `SELECT SUM(CASE WHEN publication_date >= date('now', '-30 days') THEN 1 ELSE 0 END) AS last_30d,
+                SUM(CASE WHEN publication_date < date('now', '-30 days') THEN 1 ELSE 0 END) AS prior_30d
+         FROM trade_policy_actions WHERE publication_date >= date('now', '-60 days')`
+      ).first<{ last_30d: number; prior_30d: number }>(),
+    ]);
+    const last30 = trend?.last_30d ?? 0;
+    const prior30 = trend?.prior_30d ?? 0;
+    params = { months };
+    data = { months: series.results, trendPct: prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : null };
+  }
+
+  const paramsJson = JSON.stringify(params);
   const dataJson = JSON.stringify(data);
-  if (dataJson.length > MAX_SNAPSHOT_JSON_BYTES) {
-    return c.json({ error: 'Snapshot data is too large.' }, 400);
-  }
+
+  // The same capture made twice (same chart, same data) reuses the first snapshot instead of writing another.
+  const existing = await c.env.DB.prepare(`SELECT id, created_at FROM pulse_snapshots WHERE chart_type = ?1 AND params_json = ?2 AND data_json = ?3 LIMIT 1`)
+    .bind(type, paramsJson, dataJson)
+    .first<{ id: string; created_at: string }>();
+  if (existing) return c.json(existing);
 
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   await c.env.DB.prepare(
     `INSERT INTO pulse_snapshots (id, chart_type, title, params_json, data_json, source_note, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
   )
-    .bind(id, chart_type, title, paramsJson, dataJson, source_note, createdAt)
+    .bind(id, type, SNAPSHOT_SPECS[type].title, paramsJson, dataJson, SNAPSHOT_SPECS[type].note, createdAt)
     .run();
 
   return c.json({ id, created_at: createdAt });

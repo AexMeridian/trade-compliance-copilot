@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import type { Env } from './types/env.js';
 import { casesRoute } from './routes/cases.js';
@@ -37,6 +38,8 @@ const EDGE_CACHED = ['country/*', 'connections', 'convergence', 'related', 'tari
 for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
 // Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
 app.use('/api/pulse/sanction-counts', edgeCache(21600));
+app.use('/api/pulse/data-status', edgeCache(300));
+app.use('/api/pulse/stats', edgeCache(21600));
 
 // Feeds are polled by readers around the clock, so they get a longer edge window, a cache
 // key built from the validated query (junk or reordered parameters share one entry), and
@@ -79,6 +82,28 @@ const CLAUDE_CALLING_SUFFIXES = ['/classification', '/origin', '/screening', '/d
 // here, a bot finding the URL could hammer them and run up unbounded Claude
 // spend on the deploying account's key. Every other route (health check,
 // case reads, samples) is a plain D1 read and stays unthrottled.
+//
+// Besides the per-visitor limit there is a daily ceiling across everyone (CLAUDE_DAILY_CAP, default 300
+// Claude-calling requests per UTC day), so a coordinated burst can never run up an unbounded bill. It is one
+// counter row in D1 per day. If the counter itself cannot be read, requests are allowed rather than blocked.
+async function claudeCapReached(env: Env): Promise<boolean> {
+  const cap = Number(env.CLAUDE_DAILY_CAP ?? 300);
+  if (!Number.isFinite(cap) || cap <= 0) return false;
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const row = await env.DB.prepare(
+      `INSERT INTO pulse_feed_state (source_key, last_note) VALUES (?1, '1')
+       ON CONFLICT(source_key) DO UPDATE SET last_note = CAST(CAST(pulse_feed_state.last_note AS INTEGER) + 1 AS TEXT)
+       RETURNING last_note`
+    )
+      .bind(`claude-calls:${day}`)
+      .first<{ last_note: string }>();
+    return Number(row?.last_note ?? 0) > cap;
+  } catch {
+    return false;
+  }
+}
+
 app.use('/api/cases/*', async (c, next) => {
   if (c.req.method === 'POST' && CLAUDE_CALLING_SUFFIXES.some((s) => c.req.path.endsWith(s))) {
     const key = c.req.header('cf-connecting-ip') ?? 'unknown';
@@ -86,9 +111,27 @@ app.use('/api/cases/*', async (c, next) => {
     if (!success) {
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
     }
+    if (await claudeCapReached(c.env)) {
+      return c.json({ error: "The calculator has reached its daily capacity for AI-assisted checks. Please try again tomorrow." }, 503);
+    }
   }
   return next();
 });
+
+// The only two routes that let an anonymous visitor write a row: creating a calculator case and saving
+// a citable snapshot. A modest per-IP cap keeps a bot from burning the database's daily write allowance.
+const limitWrites: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
+  if (c.req.method === 'POST') {
+    const { success } = await c.env.WRITE_RATE_LIMITER.limit({ key: c.req.header('cf-connecting-ip') ?? 'unknown' });
+    if (!success) {
+      c.header('Retry-After', '60');
+      return c.json({ error: 'Too many requests. Please wait a minute and try again.' }, 429);
+    }
+  }
+  return next();
+};
+app.use('/api/cases', limitWrites);
+app.use('/api/pulse/snapshots', limitWrites);
 
 app.route('/api/cases', casesRoute);
 app.route('/api/cases', classificationRoute);

@@ -42,6 +42,16 @@
     // Generous per-IP cap on the public Pulse read API (src/index.ts): a page
     // load makes only a couple of calls, so this never touches a real reader
     // but stops one client from hammering D1 and the Workers request quota.
+    // Cap on the few routes that write to the database for an anonymous visitor
+    // (creating a calculator case, saving a citable snapshot): 10 per minute per IP.
+    {
+      "name": "WRITE_RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    },
     {
       "name": "PULSE_RATE_LIMITER",
       "namespace_id": "1002",
@@ -58,8 +68,9 @@
   // stops fetching and showing the Yahoo Finance stock/commodity tiles
   // (currencies from the ECB are unaffected). See README "Before you launch".
   "vars": {
-    "NEWS_IMAGES": "on",
-    "MARKET_QUOTES": "on"
+    "NEWS_IMAGES": "off",
+    "MARKET_QUOTES": "off",
+    "CLAUDE_DAILY_CAP": "300"
   },
 
   "observability": {

@@ -21,7 +21,7 @@ import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://ofsistorage.blob.core.windows.net/publishlive/2022format/ConList.xml';
 const CITATION_URL = 'https://sanctionslist.fcdo.gov.uk';
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from './userAgent.js';
 
 function tagValue(xml: string, tag: string): string | null {
   const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));

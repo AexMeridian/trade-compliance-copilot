@@ -667,7 +667,7 @@ export function Pulse() {
                           <CiteThisButton
                             chartType="tempo"
                             title="Policy tempo: U.S. trade-policy actions per month"
-                            params={{ range: tempoRange }}
+                            params={{ range: tempoRange, months: TEMPO_RANGES.find((r) => r.id === tempoRange)?.months ?? 24 }}
                             data={{ months, trendPct: summary?.trendPct ?? null }}
                             sourceNote="Federal Register (federalregister.gov), monthly count of tracked trade-policy actions."
                           />

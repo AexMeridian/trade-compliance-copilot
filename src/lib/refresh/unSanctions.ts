@@ -18,7 +18,7 @@ import { changeGate } from './changeGate.js';
 
 const SOURCE_PAGE = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml';
 const CITATION_URL = 'https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list';
-const UA = 'aex-terminal-research/1.0 (portfolio project data loader)';
+import { USER_AGENT as UA } from './userAgent.js';
 
 function decodeXmlEntities(s: string): string {
   return s
