@@ -1,3 +1,4 @@
+import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTempo, syncPulse } from '../lib/api';
@@ -375,7 +376,7 @@ export function Pulse() {
     if (first === undefined || first === 0) return [];
     return [{ key: t.id, label: t.label, pct: ((t.points[t.points.length - 1][1] - first) / first) * 100 }];
   });
-  const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
+  const loadingBlock = <Skeleton rows={5} className="text-ink" />;
   const seeAll = (label: string, to: PulseTabId) => (
     <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
       {label}

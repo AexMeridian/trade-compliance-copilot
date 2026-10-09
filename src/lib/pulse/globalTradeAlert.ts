@@ -103,27 +103,38 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
   const since = new Date();
   since.setUTCFullYear(since.getUTCFullYear() - YEARS_BACK);
 
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `APIKey ${env.GLOBAL_TRADE_ALERT_API_KEY}` },
-    body: JSON.stringify({
-      limit: REQUEST_LIMIT,
-      offset: 0,
-      sorting: '-date_announced',
-      request_data: {
-        affected: [US_NUMERIC_CODE],
-        implementer: MAJOR_PARTNER_IDS,
-        gta_evaluation: HARMFUL_EVALUATIONS,
-        // The docs' own example shows an open end-date as `""`, but the live
-        // API rejects that (400: "List of dates in `%Y-%m-%d` format
-        // expected") and only accepts `null` -- verified against the real
-        // endpoint, not assumed from the example.
-        announcement_period: [since.toISOString().slice(0, 10), null],
-      },
-    }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`Global Trade Alert fetch failed: HTTP ${res.status}`);
+  const request = (): Promise<Response> =>
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `APIKey ${env.GLOBAL_TRADE_ALERT_API_KEY}` },
+      body: JSON.stringify({
+        limit: REQUEST_LIMIT,
+        offset: 0,
+        sorting: '-date_announced',
+        request_data: {
+          affected: [US_NUMERIC_CODE],
+          implementer: MAJOR_PARTNER_IDS,
+          gta_evaluation: HARMFUL_EVALUATIONS,
+          // The docs' own example shows an open end-date as `""`, but the live
+          // API rejects that (400: "List of dates in `%Y-%m-%d` format
+          // expected") and only accepts `null` -- verified against the real
+          // endpoint, not assumed from the example.
+          announcement_period: [since.toISOString().slice(0, 10), null],
+        },
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+
+  // A 429 means the key's rate limit was hit. This job runs once a week, so a short, bounded wait for the
+  // server-stated delay and one retry is enough; if it is still refused the failure is logged and the
+  // scheduler tries again on the next daily run, leaving the last good data in place.
+  let res = await request();
+  if (res.status === 429) {
+    const wait = Math.min(Math.max(Number(res.headers.get('Retry-After')) || 20, 5), 30);
+    await new Promise((r) => setTimeout(r, wait * 1000));
+    res = await request();
+  }
+  if (!res.ok) throw new Error(`Global Trade Alert fetch failed: HTTP ${res.status}${res.status === 429 ? ' (rate limited; will retry next run)' : ''}`);
   const records = (await res.json()) as GtaRecord[];
 
   if (records.length === 0) {

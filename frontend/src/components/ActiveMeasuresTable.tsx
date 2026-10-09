@@ -75,6 +75,7 @@ export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] })
                   <span className="ml-2 border border-accent/40 bg-accent-soft px-1 py-0.5 align-middle text-[10px] font-medium text-accent">New</span>
                 )}
                 <div className="mt-0.5 tabular-nums text-xs text-ink-faint">{htsLabel(m)}</div>
+                {m.legal_basis && <div className="mt-0.5 max-w-md text-xs text-ink-faint">Legal basis: {m.legal_basis}</div>}
               </td>
               <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{scopeLabel(m)}</td>
               <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{rateLabel(m)}</td>

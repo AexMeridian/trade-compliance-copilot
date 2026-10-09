@@ -8,6 +8,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 13 * * 1' # weekly: new advisories appear without any code change
 
 jobs:
   check:
@@ -22,3 +24,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build:frontend
+      # Fails on a known high or critical vulnerability in anything that ships to production.
+      - run: npm audit --omit=dev --audit-level=high

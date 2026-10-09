@@ -1,3 +1,4 @@
+import { Skeleton } from './Skeleton';
 import type { ReactNode } from 'react';
 import { MeasureSwitcher } from './MeasureSwitcher';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
@@ -47,7 +48,7 @@ export function MeasureHero<T extends string>({
   const countries = Object.keys(COUNTRY_LABELS).sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
   return (
     <section className="overflow-x-clip bg-hero-bg text-hero-ink">
-      <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:pt-14">
+      <div className="mx-auto max-w-5xl px-4 pb-10 pt-10 sm:pt-14">
         <h1 className="display text-3xl leading-tight sm:text-4xl lg:text-5xl">{title}</h1>
         <p className="mt-3 max-w-xl text-[15px] leading-snug text-hero-ink-muted sm:text-base">{sub}</p>
 
@@ -60,7 +61,7 @@ export function MeasureHero<T extends string>({
             <p className="display text-5xl leading-none tabular-nums sm:text-6xl">{ready ? current.figure : '…'}</p>
             <div className="mt-3 max-w-sm text-[15px] leading-snug text-hero-ink-muted">{ready ? current.caption : 'Loading the latest numbers.'}</div>
           </div>
-          <div className="min-w-0">{ready ? current.body : <p className="text-sm text-hero-ink-faint">Loading…</p>}</div>
+          <div className="min-w-0">{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">

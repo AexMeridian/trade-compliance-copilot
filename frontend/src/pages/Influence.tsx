@@ -154,7 +154,7 @@ export function Influence() {
         onRefresh={handleRefresh}
       />
 
-      <div className="relative mx-auto -mt-10 max-w-7xl px-4 pb-8">
+      <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
         {error && (
           <p className="mb-4 border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">
             We couldn't check for updates just now, so you're seeing the most recent saved information. ({error})

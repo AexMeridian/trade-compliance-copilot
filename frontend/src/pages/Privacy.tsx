@@ -30,7 +30,8 @@ export function Privacy() {
       <H>Who is responsible</H>
       <p className="mt-3">
         The operator of {SITE.name} is {SITE.legalName || SITE.operator}
-        {SITE.location ? `, ${SITE.location}` : ''}, and is the controller of the personal data described here.
+        {SITE.location ? `, a limited liability company organized in ${SITE.location.replace(', United States', '')}, United States` : ''}. It is the
+        controller (under the GDPR and UK GDPR) and the "business" (under California law) for the personal data described here.
         {SITE.contactEmail && (
           <>
             {' '}
@@ -45,8 +46,10 @@ export function Privacy() {
 
       <H>What stays on your device</H>
       <p className="mt-3">
-        The site remembers two things using your browser's local storage: the topics, countries and markets you chose under "Filter", and whether you
-        have dismissed the welcome card. This never leaves your device. Clearing your browser's site data, or using "Reset to default", removes it.
+        The site uses your browser's local storage, not cookies, to remember: the topics, countries and markets you chose under "Filter"; whether you
+        have dismissed the starter card; your light or dark theme choice; and, if you create a calculator case, a secret that lets that browser delete it.
+        These are strictly necessary for features you asked for, never leave your device, and are not used to track you, so no consent banner is needed.
+        Clearing your browser's site data, or using "Reset to default", removes them.
       </p>
 
       <H>What our hosting records</H>
@@ -113,11 +116,48 @@ export function Privacy() {
         standard contractual clauses. We do not sell personal data and do not use it for advertising.
       </p>
 
+      <H>Signals, sale and sharing</H>
+      <p className="mt-3">
+        We do not sell personal data or share it for cross-context behavioral advertising, and we do not use or disclose sensitive personal information to
+        infer characteristics about you. We do not run advertising or analytics, so there is nothing for a "Do Not Track" or Global Privacy Control signal to
+        switch off; we treat such signals as an opt-out request regardless. In the past twelve months we have collected the following categories (in the
+        California sense): identifiers and internet activity (IP address and request details, held by our hosting provider), and, only if you use the
+        calculator, the text you submit. Their sources are you and your browser, and their purposes are listed below.
+      </p>
+
+      <H>Security and incidents</H>
+      <p className="mt-3">
+        Traffic is encrypted in transit (HTTPS with HSTS), calculator cases are reachable only by their unguessable link, delete secrets are stored as
+        one-way hashes, requests are rate limited, and we keep the amount of data we hold small. No system is perfectly secure. If a breach affecting
+        personal data occurs, we will notify the people and authorities that the law requires, within the time it requires (for example within 72 hours to a
+        supervisory authority under the GDPR where applicable, and within 30 days under Colorado law). Security researchers can report problems through our{' '}
+        <a href="/.well-known/security.txt" className="text-accent">
+          disclosure policy
+        </a>
+        .
+      </p>
+
+      <H>Children</H>
+      <p className="mt-3">
+        The site is not directed at children under 13 (or under 16 where local law sets that age), and we do not knowingly collect their personal data. If you
+        believe a child has given us some, email us and we will delete it.
+      </p>
+
       <H>Your rights</H>
       <p className="mt-3">
-        Depending on where you live (including under the GDPR, the UK GDPR and the California Consumer Privacy Act), you may ask us for access to, correction
-        or deletion of personal data we hold about you, object to or restrict its use, and complain to your data protection authority. Because we do not keep
-        accounts, we may need the case link to find what you entered. This site is not directed at children.
+        Depending on where you live (including under the GDPR, the UK GDPR, the California Consumer Privacy Act, the Colorado Privacy Act and similar state
+        laws), you may ask us to confirm whether we hold personal data about you, to give you a copy, to correct or delete it, to restrict or stop its use,
+        or to port it, and you may complain to your data protection authority or state attorney general. We will not treat you worse for exercising a
+        right. To use one, email us; because we keep no accounts, we may need the case link to find what you entered and may ask you to prove you control it,
+        and we will answer within the time the law requires (usually one month, or 45 days under US state laws, extendable once where the law allows). If we
+        refuse, you may appeal by replying to our answer, and we will respond in writing. If you are in the European Economic Area or the United Kingdom, our
+        legal bases are legitimate interests (running a secure service) and, for calculator cases, performing the service you asked for.
+      </p>
+
+      <H>Changes to this policy</H>
+      <p className="mt-3">
+        If our practices change (for example if we add analytics, accounts or a new service provider), we will update this page and its date before the
+        change takes effect.
       </p>
 
       <H>Questions</H>

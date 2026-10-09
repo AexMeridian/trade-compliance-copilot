@@ -13,8 +13,10 @@ export function Accessibility() {
     <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">Accessibility</h1>
       <p className="mt-3 text-base text-ink">
-        {SITE.name} aims to meet <span className="text-ink">WCAG 2.1 Level AA</span>. This is a stated target, not a claim that an independent audit has
-        confirmed full conformance -- if you hit a barrier, the fastest way to get it fixed is to tell us. Last updated {SITE.accessibilityUpdated}.
+        {SITE.legalName || SITE.operator} is committed to making {SITE.name} usable by everyone, including people who use screen readers, keyboards, voice
+        control or magnification. We aim to meet <span className="text-ink">WCAG 2.1 Level AA</span> (the standard referenced by the Americans with
+        Disabilities Act guidance, Section 508 and EN 301 549). This is a target, not a claim that an independent audit has confirmed full conformance.
+        Last updated {SITE.accessibilityUpdated}.
       </p>
 
       <H>What's built in today</H>
@@ -41,11 +43,40 @@ export function Accessibility() {
         </li>
       </ul>
 
+      <H>How we test</H>
+      <p className="mt-3">
+        Before each release we run automated checks (axe-core, driven through a real browser) on every page, in light and dark themes, at desktop and phone
+        widths. The most recent run found no serious or critical violations in any of those combinations. Automated tools detect only part of the possible
+        problems, so we also test keyboard navigation and review contrast by hand. We have not yet commissioned an independent audit or a formal Voluntary
+        Product Accessibility Template (VPAT); we will say here when we do.
+      </p>
+      <ul className="mt-3 list-disc space-y-2 pl-5">
+        <li>
+          <span className="text-ink">Colour and contrast.</span> Text meets the 4.5:1 contrast minimum (3:1 for large text) in both themes, and links inside
+          running text are underlined so they do not depend on colour.
+        </li>
+        <li>
+          <span className="text-ink">Names and labels.</span> Form controls and icon buttons have accessible names; the language of the page is declared.
+        </li>
+        <li>
+          <span className="text-ink">Reflow and zoom.</span> Pages reflow to a 390-pixel-wide screen without sideways scrolling.
+        </li>
+        <li>
+          <span className="text-ink">Motion.</span> The animated globe on the Pulse page respects the "reduce motion" setting of your device, and every fact
+          it shows is also available in the lists and tables on the page.
+        </li>
+        <li>
+          <span className="text-ink">Themes.</span> A light and a dark theme are available from the toggle in the header and follow your device setting by
+          default.
+        </li>
+      </ul>
+
       <H>Known limits</H>
       <p className="mt-3">
-        This is a small, independently built site without a dedicated accessibility audit. Charts convey some information visually (trends, comparative
-        bars) that isn't fully restated in text everywhere; news photos from the BBC and The Guardian depend on their own alt text, which we don't control.
-        If either of these -- or anything else -- blocks you, please report it.
+        This is a small, independently built site without a dedicated accessibility audit. Some charts convey information visually (trends, comparative
+        bars) that is not fully restated in text everywhere, and the interactive globe is not fully operable by keyboard (its data is repeated in tables).
+        Linked third-party pages, such as official sources and news articles, are outside our control. If any of this -- or anything else -- blocks you,
+        please report it.
       </p>
 
       <H>Report a barrier</H>
@@ -56,8 +87,9 @@ export function Accessibility() {
             <a href={`mailto:${SITE.contactEmail}`} className="text-accent">
               {SITE.contactEmail}
             </a>{' '}
-            describing the page, what you were trying to do and the assistive technology (if any) you were using. We'll aim to acknowledge it and fix what
-            we can.
+            describing the page, what you were trying to do and the assistive technology (if any) you were using. We aim to reply within five business days and to
+            tell you what we will do and when; if you cannot use the site at all, we will help you get the information by another route, such as sending the
+            underlying source link or a plain-text copy.
           </>
         ) : (
           <>This page will be updated with a contact address for accessibility reports.</>

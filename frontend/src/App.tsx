@@ -6,6 +6,7 @@ import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SiteSearch } from './components/SiteSearch';
 import { BetaBanner } from './components/BetaBanner';
+import { CitePage } from './components/CitePage';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
@@ -232,8 +233,9 @@ What I saw, and what the source says:
               )}
             </nav>
           </div>
+          <CitePage />
           <p className="mt-8 text-[13px]">
-            &copy; {new Date().getFullYear()} {SITE.operator}. Independent and informational; not affiliated with any government. Version {__BUILD__}.
+            &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. Independent and informational; not affiliated with any government. Version {__BUILD__}.
           </p>
         </div>
       </footer>

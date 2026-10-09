@@ -28,8 +28,8 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
   },
   {
     name: 'BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve (RSS feeds)',
-    used: 'News headlines. We show the headline, a short summary, a link to the original story and, for BBC and Guardian items, their own lead photo.',
-    terms: 'Each publisher owns its content. We link to the original and do not copy article text. Photos load directly from the publisher.',
+    used: 'News headlines. We show the headline, a short summary and a link to the original story.',
+    terms: 'Each publisher owns its content. We link to the original and do not copy article text or load photos from publishers.',
     coverageKey: 'news',
   },
   {
