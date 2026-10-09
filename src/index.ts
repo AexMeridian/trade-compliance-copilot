@@ -35,6 +35,8 @@ app.use('/api/pulse/*', async (c, next) => {
 // (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
 const EDGE_CACHED = ['country/*', 'connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'export-control-chart', 'active-measures', 'live-arcs'];
 for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
+// Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
+app.use('/api/pulse/sanction-counts', edgeCache(21600));
 
 // Feeds are polled by readers around the clock, so they get a longer edge window, a cache
 // key built from the validated query (junk or reordered parameters share one entry), and
