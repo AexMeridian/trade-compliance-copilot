@@ -33,7 +33,7 @@
   --color-ink-faint: #62626b;
   --color-hairline: #e4e4e7;
   --color-hairline-strong: #8a8a94;
-  --color-mark: #7a5b22; /* the logo's gold: deep on light, champagne on dark */
+  --color-mark: #26324d; /* the logo's colour: deep slate navy on light, platinum on dark */
   --color-accent: #4338ca;
   --color-accent-soft: #eeefff;
   --color-accent-hover: #322aa8;
@@ -134,7 +134,7 @@
   --color-ink-faint: #8a8a94;
   --color-hairline: #2a2a2f;
   --color-hairline-strong: #45454d;
-  --color-mark: #d9bb7f;
+  --color-mark: #cdd6e4;
   --color-accent: #818cf8;
   --color-accent-soft: #1e1b4b;
   --color-accent-hover: #a5b0fa;
