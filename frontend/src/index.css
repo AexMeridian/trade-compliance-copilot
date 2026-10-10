@@ -2,6 +2,8 @@
 /* Self-hosted fonts (no request to Google, so nothing about a visitor is shared with a third party). */
 @import '@fontsource-variable/space-grotesk';
 @import '@fontsource-variable/instrument-sans';
+/* The wordmark only: spaced capitals in a classical serif. Self-hosted like the other fonts. */
+@import '@fontsource/cormorant-garamond/600.css';
 
 /*
   Black and white, with color that means something. The page is white (or, in
@@ -20,6 +22,7 @@
 */
 @theme {
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-wordmark: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --font-display: 'Space Grotesk Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
 
   --color-bar: #0a0a0b;
@@ -30,6 +33,7 @@
   --color-ink-faint: #62626b;
   --color-hairline: #e4e4e7;
   --color-hairline-strong: #8a8a94;
+  --color-mark: #7a5b22; /* the logo's gold: deep on light, champagne on dark */
   --color-accent: #4338ca;
   --color-accent-soft: #eeefff;
   --color-accent-hover: #322aa8;
@@ -130,6 +134,7 @@
   --color-ink-faint: #8a8a94;
   --color-hairline: #2a2a2f;
   --color-hairline-strong: #45454d;
+  --color-mark: #d9bb7f;
   --color-accent: #818cf8;
   --color-accent-soft: #1e1b4b;
   --color-accent-hover: #a5b0fa;

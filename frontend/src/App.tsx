@@ -6,6 +6,7 @@ import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SiteSearch } from './components/SiteSearch';
 import { BetaBanner } from './components/BetaBanner';
+import { LogoMark } from './components/LogoMark';
 import { CitePage } from './components/CitePage';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
@@ -118,11 +119,11 @@ export default function App() {
           <Link
             to="/"
             onClick={() => window.scrollTo({ top: 0 })}
-            className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-ink no-underline"
+            className="flex shrink-0 items-center gap-3 text-ink no-underline"
             aria-label={SITE.name}
           >
-            <img src="/favicon.svg" alt="" aria-hidden="true" className="h-7 w-7 rounded sm:hidden" />
-            <span className="hidden sm:inline">{SITE.name}</span>
+            <LogoMark className="h-8 w-8 shrink-0 text-mark" />
+            <span className="hidden font-[family-name:var(--font-wordmark)] text-[19px] font-semibold uppercase tracking-[0.3em] sm:inline">{SITE.name}</span>
           </Link>
           <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <NavLink to="/" end className={navClass}>
