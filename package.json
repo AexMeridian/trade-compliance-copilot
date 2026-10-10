@@ -40,7 +40,7 @@
     "wrangler": "^4.136.3"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.131.0",
     "fast-xml-parser": "^4.5.0",
     "hono": "^4.6.9"
   },
