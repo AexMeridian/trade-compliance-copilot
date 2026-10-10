@@ -8,10 +8,10 @@ import { PulseSpark } from './PulseCharts';
 // standard way these are reported (a "3-month window" reads oddly for
 // something that only updates once a month), and payrolls/unemployment need
 // their own formatting (jobs, percentage points) rather than index points.
-function formatValue(t: MarketTile): string {
-  if (t.id === 'BLS:UNRATE') return `${t.value.toFixed(1)}%`;
-  if (t.id === 'BLS:PAYROLLS') return `${(t.value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M jobs`;
-  return t.value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function formatValue(t: MarketTile, v: number = t.value): string {
+  if (t.id === 'BLS:UNRATE') return `${v.toFixed(1)}%`;
+  if (t.id === 'BLS:PAYROLLS') return `${(v / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M jobs`;
+  return v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 function formatChange(t: MarketTile, change: number | null, pct: number | null): string {
@@ -56,7 +56,7 @@ export function PulseMacroStrip({ tiles }: { tiles: MarketTile[] }) {
             )}
           </div>
           <div className="hidden sm:block">
-            <PulseSpark values={t.points.map((p) => p[1])} />
+            <PulseSpark values={t.points.map((p) => p[1])} dates={t.points.map((p) => p[0])} monthly format={(v) => formatValue(t, v)} />
           </div>
         </li>
       ))}

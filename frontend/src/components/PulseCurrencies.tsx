@@ -18,7 +18,7 @@ export function PulseCurrencies({ rows }: { rows: CurrencyRow[] }) {
           <span className="w-16 shrink-0 text-ink-muted">{r.label}</span>
           <span className="w-16 shrink-0 text-right text-ink">{formatRate(r.rate)}</span>
           <div className="min-w-0 flex-1">
-            <PulseSpark values={r.spark} height={20} />
+            <PulseSpark values={r.spark} height={20} dates={r.sparkDates} format={formatRate} />
           </div>
           <PulseDelta change={r.change30dPct} text={`${Math.abs(r.change30dPct ?? 0).toFixed(2)}%`} className="w-20 shrink-0 text-right" />
         </li>

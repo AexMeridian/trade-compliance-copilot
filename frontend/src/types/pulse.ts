@@ -89,6 +89,7 @@ export interface CurrencyRow {
   asOf: string;
   change30dPct: number | null;
   spark: number[]; // oldest to newest, up to 30 points
+  sparkDates?: string[]; // ISO date of each spark point, same order
 }
 
 export interface PulseMarkets {

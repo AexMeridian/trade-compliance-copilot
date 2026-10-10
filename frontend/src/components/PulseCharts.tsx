@@ -12,7 +12,24 @@ type Point = [string, number]; // [ISO date, value], oldest first
 
 // Colored by direction over the whole window (green up, red down -- the same
 // up/down convention as PulseDelta), with a faint area fill under the line.
-export function PulseSpark({ values, height = 28, className = '' }: { values: number[]; height?: number; className?: string }) {
+// Passing `format` makes it interactive: pointing at the line shows the exact value (and the date, when `dates`
+// is given) at that spot. Without it the sparkline is purely decorative, as before.
+export function PulseSpark({
+  values,
+  height = 28,
+  className = '',
+  dates,
+  format,
+  monthly = false,
+}: {
+  values: number[];
+  height?: number;
+  className?: string;
+  dates?: string[];
+  format?: (v: number) => string;
+  monthly?: boolean; // points are months (government data): show "Apr 2026", not a day
+}) {
+  const [hover, setHover] = useState<number | null>(null);
   if (values.length < 2) return <div style={{ height }} className={className} />;
   const w = 100;
   const min = Math.min(...values);
@@ -20,11 +37,40 @@ export function PulseSpark({ values, height = 28, className = '' }: { values: nu
   const xy = values.map((v, i) => [(i / (values.length - 1)) * w, height - 2 - ((v - min) / span) * (height - 4)] as const);
   const line = xy.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
   const color = values[values.length - 1] >= values[0] ? 'var(--color-clear)' : 'var(--color-stop)';
-  return (
+  const svg = (
     <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" aria-hidden="true" className={`block w-full ${className}`} style={{ height }}>
       <polygon points={`0,${height} ${line} ${w},${height}`} fill={color} opacity="0.12" />
       <polyline points={line} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
     </svg>
+  );
+  if (!format) return svg;
+
+  const pct = hover === null ? 0 : (hover / (values.length - 1)) * 100;
+  return (
+    <div
+      className="relative touch-pan-y"
+      onPointerMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const f = r.width ? (e.clientX - r.left) / r.width : 0;
+        setHover(Math.min(values.length - 1, Math.max(0, Math.round(f * (values.length - 1)))));
+      }}
+      onPointerLeave={() => setHover(null)}
+    >
+      {svg}
+      {hover !== null && (
+        <>
+          <span className="pointer-events-none absolute inset-y-0 w-px bg-ink-faint" style={{ left: `${pct}%` }} aria-hidden="true" />
+          <span
+            className="pointer-events-none absolute z-10 whitespace-nowrap border border-hairline-strong bg-paper-raised px-1.5 py-0.5 text-[11px] tabular-nums text-ink"
+            style={{ bottom: height + 4, ...(pct > 55 ? { right: `${100 - pct}%` } : { left: `${pct}%` }) }}
+            role="presentation"
+          >
+            {dates?.[hover] && <span className="mr-1.5 text-ink-faint">{monthly ? fmtMonth(dates[hover]) : fmtDay(dates[hover])}</span>}
+            {format(values[hover])}
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -35,8 +81,20 @@ export interface LineSeries {
   label: string;
   css: string; // stroke color (CSS value)
   swatch: string; // matching bg-* class for the legend
+  kind?: SeriesKind; // how to print the real value in the hover tooltip
   points: Point[];
 }
+
+// Number formats a series is shown in: dollars (shares, futures), percent (yields) or plain index points.
+export type SeriesKind = 'usd' | 'pct' | 'num';
+export function formatSeriesValue(v: number, kind: SeriesKind = 'num'): string {
+  const n = v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return kind === 'usd' ? `$${n}` : kind === 'pct' ? `${n}%` : n;
+}
+
+const fmtDay = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+const fmtMonth = (iso: string) => new Date(`${iso.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
@@ -80,7 +138,7 @@ export function PulseLineChart({
 
   const usable = series
     .filter((s) => s.points.length > 1)
-    .map((s) => ({ ...s, pts: s.points.map(([d, v]) => [Date.parse(d), (v / s.points[0][1]) * 100] as const) }));
+    .map((s) => ({ ...s, pts: s.points.map(([d, v]) => [Date.parse(d), (v / s.points[0][1]) * 100, v] as const) }));
   if (usable.length === 0) return <p className="text-sm text-ink-faint">Chart data isn't available right now.</p>;
 
   const H = 230;
@@ -104,7 +162,7 @@ export function PulseLineChart({
       ? []
       : usable.map((s) => {
           const nearest = s.pts.reduce((best, p) => (Math.abs(p[0] - hoverT) < Math.abs(best[0] - hoverT) ? p : best));
-          return { s, t: nearest[0], v: nearest[1] };
+          return { s, t: nearest[0], v: nearest[1], raw: nearest[2] };
         });
 
   return (
@@ -191,11 +249,12 @@ export function PulseLineChart({
             style={{ left: hoverX! > width / 2 ? undefined : hoverX! + 12, right: hoverX! > width / 2 ? width - hoverX! + 12 : undefined }}
           >
             <div className="mb-1 text-ink-faint">{fmtDate(hoverT)}</div>
-            {hoverRows.map(({ s, v }) => (
+            {hoverRows.map(({ s, v, raw }) => (
               <div key={s.id} className="flex items-center gap-2">
                 <span className={`h-2 w-2 ${s.swatch}`} aria-hidden="true" />
                 <span className="text-ink-muted">{s.label}</span>
-                <span className={`ml-auto pl-3 ${v >= 100 ? 'text-clear' : 'text-stop'}`}>
+                <span className="ml-auto pl-3 text-ink">{formatSeriesValue(raw, s.kind)}</span>
+                <span className={`w-14 text-right ${v >= 100 ? 'text-clear' : 'text-stop'}`}>
                   {v >= 100 ? '+' : '−'}
                   {Math.abs(v - 100).toFixed(1)}%
                 </span>
@@ -204,7 +263,7 @@ export function PulseLineChart({
           </div>
         )}
       </div>
-      <p className="mt-2 text-[11px] text-ink-faint">Each line is rebased to 100 at the start, so lines show relative performance, not price.</p>
+      <p className="mt-2 text-[11px] text-ink-faint">Lines are rebased to 100 at the start so they can be compared. Hover to see the actual price and the change since the start.</p>
     </div>
   );
 }

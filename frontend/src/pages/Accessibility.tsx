@@ -66,7 +66,7 @@ export function Accessibility() {
           it shows is also available in the lists and tables on the page.
         </li>
         <li>
-          <span className="text-ink">Themes.</span> A light and a dark theme are available from the toggle in the header and follow your device setting by
+          <span className="text-ink">Themes.</span> A light and a dark theme are available from the toggle in the header and your choice is remembered in your browser. Light is the
           default.
         </li>
       </ul>

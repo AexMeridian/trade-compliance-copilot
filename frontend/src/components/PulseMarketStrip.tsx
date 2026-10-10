@@ -7,10 +7,10 @@ const nf = (digits: number) => ({ minimumFractionDigits: digits, maximumFraction
 // Priced in dollars (shares and futures), as opposed to index points.
 const DOLLAR_PRICED = new Set(['FDX', 'UPS', 'ZIM', 'CAT', 'BA', 'AAPL', 'WMT', 'TSM', 'CL=F', 'BZ=F', 'NG=F', 'GC=F', 'HG=F']);
 
-function formatValue(t: MarketTile): string {
-  if (t.id === '^TNX') return `${t.value.toLocaleString('en-US', nf(2))}%`;
-  if (DOLLAR_PRICED.has(t.id)) return `$${t.value.toLocaleString('en-US', nf(2))}`;
-  return t.value.toLocaleString('en-US', nf(2));
+function formatValue(t: MarketTile, v: number = t.value): string {
+  if (t.id === '^TNX') return `${v.toLocaleString('en-US', nf(2))}%`;
+  if (DOLLAR_PRICED.has(t.id)) return `$${v.toLocaleString('en-US', nf(2))}`;
+  return v.toLocaleString('en-US', nf(2));
 }
 
 function formatMagnitude(change: number, pct: number | null): string {
@@ -73,7 +73,7 @@ export function PulseMarketStrip({ tiles }: { tiles: MarketTile[] }) {
             </div>
             <PulseDelta change={t.change} text={formatMagnitude(t.change ?? 0, t.changePct)} className="hidden text-[15px] font-semibold sm:block" />
             <div className="hidden sm:block">
-              <PulseSpark values={t.points.map((p) => p[1])} />
+              <PulseSpark values={t.points.map((p) => p[1])} dates={t.points.map((p) => p[0])} format={(v) => formatValue(t, v)} />
             </div>
             <p className="hidden text-[13px] text-ink-faint sm:block">
               {win ? (

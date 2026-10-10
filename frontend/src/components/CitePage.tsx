@@ -34,12 +34,12 @@ export function CitePage() {
 
   return (
     <details className="no-print mt-6 text-[13px]">
-      <summary className="cursor-pointer font-semibold text-white">Cite this page</summary>
+      <summary className="cursor-pointer font-semibold text-ink">Cite this page</summary>
       <ul className="mt-3 space-y-3">
         {styles.map((s) => (
           <li key={s.id}>
             <p className="max-w-3xl break-words">{s.text}</p>
-            <button type="button" onClick={() => copy(s.id, s.text)} className="mt-1 font-semibold text-white underline">
+            <button type="button" onClick={() => copy(s.id, s.text)} className="mt-1 font-semibold text-ink underline">
               {copied === s.id ? 'Copied' : `Copy ${s.id}`}
             </button>
           </li>

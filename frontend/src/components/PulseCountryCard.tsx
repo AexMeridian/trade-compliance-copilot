@@ -290,7 +290,7 @@ export function PulseCountryCard({
                 </div>
                 {fxRow.spark.length > 1 && (
                   <div className="w-20 shrink-0">
-                    <PulseSpark values={fxRow.spark} height={28} />
+                    <PulseSpark values={fxRow.spark} height={28} dates={fxRow.sparkDates} format={(v) => v.toLocaleString('en-US', { maximumFractionDigits: v < 10 ? 4 : 2 })} />
                   </div>
                 )}
               </div>
@@ -312,7 +312,12 @@ export function PulseCountryCard({
                 </div>
                 {marketTile.points.length > 1 && (
                   <div className="w-20 shrink-0">
-                    <PulseSpark values={marketTile.points.map((p) => p[1])} height={28} />
+                    <PulseSpark
+                      values={marketTile.points.map((p) => p[1])}
+                      height={28}
+                      dates={marketTile.points.map((p) => p[0])}
+                      format={(v) => v.toLocaleString('en-US', { maximumFractionDigits: v < 10 ? 2 : 0 })}
+                    />
                   </div>
                 )}
               </div>

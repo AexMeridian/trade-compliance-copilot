@@ -146,6 +146,10 @@ marketsNewsRoute.get('/markets', async (c) => {
           .slice(0, 30)
           .map((r) => r.value)
           .reverse(),
+        sparkDates: rows
+          .slice(0, 30)
+          .map((r) => r.obs_date)
+          .reverse(),
       },
     ];
   });

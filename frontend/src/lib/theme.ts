@@ -1,6 +1,6 @@
 // Accountless theme persistence -- localStorage only, same philosophy as
 // pulsePrefs.ts's URL-based preference sharing, no login required. The
-// initial theme (dark, or a previously-saved explicit choice)
+// initial theme (light, or a previously-saved explicit choice)
 // is applied by a small inline script in index.html's <head>, before this
 // module or React even loads, so there's no flash of the wrong theme on
 // first paint. This module is what the in-page toggle button reads and
@@ -29,7 +29,7 @@ function safeSetItem(key: string, value: string): void {
  * `data-theme` attribute the inline script (or a previous call to
  * setTheme()) already set on <html>. */
 export function getCurrentTheme(): Theme {
-  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 
 function applyTheme(theme: Theme): void {

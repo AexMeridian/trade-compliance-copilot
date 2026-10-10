@@ -75,14 +75,9 @@ function usePageMeta(pathname: string, tab: string | null) {
   }, [pathname, tab]);
 }
 
-// On the black top bar: light text, and the current page is a solid white
-// block. text-[#0b0b0c] (not the text-ink token) is deliberate -- this pill's
-// background is always literal white regardless of site theme (the bar never
-// changes, see index.css's dark-theme comment), but text-ink itself DOES flip
-// with theme, which would make the active tab's label nearly invisible in
-// dark theme (near-white text on a white pill).
+// On the top bar (which follows the theme): quiet text, and the current page is a solid ink pill.
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-white text-[#0b0b0c]' : 'text-[#b4b4bc] hover:text-white'}`;
+  `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`;
 
 export default function App() {
   const location = useLocation();
@@ -110,7 +105,7 @@ export default function App() {
           into the hero below -- both use bg-bar, so without a seam they were
           one indistinguishable black area. no-print: a printed case report
           (Report.tsx) has its own print-only header, not this site chrome. */}
-      <header className="no-print sticky top-0 z-10 border-b border-white/15 bg-bar text-white">
+      <header className="no-print sticky top-0 z-10 border-b border-hairline bg-paper-raised text-ink">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           {/* Below sm, the full wordmark doesn't fit next to all four nav
               links without truncating mid-word -- the mark alone (it's
@@ -123,7 +118,7 @@ export default function App() {
           <Link
             to="/"
             onClick={() => window.scrollTo({ top: 0 })}
-            className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-white no-underline"
+            className="flex shrink-0 items-center font-display text-[19px] font-extrabold tracking-tight text-ink no-underline"
             aria-label={SITE.name}
           >
             <img src="/favicon.svg" alt="" aria-hidden="true" className="h-7 w-7 rounded sm:hidden" />
@@ -134,7 +129,7 @@ export default function App() {
               Pulse
             </NavLink>
             <NavLink to="/calculator" className={navClass}>
-              Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide opacity-70 sm:inline">Beta</span>
+              Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide sm:inline">Beta</span>
             </NavLink>
             <NavLink to="/abroad" className={navClass}>
               U.S. abroad
@@ -180,7 +175,7 @@ export default function App() {
         </Suspense>
       </div>
 
-      <footer className="no-print mt-16 bg-bar text-[#b4b4bc]">
+      <footer className="no-print mt-16 border-t border-hairline bg-paper-raised text-ink-muted">
         <div className="mx-auto max-w-7xl px-4 py-10 text-sm">
           <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
             <p className="max-w-xl text-[13px] leading-relaxed">
@@ -189,34 +184,34 @@ export default function App() {
               attorney before relying on them.
             </p>
             <nav aria-label="Site" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
-              <Link to="/abroad" className="text-white no-underline hover:underline">
+              <Link to="/abroad" className="text-ink no-underline hover:underline">
                 U.S. abroad
               </Link>
-              <Link to="/allies" className="text-white no-underline hover:underline">
+              <Link to="/allies" className="text-ink no-underline hover:underline">
                 Dollar &amp; allies
               </Link>
-              <Link to="/compare" className="text-white no-underline hover:underline">
+              <Link to="/compare" className="text-ink no-underline hover:underline">
                 Compare countries
               </Link>
-              <Link to="/methodology" className="text-white no-underline hover:underline">
+              <Link to="/methodology" className="text-ink no-underline hover:underline">
                 Methodology and sources
               </Link>
-              <Link to="/about" className="text-white no-underline hover:underline">
+              <Link to="/about" className="text-ink no-underline hover:underline">
                 About
               </Link>
-              <Link to="/terms" className="text-white no-underline hover:underline">
+              <Link to="/terms" className="text-ink no-underline hover:underline">
                 Terms
               </Link>
-              <Link to="/?tab=guide" className="text-white no-underline hover:underline">
+              <Link to="/?tab=guide" className="text-ink no-underline hover:underline">
                 Guide
               </Link>
-              <Link to="/privacy" className="text-white no-underline hover:underline">
+              <Link to="/privacy" className="text-ink no-underline hover:underline">
                 Privacy
               </Link>
-              <Link to="/accessibility" className="text-white no-underline hover:underline">
+              <Link to="/accessibility" className="text-ink no-underline hover:underline">
                 Accessibility
               </Link>
-              <a href="/rss.xml" className="text-white no-underline hover:underline">
+              <a href="/rss.xml" className="text-ink no-underline hover:underline">
                 RSS feed
               </a>
               {SITE.contactEmail && (
@@ -226,7 +221,7 @@ Date: ${new Date().toISOString().slice(0, 10)}
 
 What I saw, and what the source says:
 `)}`}
-                  className="text-white no-underline hover:underline"
+                  className="text-ink no-underline hover:underline"
                 >
                   Report an error or contact us
                 </a>

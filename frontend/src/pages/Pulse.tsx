@@ -357,7 +357,7 @@ export function Pulse() {
   const seriesFor = (ids: string[], names: Record<string, string>) =>
     ids.flatMap((id, i) => {
       const t = tileById(id);
-      return t ? [{ id, label: names[id], css: SERIES_HUES[i].css, swatch: SERIES_HUES[i].bg, points: t.points }] : [];
+      return t ? [{ id, label: names[id], css: SERIES_HUES[i].css, swatch: SERIES_HUES[i].bg, kind: id.endsWith('=F') ? ('usd' as const) : ('num' as const), points: t.points }] : [];
     });
   const worldSeries = seriesFor(['^GSPC', '^GDAXI', '^N225', '^HSI'], {
     '^GSPC': 'S&P 500 (U.S.)',
@@ -424,7 +424,7 @@ export function Pulse() {
         onRefresh={handleRefresh}
       />
 
-      <div className="relative mx-auto -mt-10 max-w-7xl px-4 pb-8">
+      <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
         {!welcomed && !custom && (
           <PulseWelcome
             onPick={(p) => {

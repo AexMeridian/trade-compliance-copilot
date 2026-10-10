@@ -70,7 +70,7 @@ export function SiteSearch() {
         onClick={() => setOpen(true)}
         aria-label="Search the site"
         title="Search (Ctrl/Cmd+K)"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#b4b4bc] hover:text-white"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:text-ink"
       >
         <svg
           viewBox="0 0 24 24"

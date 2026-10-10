@@ -53,7 +53,7 @@ export function PulseHero({
     .sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
 
   return (
-    <section className="relative isolate overflow-x-clip bg-hero-bg text-hero-ink">
+    <section className="stage relative isolate overflow-x-clip bg-hero-bg text-hero-ink">
       <HeroBackdrop />
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 text-center sm:pt-12">
         <div className="relative mx-auto w-full max-w-[760px]">

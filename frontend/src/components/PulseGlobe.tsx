@@ -3,7 +3,7 @@ import { geoBounds, geoCentroid, geoContains, geoGraticule10, geoInterpolate, ge
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { WORLD_CODE_TO_ID, WORLD_ID_TO_CODE } from '../lib/worldCountries';
-import { getCurrentTheme, THEME_CHANGE_EVENT, type Theme } from '../lib/theme';
+import type { Theme } from '../lib/theme';
 import { useLiveArcs } from '../lib/useLiveArcs';
 
 // A wireframe, dotted globe you can turn and press. Every country is
@@ -247,7 +247,8 @@ export function PulseGlobe({
   const [world, setWorld] = useState<World | null>(null);
   const [size, setSize] = useState(440);
   const [hoverId, setHoverId] = useState<number | null>(null);
-  const [theme, setTheme] = useState<Theme>(() => getCurrentTheme());
+  // The globe always sits on the dark "stage" (see .stage in index.css), in either site theme.
+  const theme: Theme = 'dark';
 
   const rotation = useRef<[number, number]>([-95, -22]);
   const pointerRef = useRef<{ x: number; y: number } | null>(null); // where the cursor is, while it is over the globe
@@ -283,14 +284,6 @@ export function PulseGlobe({
     const ro = new ResizeObserver(([entry]) => setSize(Math.max(240, Math.min(760, Math.floor(entry.contentRect.width)))));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-
-  // The canvas can't read CSS custom properties, so it needs its own nudge
-  // when the toggle (ThemeToggle.tsx) fires lib/theme.ts's setTheme().
-  useEffect(() => {
-    const onThemeChange = (e: Event) => setTheme((e as CustomEvent<Theme>).detail);
-    window.addEventListener(THEME_CHANGE_EVENT, onThemeChange);
-    return () => window.removeEventListener(THEME_CHANGE_EVENT, onThemeChange);
   }, []);
 
   const projection = useMemo(() => geoOrthographic().clipAngle(90), []);
