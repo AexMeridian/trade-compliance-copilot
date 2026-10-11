@@ -39,7 +39,7 @@ export function PulseTabs({ active, onChange, children }: { active: PulseTabId; 
   }, []);
   return (
     // scroll-mt clears the sticky site header when a link elsewhere reveals the tabs.
-    <div id="pulse-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
+    <div id="pulse-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label="Pulse sections"

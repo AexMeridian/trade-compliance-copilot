@@ -1,3 +1,5 @@
+import { SectionHeader } from '../components/SectionHeader';
+import { publishMarkets } from '../lib/marketStore';
 import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -11,13 +13,16 @@ import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
 import { PulseHero } from '../components/PulseHero';
-import { PulseHighlights } from '../components/PulseHighlights';
+import { KeyDates } from '../components/KeyDates';
+import { MostNamed } from '../components/MostNamed';
+import { RailModule } from '../components/RailModule';
 import { PulseGuide } from '../components/PulseGuide';
 import { PulseWelcome, markWelcomed, wasWelcomed } from '../components/PulseWelcome';
 import { PulseTabs, PULSE_TABS, type PulseTabId } from '../components/PulseTabs';
 import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { PulseCurrencyMovers, PulseLineChart, PulseMoverBars, MARKET_RANGES, type MarketRangeId } from '../components/PulseCharts';
+import { ChartFooter } from '../components/ChartFooter';
 import { CiteThisButton } from '../components/CiteThisButton';
 import { PulseNews } from '../components/PulseNews';
 import { ConvergencePanel } from '../components/ConvergencePanel';
@@ -123,6 +128,7 @@ export function Pulse() {
     const load = () =>
       getPulseMarkets()
         .then((m) => {
+          publishMarkets(m);
           setMarkets(m);
           setMarketsFailed(false);
         })
@@ -200,6 +206,7 @@ export function Pulse() {
     if (home.summary) setSummary(home.summary);
     if (home.recent) setRecentAll(home.recent.actions);
     if (home.markets) {
+      publishMarkets(home.markets);
       setMarkets(home.markets);
       setMarketsFailed(false);
     } else {
@@ -351,9 +358,7 @@ export function Pulse() {
       : Array.from({ length: 4 }, (_, i) => followedGroups.flatMap((g) => tilesIn(g)[i] ?? []))
           .flat()
           .slice(0, 5);
-  const followedTiles = (markets?.tiles ?? []).filter((t) => groupVisible(prefs, t.group));
   const followsCurrencies = groupVisible(prefs, 'Currencies');
-  const overviewCurrencies = prefs.showMarkets && overviewTiles.length === 0 && followsCurrencies;
   const seriesFor = (ids: string[], names: Record<string, string>) =>
     ids.flatMap((id, i) => {
       const t = tileById(id);
@@ -377,11 +382,6 @@ export function Pulse() {
     return [{ key: t.id, label: t.label, pct: ((t.points[t.points.length - 1][1] - first) / first) * 100 }];
   });
   const loadingBlock = <Skeleton rows={5} className="text-ink" />;
-  const seeAll = (label: string, to: PulseTabId) => (
-    <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
-      {label}
-    </button>
-  );
 
   const newsPanel = (compact: boolean) =>
     newsFailed && !news ? (
@@ -418,6 +418,7 @@ export function Pulse() {
         onSeeAll={() => setTab('policy', true)}
         recent={recentAll}
         news={news?.items ?? []}
+        lead={topAction}
         onExplore={() => setTab('policy', true)}
         updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
         syncing={syncing}
@@ -443,21 +444,6 @@ export function Pulse() {
             We couldn't check for updates just now, so you're seeing the most recent saved information. ({error})
           </p>
         )}
-
-        <PulseHighlights
-          summary={summary}
-          topAction={topAction}
-          headline={headline}
-          currencies={markets?.currencies ?? []}
-          loadingPanels={loadingPanels}
-          loadingNews={loadingNews}
-          loadingMarkets={!markets && !marketsFailed}
-          onTab={(id) => setTab(id, true)}
-          showNews={prefs.showNews}
-          showMarkets={prefs.showMarkets}
-          marketTiles={followedTiles}
-          useCurrencies={followsCurrencies}
-        />
 
         <PulseTabs active={tab} onChange={(id) => setTab(id)}>
           <CustomizeButton open={customizeOpen} onClick={() => setCustomizeOpen((o) => !o)} custom={custom} />
@@ -502,94 +488,135 @@ export function Pulse() {
 
         <div role="tabpanel" id="pulse-tabpanel" aria-labelledby={`pulse-tab-${tab}`} className="pt-6">
           {tab === 'overview' && (
-            <div className="flex flex-col gap-6">
-              {custom && (
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-ink-muted">
-                  Showing your feed: <span className="text-ink">{feedLabel}.</span>
-                  <button type="button" onClick={() => setCustomizeOpen(true)} className="text-accent hover:underline">
-                    Change
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPrefs({ tags: [], newsCats: [], countries: [], markets: [], showNews: true, showMarkets: true })}
-                    className="text-accent hover:underline"
-                  >
-                    Reset
-                  </button>
-                </p>
-              )}
-              {prefs.showMarkets && overviewTiles.length > 0 && (
-                <section>
-                  <div className="mb-3 flex items-baseline justify-between">
-                    <h2 className="display text-3xl text-ink">Markets</h2>
-                    <button type="button" onClick={() => setTab('markets', true)} className="text-[13px] text-accent hover:underline">
-                      All markets
+            <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="flex min-w-0 flex-col gap-10">
+                {custom && (
+                  <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-ink-muted">
+                    Showing your feed: <span className="text-ink">{feedLabel}.</span>
+                    <button type="button" onClick={() => setCustomizeOpen(true)} className="text-accent hover:underline">
+                      Change
                     </button>
-                  </div>
-                  <PulseMarketStrip tiles={overviewTiles} />
-                </section>
-              )}
-              {overviewCurrencies && (
-                <PulsePanel title="Currencies" subtitle={currencySubtitle}>
-                  {currenciesPanel(5)}
-                  {seeAll('All markets', 'markets')}
-                </PulsePanel>
-              )}
-              {!custom && (
-                <PulsePanel
-                  title="Where it's all connecting"
-                  subtitle="Countries named by policy, news, sanctions and more at once, last 60 days"
-                  help="Rather than one list per topic, this shows where several kinds of activity land on the same country. It counts what was published; it is not a risk score. Open a country for its full timeline."
-                >
-                  <ConvergencePanel limit={3} />
-                  <Link to="/abroad?tab=pressure" className="mt-3 inline-block text-[13px] text-accent hover:underline">
-                    More in Influence
-                  </Link>
-                </PulsePanel>
-              )}
-              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
-                <div className={`min-w-0 ${prefs.showNews ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-                  <PulsePanel
-                    title="Top U.S. trade actions"
-                    help="The newest government announcements about tariffs (taxes on imports), sanctions and export limits that stand on their own. Routine batches of near-identical notices are left out so the important ones show."
-                    subtitle="The most significant recent tariff, sanctions and export-control actions."
-                  >
+                    <button
+                      type="button"
+                      onClick={() => setPrefs({ tags: [], newsCats: [], countries: [], markets: [], showNews: true, showMarkets: true })}
+                      className="text-accent hover:underline"
+                    >
+                      Reset
+                    </button>
+                  </p>
+                )}
+
+                <section>
+                  <SectionHeader
+                    title="Top stories"
+                    description="The newest government announcements on tariffs, sanctions and export limits that stand on their own, ranked by weight. Routine batches are left out."
+                    action={
+                      <button type="button" onClick={() => setTab('policy', true)} className="text-accent hover:underline">
+                        All U.S. policy
+                      </button>
+                    }
+                  />
+                  <div className="mt-4">
                     {loadingPanels ? (
                       loadingBlock
                     ) : (
                       <PulseTopSignals
                         actions={myActions}
-                        limit={4}
+                        limit={5}
                         skip={topAction?.document_number}
                         emptyText={custom ? 'No recent actions match your topics. Change your feed to widen it.' : undefined}
                       />
                     )}
-                    {seeAll('All U.S. policy', 'policy')}
-                  </PulsePanel>
-                </div>
-                {prefs.showNews && (
-                  <div className="min-w-0 lg:col-span-5">
-                    <PulsePanel
-                      title="Latest headlines"
-                      help="Recent news from major outlets that mentions trade, markets or elections. Click a headline to read the full story on the publisher's own site."
-                      subtitle="Trade, markets and elections, from 8 outlets including BBC, The Guardian, Al Jazeera and the ECB."
-                    >
-                      {newsPanel(true)}
-                      {seeAll('All news', 'news')}
-                    </PulsePanel>
                   </div>
+                </section>
+
+                {prefs.showNews && (
+                  <section>
+                    <SectionHeader
+                      title="Headlines"
+                      description="Trade, markets and elections, from 8 outlets including BBC, The Guardian, Al Jazeera and the ECB. Each links to the publisher."
+                      action={
+                        <button type="button" onClick={() => setTab('news', true)} className="text-accent hover:underline">
+                          All news
+                        </button>
+                      }
+                    />
+                    <div className="mt-4">{newsPanel(true)}</div>
+                  </section>
                 )}
+
+                {!custom && (
+                  <section>
+                    <SectionHeader
+                      title="Where it's all connecting"
+                      description="Countries named by policy, news, sanctions and more at once, last 60 days. It counts what was published; it is not a risk score."
+                      action={
+                        <Link to="/abroad?tab=pressure" className="text-accent hover:underline">
+                          More on U.S. abroad
+                        </Link>
+                      }
+                    />
+                    <div className="mt-4">
+                      <ConvergencePanel limit={3} />
+                    </div>
+                  </section>
+                )}
+
+                {prefs.showMarkets && overviewTiles.length > 0 && (
+                  <section>
+                    <SectionHeader
+                      title="Markets"
+                      action={
+                        <button type="button" onClick={() => setTab('markets', true)} className="text-accent hover:underline">
+                          All markets
+                        </button>
+                      }
+                    />
+                    <div className="mt-4">
+                      <PulseMarketStrip tiles={overviewTiles} />
+                    </div>
+                  </section>
+                )}
+
+                <PulseGlossary />
               </div>
-              <PulseGlossary />
+
+              <aside aria-label="At a glance" className="flex min-w-0 flex-col gap-8">
+                <KeyDates actions={recentAll} />
+                <MostNamed breakdown={summary?.countryBreakdown ?? []} />
+                {prefs.showMarkets && followsCurrencies && (
+                  <RailModule
+                    title="The dollar"
+                    action={
+                      <button type="button" onClick={() => setTab('markets', true)} className="text-accent hover:underline">
+                        All markets
+                      </button>
+                    }
+                  >
+                    <p className="mb-2 text-[12px] text-ink-faint">{currencySubtitle}</p>
+                    {currenciesPanel(6)}
+                  </RailModule>
+                )}
+                <RailModule title="About this data">
+                  <p className="text-[13px] leading-relaxed text-ink-muted">
+                    {lastSynced ? `Updated ${agoText(lastSynced)}. ` : ''}Every item links to its official source.{' '}
+                    <Link to="/methodology" className="text-accent hover:underline">
+                      See methodology and source freshness
+                    </Link>
+                    , or{' '}
+                    <a href="/rss.xml" className="text-accent hover:underline">
+                      follow by RSS
+                    </a>
+                    .
+                  </p>
+                </RailModule>
+              </aside>
             </div>
           )}
 
           {tab === 'policy' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">U.S. policy</h2>
-                <p className="mt-1 text-sm text-ink-muted">Tariffs, sanctions and export controls, as published in the Federal Register.</p>
-              </div>
+              <SectionHeader title="U.S. policy" description="Tariffs, sanctions and export controls, as published in the Federal Register." />
               {loadingPanels || !summary ? (
                 <div className="card py-6 text-center text-sm text-ink-faint">Loading…</div>
               ) : (
@@ -664,7 +691,12 @@ export function Pulse() {
                     ) : (
                       <>
                         <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} range={tempoRange} onRangeChange={handleTempoRangeChange} />
-                        <div className="mt-3">
+                        <ChartFooter
+                          source="Federal Register"
+                          sourceUrl="https://www.federalregister.gov"
+                          asOf={lastSynced ? new Date(lastSynced).toISOString().slice(0, 10) : undefined}
+                          csv={{ filename: 'policy-actions-per-month.csv', header: ['Month', 'Actions published'], rows: months.map((m) => [m.month, m.count]) }}
+                        >
                           <CiteThisButton
                             chartType="tempo"
                             title="Policy tempo: U.S. trade-policy actions per month"
@@ -672,7 +704,7 @@ export function Pulse() {
                             data={{ months, trendPct: summary?.trendPct ?? null }}
                             sourceNote="Federal Register (federalregister.gov), monthly count of tracked trade-policy actions."
                           />
-                        </div>
+                        </ChartFooter>
                       </>
                     )}
                   </PulsePanel>
@@ -684,10 +716,7 @@ export function Pulse() {
 
           {tab === 'markets' && (
             <div className="flex flex-col gap-8">
-              <div>
-                <h2 className="display text-3xl text-ink">Markets</h2>
-                <p className="mt-1 text-sm text-ink-muted">Stocks, commodities, interest rates and currencies that move with world trade.</p>
-              </div>
+              <SectionHeader title="Markets" description="Stocks, commodities, interest rates and currencies that move with world trade." />
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
 
               {prefs.markets.length > 0 && (
@@ -778,6 +807,16 @@ export function Pulse() {
                       subtitle={currencySubtitle}
                     >
                       {currenciesPanel(8)}
+                      <ChartFooter
+                        source="European Central Bank, via Frankfurter"
+                        sourceUrl="https://www.frankfurter.dev"
+                        asOf={markets?.currencies[0]?.asOf}
+                        csv={{
+                          filename: 'usd-exchange-rates.csv',
+                          header: ['Pair', 'Rate (units per 1 USD)', 'Change over 30 days (%)', 'As of'],
+                          rows: (markets?.currencies ?? []).map((r) => [r.label, r.rate, r.change30dPct === null ? '' : r.change30dPct.toFixed(2), r.asOf]),
+                        }}
+                      />
                     </PulsePanel>
                     <PulsePanel
                       title="Who moved most"
@@ -791,18 +830,17 @@ export function Pulse() {
               )}
 
               <p className="text-xs leading-relaxed text-ink-faint">
-                Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not
-                trading. Currency rates are the ECB's daily reference rates, published once per business day.
+                {(markets?.tiles ?? []).some((t) => t.group !== 'Macro') &&
+                  "Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not trading. "}
+                Currency rates are the ECB's daily reference rates, published once per business day. Inflation and jobs figures come from the U.S. Bureau of Labor
+                Statistics.
               </p>
             </div>
           )}
 
           {tab === 'data' && (
             <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="display text-3xl text-ink">Data</h2>
-                <p className="mt-1 text-sm text-ink-muted">The raw reference tables behind this page's summaries, for checking a specific rate or country yourself.</p>
-              </div>
+              <SectionHeader title="Data" description="The raw reference tables behind this page's summaries, for checking a specific rate or country yourself." />
               <PulsePanel
                 title="Tariff programs, every row"
                 help="Every row in this app's tariff_overlays table: one per (program, HTS pattern, country). /active-measures above groups these into one row per real-world measure, and the tariff-exposure panel picks three specific slices -- this is the full underlying data both are built from."
@@ -819,10 +857,7 @@ export function Pulse() {
 
           {tab === 'news' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">News</h2>
-                <p className="mt-1 text-sm text-ink-muted">Trade, markets and election headlines from around the world.</p>
-              </div>
+              <SectionHeader title="News" description="Trade, markets and election headlines from around the world." />
               <PulsePanel
                 title="World news"
                 help="Headlines from BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."

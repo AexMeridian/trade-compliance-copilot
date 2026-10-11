@@ -42,7 +42,7 @@ export function PulseTopSignals({ actions, limit = 5, skip, emptyText }: { actio
             href={a.html_url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1.5 block text-[15px] font-medium leading-snug text-ink no-underline hover:text-accent"
+            className="mt-1.5 block font-serif text-[18px] font-semibold leading-snug text-ink no-underline hover:text-accent"
           >
             {a.title}
           </a>

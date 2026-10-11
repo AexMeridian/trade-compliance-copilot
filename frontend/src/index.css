@@ -4,6 +4,8 @@
 @import '@fontsource-variable/instrument-sans';
 /* The wordmark only: spaced capitals in a classical serif. Self-hosted like the other fonts. */
 @import '@fontsource/cormorant-garamond/600.css';
+/* Story headlines: a text serif, the editorial voice of a news front page. */
+@import '@fontsource-variable/source-serif-4';
 
 /*
   Black and white, with color that means something. The page is white (or, in
@@ -22,6 +24,7 @@
 */
 @theme {
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
   --font-wordmark: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --font-display: 'Space Grotesk Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
 

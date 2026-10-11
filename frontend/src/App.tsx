@@ -6,8 +6,9 @@ import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SiteSearch } from './components/SiteSearch';
 import { BetaBanner } from './components/BetaBanner';
+import { MarketStrip } from './components/MarketStrip';
 import { LogoMark } from './components/LogoMark';
-import { CitePage } from './components/CitePage';
+import { SiteFooter } from './components/SiteFooter';
 import { SITE } from './lib/site';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
@@ -147,6 +148,8 @@ export default function App() {
         </div>
       </header>
 
+      <MarketStrip />
+
       <div id="main" className="flex-1">
         {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
@@ -176,65 +179,7 @@ export default function App() {
         </Suspense>
       </div>
 
-      <footer className="no-print mt-16 border-t border-hairline bg-paper-raised text-ink-muted">
-        <div className="mx-auto max-w-7xl px-4 py-10 text-sm">
-          <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
-            <p className="max-w-xl text-[13px] leading-relaxed">
-              For information only. This is not legal, customs, tax, financial or investment advice. Sources can be delayed, revised or incomplete, and market
-              data is delayed and not for trading. Calculator results cite their source data and as-of dates; check them with a licensed customs broker or trade
-              attorney before relying on them.
-            </p>
-            <nav aria-label="Site" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
-              <Link to="/abroad" className="text-ink no-underline hover:underline">
-                U.S. abroad
-              </Link>
-              <Link to="/allies" className="text-ink no-underline hover:underline">
-                Dollar &amp; allies
-              </Link>
-              <Link to="/compare" className="text-ink no-underline hover:underline">
-                Compare countries
-              </Link>
-              <Link to="/methodology" className="text-ink no-underline hover:underline">
-                Methodology and sources
-              </Link>
-              <Link to="/about" className="text-ink no-underline hover:underline">
-                About
-              </Link>
-              <Link to="/terms" className="text-ink no-underline hover:underline">
-                Terms
-              </Link>
-              <Link to="/?tab=guide" className="text-ink no-underline hover:underline">
-                Guide
-              </Link>
-              <Link to="/privacy" className="text-ink no-underline hover:underline">
-                Privacy
-              </Link>
-              <Link to="/accessibility" className="text-ink no-underline hover:underline">
-                Accessibility
-              </Link>
-              <a href="/rss.xml" className="text-ink no-underline hover:underline">
-                RSS feed
-              </a>
-              {SITE.contactEmail && (
-                <a
-                  href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent('Correction or question')}&body=${encodeURIComponent(`Page: ${window.location.href}
-Date: ${new Date().toISOString().slice(0, 10)}
-
-What I saw, and what the source says:
-`)}`}
-                  className="text-ink no-underline hover:underline"
-                >
-                  Report an error or contact us
-                </a>
-              )}
-            </nav>
-          </div>
-          <CitePage />
-          <p className="mt-8 text-[13px]">
-            &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. Independent and informational; not affiliated with any government. Version {__BUILD__}.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

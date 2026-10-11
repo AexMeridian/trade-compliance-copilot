@@ -17,7 +17,7 @@ export const COUNTRY_TABS: { id: CountryTabId; label: string; hint: string }[] =
 
 export function CountryTabs({ active, onChange }: { active: CountryTabId; onChange: (id: CountryTabId) => void }) {
   return (
-    <div id="country-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 border-b border-hairline-strong">
+    <div id="country-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 border-b border-hairline-strong">
       <div
         role="tablist"
         aria-label="Country sections"

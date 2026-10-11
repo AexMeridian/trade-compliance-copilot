@@ -1,3 +1,4 @@
+import { SectionHeader } from '../components/SectionHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
@@ -233,12 +234,9 @@ export function Influence() {
 
           {tab === 'pressure' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Trade measures</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Trade measures" description="
                   Tariffs, sanctions and export controls: the tools the U.S. uses to raise costs or cut off access, as published in the Federal Register.
-                </p>
-              </div>
+                " />
               <PulsePanel
                 title="Where measures converge"
                 subtitle="Countries named by several different kinds of source at once, last 60 days"
@@ -301,12 +299,9 @@ export function Influence() {
 
           {tab === 'reach' && (
             <div className="flex flex-col gap-8">
-              <div>
-                <h2 className="display text-3xl text-ink">Reach</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Reach" description="
                   Two real proxies, not a measure of favorability: the dollar's reach in world markets, and diplomatic/political news.
-                </p>
-              </div>
+                " />
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
               <section className="flex flex-col gap-4">
                 <h3 className="font-display text-xl font-bold text-ink">The dollar and world markets</h3>
@@ -378,13 +373,10 @@ export function Influence() {
 
           {tab === 'alliances' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Alliances</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Alliances" description="
                   Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown. See the Guide tab for sources and
                   limits.
-                </p>
-              </div>
+                " />
               {loading ? (
                 loadingBlock
               ) : (
@@ -404,13 +396,10 @@ export function Influence() {
 
           {tab === 'sanctions' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Sanctions</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Sanctions" description="
                   Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
                   text match on each entry's address field, not a normalized code -- see the note below the search box.
-                </p>
-              </div>
+                " />
               <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
                 <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
               </PulsePanel>

@@ -1,3 +1,4 @@
+import { Breadcrumb } from '../components/Breadcrumb';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseMarkets, getPulseNews } from '../lib/api';
@@ -15,7 +16,6 @@ import { parseCountries, CURRENCY_FOR, STATUS_LABEL } from '../lib/pulseCountrie
 import { usdCompact } from '../lib/pulsePlain';
 import { blocsFor, BLOC_FULL_NAMES } from '../lib/pulseBlocs';
 import { freightNoteFor } from '../lib/freightNotes';
-import { SITE } from '../lib/site';
 import type { PulseCountryDetail, PulseMarkets, NewsItem } from '../types/pulse';
 
 // The HTS source data's description field carries its own inline markup
@@ -96,10 +96,8 @@ export function CountryDetail() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <Link to="/" className="text-sm text-ink-faint no-underline hover:text-accent">
-        &larr; {SITE.name}
-      </Link>
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Countries', to: '/abroad?tab=reach' }, { label: name }]} />
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="display text-4xl text-ink sm:text-5xl">{name}</h1>
         {blocs.length > 0 && <p className="text-sm text-ink-faint">{blocs.map((b) => BLOC_FULL_NAMES[b]).join(' · ')}</p>}
       </div>

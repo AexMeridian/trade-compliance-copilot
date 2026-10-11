@@ -23,7 +23,7 @@ const TAB_BORDER: Record<InfluenceTabId, string> = {
 // Same tab-bar idiom as PulseTabs, over a different, Influence-specific tab list.
 export function InfluenceTabs({ active, onChange, children }: { active: InfluenceTabId; onChange: (id: InfluenceTabId) => void; children?: React.ReactNode }) {
   return (
-    <div id="influence-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
+    <div id="influence-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label="U.S. abroad sections"

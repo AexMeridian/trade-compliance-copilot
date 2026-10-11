@@ -24,7 +24,7 @@ const TAB_BORDER: Record<PowerTabId, string> = {
 
 export function PowerTabs({ active, onChange }: { active: PowerTabId; onChange: (id: PowerTabId) => void }) {
   return (
-    <div id="power-tabs" className="mt-8 flex scroll-mt-16 flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
+    <div id="power-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label="Dollar and allies sections"

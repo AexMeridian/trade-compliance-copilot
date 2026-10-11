@@ -100,7 +100,7 @@ export function PulseNews({
                       {n.category}
                     </span>
                   </div>
-                  <a href={n.url} target="_blank" rel="noreferrer" className="mt-1 block text-sm leading-snug text-ink no-underline hover:text-accent">
+                  <a href={n.url} target="_blank" rel="noreferrer" className="mt-1 block font-serif text-[16px] font-semibold leading-snug text-ink no-underline hover:text-accent">
                     {n.title}
                   </a>
                   {n.summary && !compact && <p className="mt-1 line-clamp-2 text-xs text-ink-muted">{n.summary}</p>}

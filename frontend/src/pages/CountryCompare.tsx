@@ -1,3 +1,4 @@
+import { Breadcrumb } from '../components/Breadcrumb';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getPulseConnections, getPulseCountry } from '../lib/api';
@@ -92,7 +93,8 @@ export function CountryCompare() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="display text-4xl text-ink sm:text-5xl">Compare countries</h1>
+      <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Compare countries' }]} />
+      <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
         Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page. This
         link is shareable as-is; the countries you pick are saved in the URL, not an account.

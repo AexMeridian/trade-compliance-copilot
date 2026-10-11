@@ -1,3 +1,4 @@
+import { SectionHeader } from '../components/SectionHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, syncPulse, type NatoDefenseCountry } from '../lib/api';
@@ -246,13 +247,10 @@ export function Power() {
 
           {tab === 'hard' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Trade tools</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Trade tools" description="
                   Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
                   Register.
-                </p>
-              </div>
+                " />
               <PulsePanel
                 title="Where measures converge"
                 subtitle="Countries named by several different kinds of source at once, last 60 days"
@@ -319,13 +317,10 @@ export function Power() {
 
           {tab === 'soft' && (
             <div className="flex flex-col gap-8">
-              <div>
-                <h2 className="display text-3xl text-ink">The dollar and diplomacy</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="The dollar and diplomacy" description="
                   The dollar's pull as the world's reserve currency, its reach in world markets, and diplomatic/political news. Not a measure of culture or
                   favorability.
-                </p>
-              </div>
+                " />
 
               <section className="flex flex-col gap-4">
                 <h3 className="font-display text-xl font-bold text-ink">The dollar's reserve-currency share</h3>
@@ -416,13 +411,10 @@ export function Power() {
 
           {tab === 'alliances' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="display text-3xl text-ink">Alliances</h2>
-                <p className="mt-1 text-sm text-ink-muted">
+              <SectionHeader title="Alliances" description="
                   Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown. See the Guide tab for sources
                   and limits.
-                </p>
-              </div>
+                " />
               {loading ? (
                 loadingBlock
               ) : (
