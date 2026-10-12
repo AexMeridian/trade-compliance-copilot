@@ -468,3 +468,31 @@
     }
   }
 }
+
+/* Market strip (components/MarketStrip.tsx): the band scrolls continuously and pauses while pointed at or
+   focused. The repeated passes exist only to make the loop seamless, so they are hidden otherwise. */
+.ticker-extra {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ticker {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  }
+  .ticker-extra {
+    display: flex;
+  }
+  .ticker-track {
+    animation: ticker-scroll 45s linear infinite;
+  }
+  .ticker:hover .ticker-track,
+  .ticker:focus-within .ticker-track {
+    animation-play-state: paused;
+  }
+  @keyframes ticker-scroll {
+    to {
+      transform: translateX(-25%);
+    }
+  }
+}
