@@ -26,11 +26,15 @@ const Methodology = lazyPage(() => import('./pages/Methodology'), 'Methodology')
 const Terms = lazyPage(() => import('./pages/Terms'), 'Terms');
 const Privacy = lazyPage(() => import('./pages/Privacy'), 'Privacy');
 const Accessibility = lazyPage(() => import('./pages/Accessibility'), 'Accessibility');
+const Cookies = lazyPage(() => import('./pages/Cookies'), 'Cookies');
+const Disclaimer = lazyPage(() => import('./pages/Disclaimer'), 'Disclaimer');
+const Copyright = lazyPage(() => import('./pages/Copyright'), 'Copyright');
+const Security = lazyPage(() => import('./pages/Security'), 'Security');
 const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'CountryCompare');
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
-const KNOWN_PATHS = ['/', '/methodology', '/terms', '/calculator', '/abroad', '/allies', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/compare'];
+const KNOWN_PATHS = ['/', '/methodology', '/terms', '/calculator', '/abroad', '/allies', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', '/compare'];
 
 // Keeps the browser tab title (and the search-engine-visible robots hint)
 // accurate as a single-page app moves between views.
@@ -48,6 +52,10 @@ function usePageMeta(pathname: string, tab: string | null) {
     else if (pathname === '/terms') title = `Terms of use | ${SITE.name}`;
     else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
     else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
+    else if (pathname === '/cookies') title = `Cookies and local storage | ${SITE.name}`;
+    else if (pathname === '/disclaimer') title = `Disclaimer | ${SITE.name}`;
+    else if (pathname === '/copyright') title = `Copyright and takedown requests | ${SITE.name}`;
+    else if (pathname === '/security') title = `Security and responsible disclosure | ${SITE.name}`;
     else if (pathname === '/compare') title = `Compare countries | ${SITE.name}`;
     else if (pathname.startsWith('/case/')) title = `Compliance case | ${SITE.name}`;
     else if (pathname.startsWith('/snapshot/')) title = `Cited snapshot | ${SITE.name}`;
@@ -57,6 +65,12 @@ function usePageMeta(pathname: string, tab: string | null) {
       title = `${name} | ${SITE.name}`;
     } else title = `Page not found | ${SITE.name}`;
     document.title = title;
+
+    // Each address names itself as canonical (the HTML ships with the home page's), so search engines do not fold every
+    // page into the home page. Only the home page's tabs keep their query string, since each tab is its own view.
+    const canonical = `https://aexterminal.com${pathname}${pathname === '/' && tab && tab !== 'overview' ? `?tab=${encodeURIComponent(tab)}` : ''}`;
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonical);
 
     // Unknown URLs and private case pages should not be indexed. Country
     // pages are real content (like /about), so they're indexable too, but
@@ -150,7 +164,7 @@ export default function App() {
 
       <MarketStrip />
 
-      <div id="main" className="flex-1">
+      <main id="main" className="flex-1">
         {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>
@@ -172,12 +186,16 @@ export default function App() {
           <Route path="/methodology" element={<Methodology />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/copyright" element={<Copyright />} />
+          <Route path="/security" element={<Security />} />
           <Route path="/compare" element={<CountryCompare />} />
           <Route path="/snapshot/:id" element={<Snapshot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
-      </div>
+      </main>
 
       <SiteFooter />
     </div>

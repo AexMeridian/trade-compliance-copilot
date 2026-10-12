@@ -861,7 +861,7 @@ export function Pulse() {
               <PulsePanel
                 title="World news"
                 help="Headlines from BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."
-                subtitle="From 8 outlets: BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed. Each headline links to the publisher, with its own photo where one is provided."
+                subtitle="From 8 outlets: BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed. Each headline links to the publisher."
               >
                 {newsPanel(false)}
               </PulsePanel>

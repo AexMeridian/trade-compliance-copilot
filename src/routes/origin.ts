@@ -22,6 +22,7 @@ originRoute.post('/:id/origin', async (c) => {
   if (!Array.isArray(body.components) || typeof body.final_assembly_country !== 'string' || !body.final_assembly_country) {
     return c.json({ error: 'components (array) and final_assembly_country are required to run origin determination.' }, 400);
   }
+  if (body.components.length > 100) return c.json({ error: 'At most 100 components can be evaluated at once.' }, 400);
   const code = caseFile.classification.selected_code!;
   // Normalized once, here, so every downstream reader (this route's own
   // storage below, and Module 4's country === 'CA' / 'MX' checks in

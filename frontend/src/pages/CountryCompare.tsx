@@ -92,7 +92,7 @@ export function CountryCompare() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-10">
       <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Compare countries' }]} />
       <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
@@ -236,6 +236,6 @@ export function CountryCompare() {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -77,6 +77,7 @@ export function PulseHero({
           )}
         </div>
 
+        {!summary && <div className="mt-4 min-h-[84px]" aria-hidden="true" />}
         {summary && (
           <>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -145,6 +146,7 @@ export function PulseHero({
         )}
        </div>
 
+       {!summary && <div className="min-h-[480px] min-w-0 lg:min-h-[560px]" aria-hidden="true" />}
        {summary && <StageRail summary={summary} activeMeasures={activeMeasures} lead={lead} recent={recent} news={news} onExplore={onExplore} onRefresh={onRefresh} syncing={syncing} updatedText={updatedText} onSeeAll={onSeeAll} />}
       </div>
     </section>

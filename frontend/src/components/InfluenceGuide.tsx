@@ -92,7 +92,7 @@ export function InfluenceGuide() {
 
       <Section title="Where the reused data comes from">
         <p>
-          Federal Register (policy actions), Yahoo Finance (stocks, commodities, rates, the dollar index), the European Central Bank via Frankfurter (exchange
+          Federal Register (policy actions), the European Central Bank via Frankfurter (exchange
           rates), the U.S. Bureau of Labor Statistics (import/export prices), and BBC/The Guardian/NPR/ECB/Fed (news) -- the exact sources and freshness are
           listed on{' '}
           <Link to="/?tab=guide" className="text-accent hover:underline">

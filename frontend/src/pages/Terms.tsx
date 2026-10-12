@@ -11,7 +11,7 @@ function H({ children }: { children: React.ReactNode }) {
 export function Terms() {
   const co = SITE.legalName || SITE.operator;
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
+    <div className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">Terms of use</h1>
       <p className="mt-3 text-base text-ink">
         These terms are an agreement between you and {co}
@@ -160,7 +160,7 @@ export function Terms() {
           </>
         )}
       </p>
-    </main>
+    </div>
   );
 }
 

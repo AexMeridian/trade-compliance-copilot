@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
+import { bodyLimit } from 'hono/body-limit';
 import type { Env } from './types/env.js';
 import { casesRoute } from './routes/cases.js';
 import { classificationRoute } from './routes/classification.js';
@@ -14,6 +15,21 @@ import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { normalizeFilters } from './lib/feed.js';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Send plain-HTTP visitors to HTTPS (the request URL keeps the scheme the client used). Skipped on localhost so
+// local development still works.
+app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.protocol === 'http:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+    url.protocol = 'https:';
+    return c.redirect(url.toString(), 301);
+  }
+  await next();
+});
+
+// No legitimate request to this API is larger than a few kilobytes of JSON; refusing big bodies early keeps a
+// single client from making the Worker read and parse megabytes.
+app.use('/api/*', bodyLimit({ maxSize: 32 * 1024, onError: (c) => c.json({ error: 'That request is too large.' }, 413) }));
 
 // Baseline hardening headers on every API response (static pages get theirs
 // from frontend/public/_headers). API responses are JSON/XML, never framed.

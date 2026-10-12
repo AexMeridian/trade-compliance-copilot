@@ -39,8 +39,8 @@ const SOURCES: { name: string; what: string; fresh: string }[] = [
   },
   {
     name: 'Yahoo Finance',
-    what: 'Stock indexes, company shares, oil, gold, copper, Treasury yield and the dollar index.',
-    fresh: 'Up to about 15 minutes behind, refreshed every 15 minutes.',
+    what: 'Stock indexes, company shares, oil, gold, copper, Treasury yield and the dollar index. Currently switched off while the terms of this unofficial source are reviewed, so those tiles are not shown.',
+    fresh: 'Not refreshed while switched off.',
   },
   { name: 'European Central Bank (via Frankfurter)', what: 'Currency exchange rates against the U.S. dollar.', fresh: 'Published once each business day.' },
   {

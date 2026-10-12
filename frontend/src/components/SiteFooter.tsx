@@ -56,8 +56,11 @@ export function SiteFooter() {
             <Link to="/about" className={link}>About {SITE.name}</Link>
             <Link to="/terms" className={link}>Terms of use</Link>
             <Link to="/privacy" className={link}>Privacy</Link>
+            <Link to="/disclaimer" className={link}>Disclaimer</Link>
+            <Link to="/cookies" className={link}>Cookies</Link>
             <Link to="/accessibility" className={link}>Accessibility</Link>
-            <a href="/.well-known/security.txt" className={link}>Security</a>
+            <Link to="/copyright" className={link}>Copyright and takedowns</Link>
+            <Link to="/security" className={link}>Security</Link>
             {report && <a href={report} className={link}>Report an error or contact us</a>}
           </nav>
         </div>

@@ -10,7 +10,7 @@ function H({ children }: { children: React.ReactNode }) {
 // honest in a way "fully accessible" would not be without one.
 export function Accessibility() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
+    <div className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">Accessibility</h1>
       <p className="mt-3 text-base text-ink">
         {SITE.legalName || SITE.operator} is committed to making {SITE.name} usable by everyone, including people who use screen readers, keyboards, voice
@@ -106,6 +106,6 @@ export function Accessibility() {
         </Link>
         .
       </p>
-    </main>
+    </div>
   );
 }

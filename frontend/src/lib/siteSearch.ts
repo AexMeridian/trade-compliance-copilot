@@ -77,6 +77,10 @@ const PAGES: SearchEntry[] = [
     type: 'Page',
     url: '/accessibility',
   },
+  { id: 'cookies', title: 'Cookies and local storage', description: 'No cookies are set; the few items kept in your browser and why.', type: 'Page', url: '/cookies' },
+  { id: 'disclaimer', title: 'Disclaimer', description: 'The limits of the information: not advice, not for trading, not a sanctions clearance.', type: 'Page', url: '/disclaimer' },
+  { id: 'copyright', title: 'Copyright and takedown requests', description: 'Who owns what, and how to ask us to remove something.', type: 'Page', url: '/copyright', keywords: ['dmca'] },
+  { id: 'security', title: 'Security and responsible disclosure', description: 'How to report a vulnerability and how we protect the site.', type: 'Page', url: '/security', keywords: ['vulnerability', 'bug'] },
   {
     id: 'pulse-guide',
     title: 'Guide: how to read Pulse',
@@ -95,7 +99,7 @@ const PAGES: SearchEntry[] = [
   {
     id: 'pulse-markets',
     title: 'Markets',
-    description: 'Stocks, currencies, commodities and key economic indicators.',
+    description: 'Currency rates and key U.S. economic indicators.',
     type: 'Page',
     url: '/?tab=markets',
     keywords: ['stocks', 'currencies', 'fx', 'commodities'],

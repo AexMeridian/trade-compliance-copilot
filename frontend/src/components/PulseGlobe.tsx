@@ -129,14 +129,42 @@ function pointInRing(x: number, y: number, ring: Position[]): boolean {
   }
   return inside;
 }
-function pointInGeometry(x: number, y: number, g: Geometry): boolean {
-  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
-  return polys.some((rings) => pointInRing(x, y, rings[0]) && !rings.slice(1).some((hole) => pointInRing(x, y, hole)));
+// A polygon with its bounding box worked out once, so most points are rejected without walking any ring.
+interface BoxedPolygon {
+  rings: Position[][];
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
 }
+function boxPolygons(g: Geometry): BoxedPolygon[] {
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  return polys.map((rings) => {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const [px, py] of rings[0]) {
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    }
+    return { rings, minX, maxX, minY, maxY };
+  });
+}
+function pointInPolygons(x: number, y: number, polys: BoxedPolygon[]): boolean {
+  return polys.some(
+    (p) => x >= p.minX && x <= p.maxX && y >= p.minY && y <= p.maxY && pointInRing(x, y, p.rings[0]) && !p.rings.slice(1).some((hole) => pointInRing(x, y, hole))
+  );
+}
+
+// Lets the browser paint and respond between countries, so building the dots never blocks the page for long.
+const yieldToMain = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 let worldPromise: Promise<World> | null = null;
 function loadWorld(): Promise<World> {
-  worldPromise ??= Promise.all([import('topojson-client'), import('world-atlas/countries-110m.json')]).then(([topo, mod]) => {
+  worldPromise ??= Promise.all([import('topojson-client'), import('world-atlas/countries-110m.json')]).then(async ([topo, mod]) => {
     // The package ships plain JSON with no TopoJSON types, so it is read loosely here.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const topology: any = mod.default;
@@ -144,14 +172,20 @@ function loadWorld(): Promise<World> {
     const countries = fc.features.map((f) => ({ ...f, id: parseInt(String(f.id), 10) })) as Country[];
     const dots: Dot[] = [];
     const step = 1.4;
+    let sliceStart = performance.now();
     for (const c of countries) {
       if (c.id === ANTARCTICA_ID) continue;
+      if (performance.now() - sliceStart > 10) {
+        await yieldToMain();
+        sliceStart = performance.now();
+      }
+      const boxed = boxPolygons(c.geometry);
       const [[minLng, minLat], [maxLng0, maxLat]] = geoBounds(c);
       const maxLng = maxLng0 < minLng ? maxLng0 + 360 : maxLng0; // crosses the antimeridian
       for (let lng = minLng; lng <= maxLng; lng += step) {
         const x = lng > 180 ? lng - 360 : lng;
         for (let lat = minLat; lat <= maxLat; lat += step) {
-          if (!pointInGeometry(x, lat, c.geometry)) continue;
+          if (!pointInPolygons(x, lat, boxed)) continue;
           const la = (lat * Math.PI) / 180;
           const lo = (x * Math.PI) / 180;
           dots.push({ lng: x, lat, id: c.id, v: [Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)] });
@@ -255,6 +289,7 @@ export function PulseGlobe({
   const dragRef = useRef<{ x: number; y: number; r: [number, number]; moved: boolean } | null>(null);
   const hoverIdRef = useRef<number | null>(null);
   const clockRef = useRef(performance.now()); // feeds the arc/ping animation phase; set every animation frame, read inside draw()
+  const frameGapRef = useRef(33); // ms between ambient redraws: about 30 fps, stretched on slow devices so the page stays responsive
   const lastDrawRef = useRef(0); // throttles the ambient tick's own redraws (see the tick effect below)
   const [booted, setBooted] = useState(false); // flips true once, after the one-time boot-sweep plays (see .globe-boot, index.css)
 
@@ -424,10 +459,25 @@ export function PulseGlobe({
     const cx = Math.cos(cl) * Math.cos(co);
     const cy = Math.cos(cl) * Math.sin(co);
     const cz = Math.sin(cl);
+    // Each dot's screen position is the orthographic projection worked out directly from its stored unit vector
+    // (the same result as projection([lng, lat]) with no roll, at a fraction of the cost per dot), and each
+    // country's colour is looked up once per frame instead of once per dot.
+    const k = projection.scale();
+    const [tx, ty] = projection.translate();
+    const ex = -Math.sin(co);
+    const ey = Math.cos(co);
+    const nx = -Math.sin(cl) * Math.cos(co);
+    const ny = -Math.sin(cl) * Math.sin(co);
+    const nz = Math.cos(cl);
+    const colorOf = new Map<number, string>();
     const buckets = new Map<string, Dot[]>();
     for (const d of world.dots) {
       if (d.v[0] * cx + d.v[1] * cy + d.v[2] * cz <= 0.02) continue;
-      const color = colorFor(d.id);
+      let color = colorOf.get(d.id);
+      if (color === undefined) {
+        color = colorFor(d.id);
+        colorOf.set(d.id, color);
+      }
       const list = buckets.get(color);
       if (list) list.push(d);
       else buckets.set(color, [d]);
@@ -436,10 +486,10 @@ export function PulseGlobe({
     for (const [color, list] of buckets) {
       ctx.beginPath();
       for (const d of list) {
-        const p = projection([d.lng, d.lat]);
-        if (!p) continue;
-        ctx.moveTo(p[0] + dotR, p[1]);
-        ctx.arc(p[0], p[1], dotR, 0, 2 * Math.PI);
+        const px = tx + k * (d.v[0] * ex + d.v[1] * ey);
+        const py = ty - k * (d.v[0] * nx + d.v[1] * ny + d.v[2] * nz);
+        ctx.moveTo(px + dotR, py);
+        ctx.arc(px, py, dotR, 0, 2 * Math.PI);
       }
       ctx.fillStyle = resolveColor(color);
       ctx.fill();
@@ -596,9 +646,12 @@ export function PulseGlobe({
         }
       }
       clockRef.current = now;
-      if (now - lastDrawRef.current >= 33) {
+      if (now - lastDrawRef.current >= frameGapRef.current) {
         lastDrawRef.current = now;
+        const started = performance.now();
         draw();
+        // A slow device spends longer per frame; leave it proportionally more idle time between frames.
+        frameGapRef.current = Math.min(120, Math.max(33, (performance.now() - started) * 3));
       }
       last = now;
       raf = requestAnimationFrame(tick);

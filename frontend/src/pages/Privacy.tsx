@@ -10,7 +10,7 @@ function H({ children }: { children: React.ReactNode }) {
 // this page and its date must change with it.
 export function Privacy() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
+    <div className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">Privacy</h1>
       <p className="mt-3 text-base text-ink">
         {SITE.name} has no accounts, no ads and no tracking scripts. This page explains exactly what is and isn't collected. Last updated {SITE.privacyUpdated}.
@@ -49,7 +49,11 @@ export function Privacy() {
         The site uses your browser's local storage, not cookies, to remember: the topics, countries and markets you chose under "Filter"; whether you
         have dismissed the starter card; your light or dark theme choice; and, if you create a calculator case, a secret that lets that browser delete it.
         These are strictly necessary for features you asked for, never leave your device, and are not used to track you, so no consent banner is needed.
-        Clearing your browser's site data, or using "Reset to default", removes them.
+        Clearing your browser's site data, or using "Reset to default", removes them. The full list is on the{' '}
+        <Link to="/cookies" className="text-accent">
+          Cookies page
+        </Link>
+        .
       </p>
 
       <H>What our hosting records</H>
@@ -189,6 +193,6 @@ export function Privacy() {
         </Link>
         .
       </p>
-    </main>
+    </div>
   );
 }

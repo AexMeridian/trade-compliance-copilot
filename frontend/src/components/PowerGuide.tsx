@@ -116,7 +116,7 @@ export function PowerGuide() {
 
       <Section title="Where the data comes from">
         <p>
-          Federal Register (policy actions), Yahoo Finance (stocks, commodities, rates, the dollar index), the European Central Bank via Frankfurter (exchange
+          Federal Register (policy actions), the European Central Bank via Frankfurter (exchange
           rates), the U.S. Bureau of Labor Statistics (macro data), BBC/The Guardian/NPR/ECB/Fed (news), and the IMF's COFER series (reserve-currency share) --
           exact sources and freshness are listed on{' '}
           <Link to="/about" className="text-accent hover:underline">

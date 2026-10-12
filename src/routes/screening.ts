@@ -34,6 +34,10 @@ const MEU_LIST_FRAGMENT = 'Military End User';
 
 class PartyScreeningFailure extends Error {}
 
+// Each party costs a database search and an AI call, so one request may not fan out without limit.
+const MAX_PARTIES = 10;
+const MAX_PARTY_NAME_CHARS = 200;
+
 screeningRoute.post('/:id/screening', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
@@ -45,7 +49,11 @@ screeningRoute.post('/:id/screening', async (c) => {
   if (!Array.isArray(body.parties) || body.parties.length === 0) {
     return c.json({ error: 'At least one party ({ role, name }) is required to run screening.' }, 400);
   }
-  // Each party is an independent search + one Claude call, so screen them
+  if (body.parties.length > MAX_PARTIES) return c.json({ error: `At most ${MAX_PARTIES} parties can be screened at once.` }, 400);
+  if (body.parties.some((p) => typeof p?.name !== 'string' || p.name.trim().length === 0 || p.name.length > MAX_PARTY_NAME_CHARS)) {
+    return c.json({ error: `Each party needs a name of ${MAX_PARTY_NAME_CHARS} characters or fewer.` }, 400);
+  }
+  // Each party is an independent search + one Claude call, so the number and length are bounded, then they are screened
   // concurrently (results keep the request order). A grounding failure on any
   // party fails the whole request, as before.
   let partyResults: PartyScreeningResult[];

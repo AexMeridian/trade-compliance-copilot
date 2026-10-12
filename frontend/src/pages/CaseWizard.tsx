@@ -212,6 +212,7 @@ function ClassificationStep({ caseFile, onDone, onError }: { caseFile: CaseFile;
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
+          maxLength={2000}
           className="mt-1.5 w-full border border-hairline-strong bg-paper-raised px-3 py-2 text-sm text-ink outline-none focus:border-accent"
           placeholder="e.g. A rechargeable handheld cordless vacuum cleaner with a HEPA filter"
         />
@@ -380,6 +381,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
               value={p.name}
               onChange={(e) => updateParty(i, { name: e.target.value })}
               placeholder="Party name"
+              maxLength={200}
               className="border border-hairline-strong bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"
             />
           </div>

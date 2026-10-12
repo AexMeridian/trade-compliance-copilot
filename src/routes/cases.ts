@@ -6,8 +6,8 @@ import type { Direction, Verdict } from '../types/case.js';
 export const casesRoute = new Hono<{ Bindings: Env }>();
 
 casesRoute.post('/', async (c) => {
-  const body = await c.req.json<{ direction: Direction }>();
-  if (body.direction !== 'import' && body.direction !== 'export') {
+  const body = await c.req.json<{ direction: Direction }>().catch(() => null);
+  if (!body || (body.direction !== 'import' && body.direction !== 'export')) {
     return c.json({ error: 'direction must be "import" or "export"' }, 400);
   }
   const id = crypto.randomUUID();

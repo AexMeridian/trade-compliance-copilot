@@ -169,7 +169,7 @@ export function Methodology() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
+    <div className="mx-auto max-w-4xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
       <h1 className="display text-4xl text-ink sm:text-5xl">Methodology and sources</h1>
       <p className="mt-3 text-base text-ink">
         What {SITE.name} shows, where every figure comes from, how it is calculated, and what it does not cover. Last updated {SITE.aboutUpdated}.
@@ -396,7 +396,7 @@ export function Methodology() {
         </Link>
         .
       </p>
-    </main>
+    </div>
   );
 }
 

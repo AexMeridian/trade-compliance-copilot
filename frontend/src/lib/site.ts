@@ -19,4 +19,8 @@ export const SITE = {
   privacyUpdated: '2026-10-09',
   termsUpdated: '2026-10-09',
   accessibilityUpdated: '2026-10-09',
+  cookiesUpdated: '2026-10-11',
+  disclaimerUpdated: '2026-10-11',
+  copyrightUpdated: '2026-10-11',
+  securityUpdated: '2026-10-11',
 } as const;

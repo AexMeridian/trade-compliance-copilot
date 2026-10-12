@@ -10,6 +10,9 @@ import {
   type ClassificationToolOutput,
 } from '../prompts/classification.js';
 
+// Bounds what one request can send on to the AI service.
+const MAX_DESCRIPTION_CHARS = 2000;
+
 export const classificationRoute = new Hono<{ Bindings: Env }>();
 
 classificationRoute.post('/:id/classification', async (c) => {
@@ -17,9 +20,13 @@ classificationRoute.post('/:id/classification', async (c) => {
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
 
-  const body = await c.req.json<{ product_description: string }>();
-  const productDescription = body.product_description?.trim();
+  const body = await c.req.json<{ product_description: string }>().catch(() => null);
+  const productDescription = typeof body?.product_description === 'string' ? body.product_description.trim() : '';
   if (!productDescription) return c.json({ error: 'product_description is required' }, 400);
+  // Bounds what one request can send to the AI service.
+  if (productDescription.length > MAX_DESCRIPTION_CHARS) {
+    return c.json({ error: `product_description must be ${MAX_DESCRIPTION_CHARS} characters or fewer` }, 400);
+  }
 
   const direction = caseFile.direction;
   const candidates = direction === 'import' ? await searchHts(c.env, productDescription) : await searchScheduleB(c.env, productDescription);

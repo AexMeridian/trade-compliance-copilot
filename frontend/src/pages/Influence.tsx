@@ -364,8 +364,7 @@ export function Influence() {
                 )}
               </section>
               <p className="text-xs leading-relaxed text-ink-faint">
-                Stock, commodity and rate quotes come from Yahoo Finance's public chart data and can lag by about 15 minutes; they are for information, not
-                trading. Currency rates are the ECB's daily reference rates. News is BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the
+                Currency rates are the ECB's daily reference rates, published once per business day. News is BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the
                 Fed, filtered to their Elections & Politics and Official categories.
               </p>
             </div>
