@@ -6,8 +6,8 @@
 // document_number, so a repeat run of an overlapping window just re-affirms
 // rows rather than duplicating or losing anything.
 import type { Env } from '../../types/env.js';
-import { fetchDocumentsForTerm, KEYWORD_TERMS, type FederalRegisterDocument } from './federalRegister.js';
-import { tagDocument, resolveAgencySlugs } from './tag.js';
+import { fetchDocumentsForTerm, fetchPresidentialDocuments, presidentialLabel, KEYWORD_TERMS, type FederalRegisterDocument } from './federalRegister.js';
+import { tagDocument, tagPresidentialDocument, resolveAgencySlugs, NOT_TRADE_POLICY_RE } from './tag.js';
 import { extractCountries } from './country.js';
 import { sqlString, sqlJson, buildInsertStatements } from '../refresh/sql.js';
 import type { RefreshResult } from '../refresh/types.js';
@@ -18,6 +18,27 @@ function monthsAgo(months: number): string {
   const d = new Date();
   d.setUTCMonth(d.getUTCMonth() - months);
   return d.toISOString().slice(0, 10);
+}
+
+// One-time clean-up of rows stored before the tagging rules improved: drop routine notices that are not trade policy and
+// move Section 301 continuation notices to Tariff. Guarded by a marker row, so it costs a single read once done, and
+// needs no manual migration on the live database.
+const TIDY_KEY = 'tidy:2026-10-notices';
+async function tidyOnce(env: Env): Promise<void> {
+  const done = await env.DB.prepare('SELECT 1 FROM pulse_feed_state WHERE source_key = ?1').bind(TIDY_KEY).first();
+  if (done) return;
+  await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM trade_policy_actions WHERE lower(title) LIKE 'accreditation and approval of%'
+         OR lower(title) LIKE 'advance traveler information%' OR lower(title) LIKE 'public access to information%'`
+    ),
+    env.DB.prepare(
+      `UPDATE trade_policy_actions SET tag = 'Tariff'
+       WHERE tag = 'Other' AND (lower(title) LIKE '%acts, policies, and practices%' OR lower(title) LIKE '%product exclusions%'
+         OR lower(title) LIKE '%de minimis%' OR lower(title) LIKE 'low-value shipments%')`
+    ),
+    env.DB.prepare(`INSERT OR IGNORE INTO pulse_feed_state (source_key, last_success_at) VALUES (?1, ?2)`).bind(TIDY_KEY, new Date().toISOString()),
+  ]);
 }
 
 export async function runPulseSync(env: Env): Promise<RefreshResult> {
@@ -32,7 +53,16 @@ export async function runPulseSync(env: Env): Promise<RefreshResult> {
   // instead of the sum, which matters both for the cron's CPU-time budget
   // and for how long "Refresh now" leaves someone waiting. 13 concurrent
   // requests to one external API is a standard, low-risk Workers pattern.
-  const termResults = await Promise.all(KEYWORD_TERMS.map((term) => fetchDocumentsForTerm(term, sinceDate)));
+  const [termResults, presidential] = await Promise.all([
+    Promise.all(KEYWORD_TERMS.map((term) => fetchDocumentsForTerm(term, sinceDate))),
+    // Always the full 24 months, not just since the checkpoint: it is a few hundred rows, change-only upserts make a
+    // repeat free of writes, and it backfills deployments whose checkpoint predates this source. Soft-fail so the
+    // agency feeds still land if this query errors.
+    fetchPresidentialDocuments(monthsAgo(24)).catch((err) => {
+      console.warn('Presidential documents fetch failed:', err instanceof Error ? err.message : String(err));
+      return [];
+    }),
+  ]);
 
   const byDocNumber = new Map<string, FederalRegisterDocument>();
   const truncatedTerms: string[] = [];
@@ -41,6 +71,14 @@ export async function runPulseSync(env: Env): Promise<RefreshResult> {
     for (const doc of docs) byDocNumber.set(doc.document_number, doc);
     if (truncated) truncatedTerms.push(term);
   });
+  const presidentialNumbers = new Set<string>();
+  const presidentialLabels = new Map<string, string>();
+  for (const doc of presidential) {
+    byDocNumber.set(doc.document_number, doc);
+    presidentialNumbers.add(doc.document_number);
+    const label = presidentialLabel(doc);
+    if (label) presidentialLabels.set(doc.document_number, label);
+  }
   if (truncatedTerms.length > 0) {
     console.warn(
       `Pulse sync hit the pagination cap for: ${truncatedTerms.join(', ')} -- some historical documents for ${sinceDate} onward may be missing from this run.`
@@ -52,14 +90,18 @@ export async function runPulseSync(env: Env): Promise<RefreshResult> {
   const rows: string[] = [];
 
   for (const doc of byDocNumber.values()) {
+    if (NOT_TRADE_POLICY_RE.test(doc.title)) continue;
     const agencySlugs = resolveAgencySlugs(doc.agencies.map((a) => a.name));
-    const tag = tagDocument({ title: doc.title, abstract: doc.abstract, agencySlugs });
+    const isPresidential = presidentialNumbers.has(doc.document_number);
+    // A presidential document often has no abstract; its number ("Proclamation 11073") is the real, sourced summary.
+    const abstract = doc.abstract ?? (isPresidential ? (presidentialLabels.get(doc.document_number) ?? null) : null);
+    const tag = isPresidential ? tagPresidentialDocument({ title: doc.title, abstract }) : tagDocument({ title: doc.title, abstract, agencySlugs });
     const agencyNames = doc.agencies.map((a) => a.name).join(', ');
-    const countries = extractCountries(`${doc.title} ${doc.abstract ?? ''}`);
+    const countries = extractCountries(`${doc.title} ${abstract ?? ''}`);
     if (doc.publication_date > maxPublicationDate) maxPublicationDate = doc.publication_date;
 
     rows.push(
-      `(${sqlString(doc.document_number)}, ${sqlString(doc.title)}, ${sqlString(doc.abstract)}, ` +
+      `(${sqlString(doc.document_number)}, ${sqlString(doc.title)}, ${sqlString(abstract)}, ` +
         `${sqlString(agencyNames)}, ${sqlString(doc.type)}, ${sqlString(doc.publication_date)}, ` +
         `${sqlString(tag)}, ${sqlString(doc.html_url)}, ${sqlString(now)}, ` +
         `${sqlString(doc.effective_on)}, ${sqlString(doc.comments_close_on)}, ${sqlString(doc.citation)}, ${sqlJson(countries)})`
@@ -102,6 +144,8 @@ export async function runPulseSync(env: Env): Promise<RefreshResult> {
        ON CONFLICT(id) DO UPDATE SET last_synced_date = excluded.last_synced_date, last_synced_at = excluded.last_synced_at`
     ).bind(checkpoint, now),
   ]);
+
+  await tidyOnce(env);
 
   return { source: 'pulse', rows: rows.length, truncatedTerms: truncatedTerms.length > 0 ? truncatedTerms : undefined };
 }

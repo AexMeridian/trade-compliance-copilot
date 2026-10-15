@@ -29,7 +29,7 @@ await test('a fresh install runs the first (biggest, highest-priority) job alone
 });
 
 await test('nothing runs when every job succeeded within the week', async () => {
-  const sources = ['sdn', 'csl', 'un_sanctions', 'uk_sanctions', 'gta', 'wro_findings', 'hts', 'schedule_b', 'xref'];
+  const sources = ['sdn', 'csl', 'un_sanctions', 'uk_sanctions', 'gta', 'wro_findings', 'world_bank', 'hts', 'schedule_b', 'xref'];
   const picked = await pickDueBulkJobs(envWith(sources.map((source) => ({ source, biggest: 1000, last_ok: daysAgo(2) }))), NOW);
   assert.equal(picked.length, 0);
 });
@@ -42,6 +42,7 @@ await test('a job last run 7 days ago is due; its size is capped by the daily bu
     { source: 'uk_sanctions', biggest: 8_000, last_ok: daysAgo(1) },
     { source: 'gta', biggest: 3_000, last_ok: daysAgo(1) },
     { source: 'wro_findings', biggest: 100, last_ok: daysAgo(1) },
+    { source: 'world_bank', biggest: 400, last_ok: daysAgo(1) },
     { source: 'hts', biggest: 32_000, last_ok: daysAgo(7) },
     { source: 'schedule_b', biggest: 15_000, last_ok: daysAgo(7) },
     { source: 'xref', biggest: 30_000, last_ok: daysAgo(7) },

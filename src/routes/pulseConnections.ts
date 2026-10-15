@@ -363,3 +363,17 @@ connectionsRoute.get('/convergence', async (c) => {
     note: 'Countries ranked by how many different kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them, then by topic breadth. Counts only: not a risk score.',
   });
 });
+
+// Parties added to the UN, UK and U.S. (BIS/State) lists recently, using each list's own listing date -- so "what's new"
+// costs no extra storage or writes. OFAC's SDN file carries no listing date, so it cannot appear here; the page says so.
+// Reuses the parsed, per-isolate cached events above; only parties whose text names a country are included.
+connectionsRoute.get('/recent-listings', async (c) => {
+  const days = clampInt(c.req.query('days'), 30, 7, 90);
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const events = (await loadAllSanctionEvents(c.env)).filter((e) => e.date >= since).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  return c.json({
+    days,
+    total: events.length,
+    items: events.slice(0, 40).map((e) => ({ id: e.id, date: e.date, title: e.title, url: e.url, source: e.source, countries: e.countries })),
+  });
+});

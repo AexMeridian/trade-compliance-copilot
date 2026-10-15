@@ -99,6 +99,10 @@ homeRoute.get('/home', async (c) => {
     settle('/news?limit=60'),
   ]);
 
+  // Nothing at all came back (the database is unavailable, e.g. its free daily read quota is spent): say so with a 503, so the
+  // edge cache can serve its last good copy instead of caching an empty page.
+  if (!summary && !recent && !markets && !news) return c.json({ error: 'Data is temporarily unavailable.' }, 503);
+
   // Same degrade-don't-crash rule as the panels above: freshness timestamps
   // are a nice-to-have (a "how stale is this" caption), not core data, so a
   // D1 hiccup here (an outage, a quota day) must not 500 the whole page when

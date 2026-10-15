@@ -50,8 +50,13 @@ app.use('/api/pulse/*', async (c, next) => {
 
 // Slow-changing, comparatively expensive reads are cached at the edge for 5 minutes
 // (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
-const EDGE_CACHED = ['country/*', 'connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'export-control-chart', 'active-measures', 'live-arcs'];
+const EDGE_CACHED = ['connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'tic', 'recent-listings', 'export-control-chart', 'active-measures', 'live-arcs'];
 for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
+// A country page costs ~15,000 rows read uncached and there are ~170 of them (a crawler can visit them all), so it is held for an hour.
+app.use('/api/pulse/country/*', edgeCache(3600));
+// Startup calls made by every page view (and the header ticker): short windows keep a burst of visitors to one read per window.
+app.use('/api/pulse/home', edgeCache(60));
+for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p}`, edgeCache(300));
 // Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
 app.use('/api/pulse/sanction-counts', edgeCache(21600));
 app.use('/api/pulse/data-status', edgeCache(300));

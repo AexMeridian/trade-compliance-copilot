@@ -13,6 +13,9 @@ export interface RefreshResult {
     | 'pulse_news'
     | 'pulse_macro'
     | 'pulse_cofer'
+    | 'world_bank'
+    | 'pulse_treasury'
+    | 'pulse_commodities'
     | 'gta'
     | 'wro_findings'
     | 'case_expiry';

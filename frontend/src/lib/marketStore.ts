@@ -25,7 +25,13 @@ export function useSharedMarkets(fetchAfterMs = 1500, pollMs = 0): PulseMarkets 
       }, fetchAfterMs);
     }
     // Keep the numbers current while the page stays open (the Pulse page does this itself and publishes here).
-    const poll = pollMs > 0 ? window.setInterval(() => getPulseMarkets().then(publishMarkets).catch(() => {}), pollMs) : undefined;
+    // Only while the tab is visible: a background tab nobody is reading should not keep reading the database.
+    const poll =
+      pollMs > 0
+        ? window.setInterval(() => {
+            if (document.visibilityState === 'visible') getPulseMarkets().then(publishMarkets).catch(() => {});
+          }, pollMs)
+        : undefined;
     return () => {
       listeners.delete(setMarkets);
       window.clearTimeout(timer);

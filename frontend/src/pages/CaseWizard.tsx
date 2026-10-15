@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { OwnershipNote } from '../components/OwnershipNote';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { CaseFile, OriginComponent, PartyRole } from '../types/case';
 import { getCase, submitClassification, submitOrigin, submitScreening, submitDetermination } from '../lib/api';
@@ -420,6 +421,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
               <div className="text-sm font-semibold text-ink">
                 {p.role}: {p.input_name}
               </div>
+              {p.ownership && <OwnershipNote hint={p.ownership} />}
               {p.matches.length === 0 && <div className="text-sm text-ink-faint">No candidate matches above threshold.</div>}
               {p.matches.map((m, j) => (
                 <div key={j} className="mt-1 border-l-2 border-hairline-strong pl-3">

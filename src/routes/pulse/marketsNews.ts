@@ -3,6 +3,8 @@ import type { Env } from '../../types/env.js';
 import { MARKET_META, FX_META, refreshQuotes, refreshFx } from '../../lib/pulse/markets.js';
 import { MACRO_META, refreshMacro } from '../../lib/pulse/macro.js';
 import { COFER_META, refreshCofer } from '../../lib/pulse/cofer.js';
+import { YIELD_META, refreshTreasury } from '../../lib/pulse/treasury.js';
+import { COMMODITY_META, refreshCommodities } from '../../lib/pulse/commodities.js';
 import { refreshNews } from '../../lib/pulse/news.js';
 import { refreshIfStale } from '../../lib/pulse/refreshLazy.js';
 import type { PulseApp } from './util.js';
@@ -19,6 +21,8 @@ const NEWS_TTL_MS = 30 * 60_000;
 const MACRO_TTL_MS = 6 * 60 * 60_000;
  // BLS publishes monthly; this just bounds the keyless daily-query budget
 const COFER_TTL_MS = 24 * 60 * 60_000;
+const TREASURY_TTL_MS = 6 * 60 * 60_000; // yields post once per business day; TIC monthly
+const COMMODITY_TTL_MS = 24 * 60 * 60_000; // IMF PCPS is monthly
  // IMF publishes quarterly; this just bounds the keyless daily-query budget
 
 // First-ever request (empty table) waits for the refresh so the panel isn't
@@ -50,12 +54,27 @@ marketsNewsRoute.get('/markets', async (c) => {
   // ~3 months) is unchanged for every existing caller; a range selector on
   // the frontend can request more, up to as much as market_series retains.
   const days = clampInt(c.req.query('days'), { default: 70, min: 30, max: 430 });
-  const load = () =>
-    c.env.DB.prepare(
-      `SELECT series_id, obs_date, value FROM market_series
-       WHERE obs_date >= date('now', '-430 days')
-       ORDER BY series_id, obs_date DESC`
-    ).all<SeriesRow>();
+  // Currency rates are daily for ~29 pairs and the page only shows ~60 days of them, so they get a short window; every other
+  // series is monthly or small, so it keeps the long one (year-over-year needs it). Reading 430 days of every currency
+  // used to cost ~10,000 rows on every page view.
+  // Only the series this response actually shows are read: older databases still hold rows for tiles that are switched off.
+  const quotesOnForLoad = c.env.MARKET_QUOTES !== 'off';
+  const shownIds = [...(quotesOnForLoad ? MARKET_META : []), ...MACRO_META, COFER_META, ...YIELD_META, ...COMMODITY_META].map((m) => m.id);
+  const load = async () => {
+    const [fx, other] = await Promise.all([
+      c.env.DB.prepare(
+        `SELECT series_id, obs_date, value FROM market_series WHERE series_id >= 'FX:' AND series_id < 'FX;' AND obs_date >= date('now', '-75 days') ORDER BY series_id, obs_date DESC`
+      ).all<SeriesRow>(),
+      c.env.DB.prepare(
+        `SELECT series_id, obs_date, value FROM market_series
+         WHERE series_id IN (${shownIds.map(() => '?').join(',')}) AND obs_date >= date('now', '-430 days')
+         ORDER BY series_id, obs_date DESC`
+      )
+        .bind(...shownIds)
+        .all<SeriesRow>(),
+    ]);
+    return { results: [...other.results, ...fx.results] };
+  };
 
   const quotesOn = c.env.MARKET_QUOTES !== 'off';
   let { results } = await load();
@@ -66,6 +85,7 @@ marketsNewsRoute.get('/markets', async (c) => {
   const hasFx = results.some((r) => r.series_id.startsWith('FX:'));
   const hasMacro = results.some((r) => r.series_id.startsWith('BLS:'));
   const hasCofer = results.some((r) => r.series_id === 'COFER:USD_SHARE');
+  const hasCommodities = results.some((r) => r.series_id.startsWith('IMF:'));
   await refreshOnDemand(
     c,
     [
@@ -73,10 +93,13 @@ marketsNewsRoute.get('/markets', async (c) => {
       ...(quotesOn ? [refreshIfStale(c.env, 'quotes', QUOTES_TTL_MS, () => refreshQuotes(c.env))] : []),
       refreshIfStale(c.env, 'macro', MACRO_TTL_MS, () => refreshMacro(c.env)),
       refreshIfStale(c.env, 'cofer', COFER_TTL_MS, () => refreshCofer(c.env)),
+      refreshIfStale(c.env, 'commodities', COMMODITY_TTL_MS, () => refreshCommodities(c.env)),
     ],
-    !hasQuotes || !hasFx || !hasMacro || !hasCofer
+    !hasQuotes || !hasFx || !hasMacro || !hasCofer || !hasCommodities
   );
-  if (!hasQuotes || !hasFx || !hasMacro || !hasCofer) ({ results } = await load());
+  if (!hasQuotes || !hasFx || !hasMacro || !hasCofer || !hasCommodities) ({ results } = await load());
+  // Treasury's yield feed is slow (about 17 s), so it only ever refreshes in the background and never holds up a page.
+  void refreshOnDemand(c, [refreshIfStale(c.env, 'treasury', TREASURY_TTL_MS, () => refreshTreasury(c.env))], false);
 
   const bySeries = new Map<string, SeriesRow[]>();
   for (const r of results) {
@@ -91,7 +114,7 @@ marketsNewsRoute.get('/markets', async (c) => {
       .map((r): [string, number] => [r.obs_date, r.value])
       .reverse();
 
-  const tiles = [...(quotesOn ? MARKET_META : []), ...MACRO_META, COFER_META].flatMap((m) => {
+  const tiles = [...(quotesOn ? MARKET_META : []), ...MACRO_META, COFER_META, ...YIELD_META, ...COMMODITY_META].flatMap((m) => {
     const rows = bySeries.get(m.id);
     if (!rows || rows.length === 0) return [];
     const [latest, prev] = rows;
@@ -186,4 +209,39 @@ marketsNewsRoute.get('/news', async (c) => {
     lastSuccessAt: state?.last_success_at ?? null,
     note: state?.last_note ?? null,
   });
+});
+
+// Foreign holdings of U.S. Treasuries (Treasury TIC), latest month and the same month a year earlier, by country.
+// Reads one series family from market_series (about 50 series x 13 months), so it is edge-cached in index.ts.
+marketsNewsRoute.get('/tic', async (c) => {
+  // First-ever call: start the refresh in the background (the yield half is slow) and answer with what exists.
+  void refreshOnDemand(c, [refreshIfStale(c.env, 'treasury', TREASURY_TTL_MS, () => refreshTreasury(c.env))], false);
+  const { results } = await c.env.DB.prepare(
+    `SELECT s.series_id, s.obs_date, s.value, m.label FROM market_series s
+     JOIN market_series_meta m ON m.series_id = s.series_id
+     WHERE s.series_id >= 'TIC:' AND s.series_id < 'TIC;' ORDER BY s.series_id, s.obs_date DESC`
+  ).all<SeriesRow & { label: string }>();
+  const by = new Map<string, (SeriesRow & { label: string })[]>();
+  for (const r of results) {
+    if (!by.has(r.series_id)) by.set(r.series_id, []);
+    by.get(r.series_id)!.push(r);
+  }
+  const holders = [...by.entries()].map(([id, rows]) => {
+    const latest = rows[0];
+    const yearAgoDate = new Date(Date.parse(latest.obs_date) - 360 * 86_400_000).toISOString().slice(0, 7);
+    const yearAgo = rows.find((r) => r.obs_date.slice(0, 7) <= yearAgoDate);
+    return {
+      id,
+      code: id.slice(4),
+      label: latest.label.replace('Foreign holdings of U.S. Treasuries: ', ''),
+      asOf: latest.obs_date.slice(0, 7),
+      billions: latest.value,
+      yearAgoBillions: yearAgo ? yearAgo.value : null,
+      history: rows.slice(0, 13).map((r): [string, number] => [r.obs_date.slice(0, 7), r.value]).reverse(),
+    };
+  });
+  const total = holders.find((h) => h.code === 'TOTAL') ?? null;
+  const official = holders.find((h) => h.code === 'OFFICIAL') ?? null;
+  const countries = holders.filter((h) => h.code !== 'TOTAL' && h.code !== 'OFFICIAL').sort((a, b) => b.billions - a.billions);
+  return c.json({ total, official, countries, source: 'U.S. Treasury, Treasury International Capital (TIC), Major Foreign Holders of Treasury Securities', sourceUrl: 'https://ticdata.treasury.gov/resource-center/data-chart-center/tic/Pages/index.aspx' });
 });

@@ -11,12 +11,12 @@ const short = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocal
 
 const formatRate = (r: number) => r.toLocaleString('en-US', { minimumFractionDigits: r < 10 ? 4 : 2, maximumFractionDigits: r < 10 ? 4 : 2 });
 
-const FIVE_MIN = 5 * 60_000;
+const FIFTEEN_MIN = 15 * 60_000; // the server holds this data for 5 minutes anyway; polling faster only costs database reads
 
 export function MarketStrip() {
   const onPulse = useLocation().pathname === '/';
   // Pulse refreshes the numbers itself; every other page refreshes them from here.
-  const markets = useSharedMarkets(1500, onPulse ? 0 : FIVE_MIN);
+  const markets = useSharedMarkets(1500, onPulse ? 0 : FIFTEEN_MIN);
   const fx = (markets?.currencies ?? []).slice(0, 6);
   const tiles = markets?.tiles ?? [];
   const cpi = tiles.find((t) => t.id === 'BLS:CPI');

@@ -62,7 +62,7 @@ export function InfluenceGuide() {
           Three real proxies, not a measure of culture or favorability: the dollar's strength and reach (the dollar index, Treasury yields, exchange rates
           against major trade partners, and world stock indexes); U.S. import and export price indexes from the Bureau of Labor Statistics, the closest real,
           published read on whether tariffs are actually showing up in prices rather than just in policy announcements; and diplomatic/political news (headlines
-          from 8 outlets -- BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed -- filtered to their Elections & Politics and Official
+          from 9 outlets -- BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB, the Fed and the Justice Department -- filtered to their Elections & Politics and Official
           categories). All three are the same market,
           price and news data Pulse already collects.
         </p>

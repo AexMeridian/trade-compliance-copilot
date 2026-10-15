@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
+import { MobileMenu } from './components/MobileMenu';
 import { Routes, Route, Link, NavLink, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Pulse } from './pages/Pulse';
 import { NotFound } from './pages/NotFound';
@@ -147,7 +148,7 @@ export default function App() {
             <NavLink to="/calculator" className={navClass}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide sm:inline">Beta</span>
             </NavLink>
-            <NavLink to="/abroad" className={navClass}>
+            <NavLink to="/abroad" className={(s) => `${navClass(s)} hidden sm:block`}>
               U.S. abroad
             </NavLink>
             <NavLink to="/allies" className={(s) => `${navClass(s)} hidden sm:block`}>
@@ -158,6 +159,7 @@ export default function App() {
             </NavLink>
             <SiteSearch />
             <ThemeToggle />
+            <MobileMenu />
           </nav>
         </div>
       </header>

@@ -5,6 +5,7 @@ import { getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
 import { PulseSanctionsBrowser } from '../components/PulseSanctionsBrowser';
+import { RecentListings } from '../components/RecentListings';
 import { InfluenceGuide } from '../components/InfluenceGuide';
 import { InfluenceHero } from '../components/InfluenceHero';
 import { InfluenceTabs, INFLUENCE_TABS, type InfluenceTabId } from '../components/InfluenceTabs';
@@ -399,6 +400,9 @@ export function Influence() {
                   Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
                   text match on each entry's address field, not a normalized code -- see the note below the search box.
                 " />
+              <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
+                <RecentListings />
+              </PulsePanel>
               <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
                 <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
               </PulsePanel>

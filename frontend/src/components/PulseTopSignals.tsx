@@ -10,12 +10,17 @@ import { friendlyDate } from '../lib/pulsePlain';
 // ordered by document type (a Presidential proclamation or final Rule
 // outranks a routine administrative Notice) and then recency. Plain
 // TypeScript sort, no model call -- see lib/pulseGrouping.ts.
+// The yearly "Continuation of the National Emergency" renewals are presidential documents but routine: they extend an existing
+// sanctions program and change nothing, so they must not outrank a new proclamation or rule as the lead story.
+const ROUTINE_RENEWAL_RE = /^continuation of the national emergency/i;
+const weight = (a: PulseAction) => (ROUTINE_RENEWAL_RE.test(a.title) ? 1 : docTypeWeight(a.doc_type));
+
 export function rankSignals(actions: PulseAction[], limit = 5): PulseAction[] {
   const standalone = groupByTitle(actions)
     .filter((g) => g.items.length === 1)
     .map((g) => g.items[0]);
   return standalone
-    .sort((a, b) => docTypeWeight(b.doc_type) - docTypeWeight(a.doc_type) || b.publication_date.localeCompare(a.publication_date))
+    .sort((a, b) => weight(b) - weight(a) || b.publication_date.localeCompare(a.publication_date))
     .slice(0, limit);
 }
 

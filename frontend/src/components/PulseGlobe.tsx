@@ -117,6 +117,25 @@ interface Dot {
 interface World {
   countries: Country[];
   dots: Dot[];
+  rings: Float32Array[]; // every country outline ring as flat unit vectors (x, y, z, x, y, z, ...), for drawing outlines without d3's per-frame clipping
+}
+
+/** Longitude/latitude points to a flat array of unit vectors. */
+function toUnitVectors(points: Position[]): Float32Array {
+  const out = new Float32Array(points.length * 3);
+  points.forEach(([lng, lat], i) => {
+    const la = (lat * Math.PI) / 180;
+    const lo = (lng * Math.PI) / 180;
+    out[i * 3] = Math.cos(la) * Math.cos(lo);
+    out[i * 3 + 1] = Math.cos(la) * Math.sin(lo);
+    out[i * 3 + 2] = Math.sin(la);
+  });
+  return out;
+}
+function geometryRings(g: Geometry): Position[][] {
+  if (g.type === 'Polygon') return g.coordinates;
+  if (g.type === 'MultiPolygon') return g.coordinates.flat();
+  return [];
 }
 
 // ---- Land dots: a regular grid of points, kept where they fall inside a country.
@@ -192,7 +211,8 @@ function loadWorld(): Promise<World> {
         }
       }
     }
-    return { countries, dots };
+    const rings = countries.flatMap((c) => geometryRings(c.geometry).map(toUnitVectors));
+    return { countries, dots, rings };
   });
   return worldPromise;
 }
@@ -289,7 +309,8 @@ export function PulseGlobe({
   const dragRef = useRef<{ x: number; y: number; r: [number, number]; moved: boolean } | null>(null);
   const hoverIdRef = useRef<number | null>(null);
   const clockRef = useRef(performance.now()); // feeds the arc/ping animation phase; set every animation frame, read inside draw()
-  const frameGapRef = useRef(33); // ms between ambient redraws: about 30 fps, stretched on slow devices so the page stays responsive
+  const frameGapRef = useRef(0); // ms between ambient redraws: none (every display frame) while drawing is cheap, stretched only on slow devices
+  const lastHitRef = useRef(0);
   const lastDrawRef = useRef(0); // throttles the ambient tick's own redraws (see the tick effect below)
   const [booted, setBooted] = useState(false); // flips true once, after the one-time boot-sweep plays (see .globe-boot, index.css)
 
@@ -322,7 +343,7 @@ export function PulseGlobe({
   }, []);
 
   const projection = useMemo(() => geoOrthographic().clipAngle(90), []);
-  const graticule = useMemo(() => geoGraticule10(), []);
+  const graticuleRings = useMemo(() => geoGraticule10().coordinates.map(toUnitVectors), []);
 
   // Every country's centroid, computed once per world load -- feeds the
   // trade-flow arcs below without re-walking geometry every frame.
@@ -419,16 +440,54 @@ export function PulseGlobe({
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
+    // The view's centre and screen axes, from the rotation. Dots, outlines and the graticule are all projected directly from
+    // their stored unit vectors with these (the same result as projection([lng, lat]) with no roll, at a fraction of the cost
+    // of d3's per-frame clipping, which used to take most of each frame and made the turning look choppy).
+    const [lambda, phi] = projection.rotate();
+    const cl = (-phi * Math.PI) / 180;
+    const co = (-lambda * Math.PI) / 180;
+    const cx = Math.cos(cl) * Math.cos(co);
+    const cy = Math.cos(cl) * Math.sin(co);
+    const cz = Math.sin(cl);
+    const k = projection.scale();
+    const [tx, ty] = projection.translate();
+    const ex = -Math.sin(co);
+    const ey = Math.cos(co);
+    const nx = -Math.sin(cl) * Math.cos(co);
+    const ny = -Math.sin(cl) * Math.sin(co);
+    const nz = Math.cos(cl);
+    // Polylines of vectors: a run is broken wherever the points turn to the far side.
+    const strokeRings = (rings: Float32Array[]) => {
+      ctx.beginPath();
+      for (const ring of rings) {
+        let pen = false;
+        for (let i = 0; i < ring.length; i += 3) {
+          const vx = ring[i];
+          const vy = ring[i + 1];
+          const vz = ring[i + 2];
+          if (vx * cx + vy * cy + vz * cz <= 0) {
+            pen = false;
+            continue;
+          }
+          const px = tx + k * (vx * ex + vy * ey);
+          const py = ty - k * (vx * nx + vy * ny + vz * nz);
+          if (pen) ctx.lineTo(px, py);
+          else {
+            ctx.moveTo(px, py);
+            pen = true;
+          }
+        }
+      }
+    };
+
     // Graticule.
-    ctx.beginPath();
-    path(graticule);
+    strokeRings(graticuleRings);
     ctx.strokeStyle = palette.graticule;
     ctx.lineWidth = 0.75;
     ctx.stroke();
 
-    // Country outlines: faint everywhere, strong on the countries the feed names.
-    ctx.beginPath();
-    for (const c of world.countries) path(c);
+    // Country outlines: faint everywhere.
+    strokeRings(world.rings);
     ctx.strokeStyle = palette.outline;
     ctx.lineWidth = 0.6;
     ctx.stroke();
@@ -453,22 +512,6 @@ export function PulseGlobe({
 
     // Halftone dots, one pass per colour. A dot is on the near side when it
     // points the same way as the centre of the view.
-    const [lambda, phi] = projection.rotate();
-    const cl = (-phi * Math.PI) / 180;
-    const co = (-lambda * Math.PI) / 180;
-    const cx = Math.cos(cl) * Math.cos(co);
-    const cy = Math.cos(cl) * Math.sin(co);
-    const cz = Math.sin(cl);
-    // Each dot's screen position is the orthographic projection worked out directly from its stored unit vector
-    // (the same result as projection([lng, lat]) with no roll, at a fraction of the cost per dot), and each
-    // country's colour is looked up once per frame instead of once per dot.
-    const k = projection.scale();
-    const [tx, ty] = projection.translate();
-    const ex = -Math.sin(co);
-    const ey = Math.cos(co);
-    const nx = -Math.sin(cl) * Math.cos(co);
-    const ny = -Math.sin(cl) * Math.sin(co);
-    const nz = Math.cos(cl);
     const colorOf = new Map<number, string>();
     const buckets = new Map<string, Dot[]>();
     for (const d of world.dots) {
@@ -600,7 +643,7 @@ export function PulseGlobe({
         ctx.globalAlpha = 1;
       }
     }
-  }, [world, size, projection, graticule, hittable, activeCountry, colorFor, theme, activeArcs]);
+  }, [world, size, projection, graticuleRings, hittable, activeCountry, colorFor, theme, activeArcs]);
 
   // Redraw whenever the data, size or selection changes.
   useEffect(() => draw(), [draw]);
@@ -609,14 +652,10 @@ export function PulseGlobe({
   // they asked for less motion) -- and, regardless of rotation, keep the
   // clock advancing so the trade-flow arcs and radar ping (drawn inside
   // draw()) keep animating even while a country is selected or the globe is
-  // being dragged. The redraw itself is capped to ~30fps here (throttled
-  // independently of rAF's own ~60-120Hz cadence): before the arcs/ping
-  // existed, this branch was a no-op whenever a country was selected, so
-  // selecting one cost nothing. Now it always redraws for the ambient
-  // animation, so this cap keeps that from quietly doubling the globe's GPU/
-  // battery cost for as long as a country card stays open. Drag and hover
-  // stay instantly responsive -- those paths call draw() directly from their
-  // own event handlers, not through this throttle.
+  // being dragged. A frame costs a few milliseconds, so the globe is redrawn on
+  // every display frame for an even turn; only a device that is slow per frame is
+  // throttled (see frameGapRef). Drag and hover stay instantly responsive -- those
+  // paths call draw() directly from their own event handlers, not through this loop.
   useEffect(() => {
     if (!world || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let raf = 0;
@@ -637,7 +676,9 @@ export function PulseGlobe({
         const speed = pointerRef.current ? 0.0028 : 0.008;
         rotation.current = [rotation.current[0] + (now - last) * speed, rotation.current[1]];
         const p = pointerRef.current;
-        if (p) {
+        // Finding the country under the cursor walks every outline, so it runs about 10 times a second, not every frame.
+        if (p && now - lastHitRef.current > 100) {
+          lastHitRef.current = now;
           const id = hitTestId(p.x, p.y);
           if (id !== hoverIdRef.current) {
             hoverIdRef.current = id;
@@ -646,12 +687,15 @@ export function PulseGlobe({
         }
       }
       clockRef.current = now;
-      if (now - lastDrawRef.current >= frameGapRef.current) {
+      // Draw on every display frame so the turn is even. The 3 ms of slack keeps ordinary frame-timing jitter from making
+      // a frame get skipped and the next one drawn late (which looked like stutter) when a gap is in force.
+      if (now - lastDrawRef.current >= frameGapRef.current - 3) {
         lastDrawRef.current = now;
         const started = performance.now();
         draw();
-        // A slow device spends longer per frame; leave it proportionally more idle time between frames.
-        frameGapRef.current = Math.min(120, Math.max(33, (performance.now() - started) * 3));
+        // Only a device that takes a long time per frame (over 9 ms) is throttled, in proportion; a fast one is never held back.
+        const cost = performance.now() - started;
+        frameGapRef.current = cost > 9 ? Math.min(100, cost * 2) : 0;
       }
       last = now;
       raf = requestAnimationFrame(tick);

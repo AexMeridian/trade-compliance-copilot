@@ -84,10 +84,19 @@ export interface PartyMatch {
   risk_memo: string;
 }
 
+// Ownership context from GLEIF (open data), shown next to a screening result. A parent that resembles a listed party is
+// a prompt to check further, never a finding by itself.
+export interface PartyOwnershipHint {
+  entity: { lei: string; name: string; country: string | null };
+  parents: { relation: 'direct' | 'ultimate'; lei: string; name: string; country: string | null; listed_as: { list: string; name: string; score: number } | null }[];
+  source_url: string;
+}
+
 export interface PartyScreeningResult {
   role: PartyRole;
   input_name: string;
   matches: PartyMatch[];
+  ownership?: PartyOwnershipHint;
 }
 
 export interface ScreeningResult {

@@ -26,6 +26,9 @@ export interface NewsFeed {
 // (resolves and parses fine but every item on it is dated January 2025 --
 // a dead, frozen feed, not a live one). Reuters discontinued public RSS.
 export const NEWS_FEEDS: NewsFeed[] = [
+  // U.S. Department of Justice press releases: export-control, sanctions-evasion and customs-fraud prosecutions. The feed is
+  // every DOJ release, so the trade filter does the selecting. Same rule as the other feeds: headline, link, short summary.
+  { key: 'doj', source: 'U.S. Department of Justice', url: 'https://www.justice.gov/news/rss?type=press_release&component=1296', kind: 'filtered' },
   { key: 'ecb', source: 'European Central Bank', url: 'https://www.ecb.europa.eu/rss/press.html', kind: 'official' },
   { key: 'fed', source: 'Federal Reserve', url: 'https://www.federalreserve.gov/feeds/press_all.xml', kind: 'filtered' },
   { key: 'bbc-business', source: 'BBC News', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', kind: 'filtered' },

@@ -87,7 +87,7 @@ export function PowerGuide() {
             <span className="text-ink">The dollar's market reach.</span> The dollar index, Treasury yields, and exchange rates against major trade partners.
           </li>
           <li>
-            <span className="text-ink">Diplomatic and political headlines.</span> From 8 outlets, filtered to their Elections & Politics and Official
+            <span className="text-ink">Diplomatic and political headlines.</span> From 9 outlets, filtered to their Elections & Politics and Official
             categories.
           </li>
         </ul>

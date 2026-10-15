@@ -66,3 +66,35 @@ already handled in the repository.
 - Unknown addresses return HTTP 200 with a "page not found" screen marked `noindex` (single-page-app behaviour on the free
   plan). Search engines respect the `noindex`.
 - Uptime, DMARC, DNSSEC and the weekly export need the owner's accounts.
+
+## Open-data roadmap (what is built, what is next)
+
+Built: Treasury yield curve and foreign holders of U.S. Treasuries (TIC), IMF monthly commodity prices, and presidential
+documents (executive orders, proclamations, national-emergency notices) in the Federal Register feed.
+
+Next, in priority order (see the plan in the repository history for detail):
+1. Sanctions country from the source's structured address field instead of a text match, and "added this week" detection.
+2. Named-party detection: sanctioned names found inside actions and news (exact normalized match only).
+3. More lists: Canada, Switzerland, Australia. The **EU consolidated list is a 25 MB XML/CSV file**; it is too large to parse
+   inside a free-plan Worker in one pass, so it needs a streaming parser or a smaller extract before it can be added.
+4. GLEIF parent lookups in screening; watchlists by name and HS chapter.
+5. World Bank / IMF country indicators to refresh the one-time country snapshot.
+
+Known upstream behaviour: the Treasury yield-curve feed answers slowly (about 17 seconds), so it only ever refreshes in the
+background; the IMF PCPS key is `G001.<indicator>.USD.M`.
+
+## Database read budget (free plan: 5,000,000 rows read per day)
+
+On 2026-10-13 the daily read limit was exceeded and the database refused reads until 00:00 UTC. Cause: every page view (and the
+header ticker, which also polled every 5 minutes in any open tab) made calls that read tens of thousands of rows with no caching,
+and each country page scanned about 51,000 sanctions rows. Changes made:
+
+- The startup calls (`/home` 60 s, `/markets`, `/news`, `/summary`, `/tempo` 5 min) and country pages (1 hour) are held at the edge.
+- `/markets` reads only the series it shows (about 4,500 rows instead of every stored row), using index range scans.
+- A country's sanctions text-match counts are stored for a week in one `pulse_feed_state` row instead of being recomputed
+  (`sanc:<country>`); the country name is checked against the country code first, so arbitrary names cannot create rows or scans.
+- The ticker polls every 15 minutes and only while the tab is visible.
+- If the database is unavailable, cached endpoints serve their last good copy for up to a day (`X-Edge-Cache: STALE`).
+
+Watch it: Cloudflare dashboard > Storage & Databases > D1 > the database > Metrics ("Rows read"). Set a usage notification at
+about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a month) includes 25 billion rows read.

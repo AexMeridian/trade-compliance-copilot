@@ -125,3 +125,52 @@ export async function fetchDocumentsForTerm(term: string, sinceDate: string): Pr
 
   return { docs, truncated };
 }
+
+// Presidential documents (executive orders, proclamations, notices) are where Section 232 import adjustments,
+// IEEPA tariffs and national-emergency sanctions programs actually begin, but they are issued by the Executive
+// Office of the President, not by any agency in AGENCY_SLUGS, so the agency-scoped search above never sees them.
+// There are only a few hundred a year (verified live: 217 since 2026-01-01), so one request for the whole window is
+// cheaper than 13 keyword searches; relevance is then decided locally from the title, deterministically.
+const PRESIDENTIAL_TRADE_RE =
+  /tariff|\bdut(y|ies)\b|\bimports?\b|importation|\bexports?\b|\btrade\b|sanction|blocking property|national emergency|section 232|\bIEEPA\b|customs|reciprocal|embargo|foreign adversar/i;
+// Annual continuations about matters outside this site's scope.
+const PRESIDENTIAL_EXCLUDE_RE =
+  /terrorist attacks|undermining public confidence in united states elections|world trade week|skilled trade|southern border|tiktok|adversary controlled applications/i;
+
+export interface PresidentialDocument extends FederalRegisterDocument {
+  subtype: string | null;
+  executive_order_number: string | null;
+  proclamation_number: string | null;
+}
+
+export function isTradeRelevantPresidentialDocument(title: string): boolean {
+  return PRESIDENTIAL_TRADE_RE.test(title) && !PRESIDENTIAL_EXCLUDE_RE.test(title);
+}
+
+// What the document is, from the Register's own fields -- shown as the summary when the document has no abstract.
+export function presidentialLabel(d: Pick<PresidentialDocument, 'subtype' | 'executive_order_number' | 'proclamation_number'>): string | null {
+  if (d.executive_order_number) return `Executive Order ${d.executive_order_number}`;
+  if (d.proclamation_number) return `Proclamation ${d.proclamation_number}`;
+  return null; // a plain notice has no number worth showing
+}
+
+export async function fetchPresidentialDocuments(sinceDate: string): Promise<PresidentialDocument[]> {
+  const out: PresidentialDocument[] = [];
+  for (let page = 1; page <= 3; page++) {
+    const params = new URLSearchParams();
+    params.append('conditions[type][]', 'PRESDOCU');
+    params.set('conditions[publication_date][gte]', sinceDate);
+    params.set('per_page', '1000');
+    params.set('order', 'newest');
+    params.set('page', String(page));
+    for (const field of ['document_number', 'title', 'abstract', 'type', 'subtype', 'agencies', 'publication_date', 'html_url', 'effective_on', 'citation', 'executive_order_number', 'proclamation_number']) {
+      params.append('fields[]', field);
+    }
+    const res = await fetch(`${BASE}/documents.json?${params.toString()}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    if (!res.ok) throw new Error(`Federal Register presidential documents fetch failed: HTTP ${res.status}`);
+    const body = (await res.json()) as { total_pages?: number; results?: PresidentialDocument[] };
+    out.push(...(body.results ?? []));
+    if (page >= (body.total_pages ?? 1)) break;
+  }
+  return out.filter((d) => isTradeRelevantPresidentialDocument(d.title)).map((d) => ({ ...d, comments_close_on: null }));
+}

@@ -16,7 +16,7 @@ export const SITE = {
   // "Last updated" dates on the About, Privacy and Accessibility pages.
   // Change them whenever those pages change.
   aboutUpdated: '2026-10-09',
-  privacyUpdated: '2026-10-09',
+  privacyUpdated: '2026-10-13',
   termsUpdated: '2026-10-09',
   accessibilityUpdated: '2026-10-09',
   cookiesUpdated: '2026-10-11',

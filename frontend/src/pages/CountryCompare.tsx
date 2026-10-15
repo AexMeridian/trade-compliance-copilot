@@ -201,7 +201,9 @@ export function CountryCompare() {
                   </div>
                   <div>
                     <p className="font-semibold text-ink">Export control</p>
-                    <p className="mt-1 text-ink-muted">{EXPORT_STATUS_LABEL[d.exportControl.status]}</p>
+                    <p className="mt-1 text-ink-muted">
+                      {d.exportControl.status === 'curated' && d.exportControl.notes ? d.exportControl.notes : EXPORT_STATUS_LABEL[d.exportControl.status]}
+                    </p>
                   </div>
                   <div>
                     <p className="font-semibold text-ink">Sanctioned-entity mentions</p>

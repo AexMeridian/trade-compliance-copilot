@@ -80,8 +80,10 @@ export function Pulse() {
   const [summary, setSummary] = useState<PulseSummary | null>(null);
   const [activeTag, setActiveTag] = useState<PulseTag | null>(null);
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  // A search typed into the site-wide search arrives as ?q=, so the feed opens already filtered.
+  const initialQuery = useMemo(() => (new URLSearchParams(window.location.search).get('q') ?? '').slice(0, 100), []);
+  const [searchInput, setSearchInput] = useState(initialQuery);
+  const [search, setSearch] = useState(initialQuery.trim());
   const [loadingFeed, setLoadingFeed] = useState(true);
   const [loadingPanels, setLoadingPanels] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -103,6 +105,14 @@ export function Pulse() {
     savePrefs(p);
   };
   const [params, setParams] = useSearchParams();
+  const urlQuery = params.get('q');
+  useEffect(() => {
+    // Searching from the site-wide box while already on this page changes ?q= without remounting.
+    if (urlQuery === null) return;
+    setSearchInput(urlQuery.slice(0, 100));
+    // Bring the results into view: the tab bar sits below the globe, so the page would otherwise look unchanged.
+    requestAnimationFrame(() => document.getElementById('pulse-tabs')?.scrollIntoView({ block: 'start' }));
+  }, [urlQuery]);
   const tabParam = params.get('tab');
   const tab: PulseTabId = PULSE_TABS.some((t) => t.id === tabParam) ? (tabParam as PulseTabId) : 'overview';
   const clearFeedParams = () => {
@@ -534,7 +544,7 @@ export function Pulse() {
                   <section>
                     <SectionHeader
                       title="Headlines"
-                      description="Trade, markets and elections, from 8 outlets including BBC, The Guardian, Al Jazeera and the ECB. Each links to the publisher."
+                      description="Trade, markets and elections, from 9 outlets including BBC, The Guardian, Al Jazeera and the ECB. Each links to the publisher."
                       action={
                         <button type="button" onClick={() => setTab('news', true)} className="text-accent hover:underline">
                           All news
@@ -861,7 +871,7 @@ export function Pulse() {
               <PulsePanel
                 title="World news"
                 help="Headlines from BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve, kept only when they are about trade, markets or elections. Click one to read the story at its source."
-                subtitle="From 8 outlets: BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the Fed. Each headline links to the publisher."
+                subtitle="From 9 outlets: BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB, the Fed and the Justice Department. Each headline links to the publisher."
               >
                 {newsPanel(false)}
               </PulsePanel>

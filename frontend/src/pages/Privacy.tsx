@@ -86,7 +86,9 @@ export function Privacy() {
         , the details you enter (for example a product description and countries) are saved so you can return to your report, and are sent to an AI service
         (Anthropic) to produce classification and determination suggestions. Each case lives at its own link, and anyone who has that link can open it, so don't
         share it with people you don't want to see it. Please don't enter confidential or personal information; party names you screen are the one place
-        personal data may appear, and screening them is optional.
+        personal data may appear, and screening them is optional. To show who owns a company you screen, our server also looks the party name up in the open
+        GLEIF registry of legal entities (api.gleif.org) and reads its registered parents; only the name is sent, from our server and not your browser, and
+        nothing else about you or the case.
       </p>
       <p className="mt-3">
         A case is deleted automatically 30 days after it is created. The browser that created it can delete it earlier with the "Delete this case now" button
@@ -115,7 +117,8 @@ export function Privacy() {
 
       <H>Who processes data for us, and where</H>
       <p className="mt-3">
-        Cloudflare, Inc. hosts the site and its database. Anthropic, PBC processes calculator text to generate suggestions. Both may process data in the United
+        Cloudflare, Inc. hosts the site and its database. Anthropic, PBC processes calculator text to generate suggestions. The Global Legal Entity Identifier
+        Foundation (GLEIF) receives a screened party's name for the ownership lookup described above. All three may process data in the United
         States and other countries; where personal data leaves the UK or the European Economic Area we rely on the safeguards those providers offer, such as
         standard contractual clauses. We do not sell personal data and do not use it for advertising.
       </p>

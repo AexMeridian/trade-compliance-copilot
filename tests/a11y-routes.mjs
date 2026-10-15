@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const axeSource = require('fs').readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
-const routes = ['/', '/?tab=policy', '/?tab=guide', '/calculator', '/methodology', '/terms', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', '/about', '/abroad', '/abroad?tab=alliances', '/allies', '/country/cn', '/compare?countries=CN,IN'];
+const routes = ['/', '/?tab=policy', '/?tab=guide', '/calculator', '/methodology', '/terms', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', '/about', '/abroad', '/abroad?tab=alliances', '/abroad?tab=sanctions', '/allies?tab=soft', '/allies', '/country/cn', '/compare?countries=CN,IN'];
 const browser = await chromium.launch();
 let failed = 0;
 for (const theme of ['dark', 'light']) {

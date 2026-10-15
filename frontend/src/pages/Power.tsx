@@ -1,7 +1,8 @@
 import { SectionHeader } from '../components/SectionHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, syncPulse, type NatoDefenseCountry } from '../lib/api';
+import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type TicHolders as TicData } from '../lib/api';
+import { TicHolders } from '../components/TicHolders';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
 import { PowerGuide } from '../components/PowerGuide';
@@ -50,6 +51,7 @@ export function Power() {
   const [news, setNews] = useState<PulseNewsResponse | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
   const [coferPoints, setCoferPoints] = useState<[string, number][]>([]);
+  const [tic, setTic] = useState<TicData | null>(null);
   const [natoDefense, setNatoDefense] = useState<Record<string, NatoDefenseCountry>>({});
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,11 +84,13 @@ export function Power() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [home, cofer, natoDef] = await Promise.all([
+    const [home, cofer, natoDef, ticData] = await Promise.all([
       getPulseHome(),
       getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] })),
       getNatoDefenseSpending().catch(() => ({ countries: {} as Record<string, NatoDefenseCountry> })),
+      getTicHolders().catch(() => null),
     ]);
+    setTic(ticData);
     if (home.tempo) setMonths(home.tempo.months);
     if (home.overlays) setOverlays(home.overlays.overlays);
     if (home.summary) setSummary(home.summary);
@@ -347,6 +351,19 @@ export function Power() {
                   )}
                 </PulsePanel>
               </section>
+
+              {tic && tic.countries.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h3 className="font-display text-xl font-bold text-ink">Who holds U.S. debt</h3>
+                  <PulsePanel
+                    title="Largest foreign holders of U.S. Treasury securities"
+                    help="The Treasury's monthly survey of who owns U.S. government debt. Holdings are reported by where the securities are held, so financial centers such as Belgium, Luxembourg and the Cayman Islands can hold securities on behalf of investors elsewhere."
+                    subtitle="Monthly, about a six-week lag."
+                  >
+                    <TicHolders data={tic} />
+                  </PulsePanel>
+                </section>
+              )}
 
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
               <section className="flex flex-col gap-4">

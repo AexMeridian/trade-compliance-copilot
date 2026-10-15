@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { OwnershipNote } from '../components/OwnershipNote';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { CaseFile, PartyMatch, Verdict } from '../types/case';
 import { deleteCase, getReport, hasCaseToken, submitScreening } from '../lib/api';
@@ -230,6 +231,7 @@ export function Report() {
                     {p.matches.length === 0 ? 'No candidate matches' : act.length === 0 ? `${cleared.length} possible match${cleared.length === 1 ? '' : 'es'}, all cleared` : `${act.length} need${act.length === 1 ? 's' : ''} attention`}
                   </span>
                 </div>
+                {p.ownership && <OwnershipNote hint={p.ownership} />}
                 {act.length > 0 && <div className="mt-1 divide-y divide-hairline">{act.map((m, j) => <MatchRow key={j} m={m} />)}</div>}
                 {cleared.length > 0 && (
                   <details className="mt-1.5">

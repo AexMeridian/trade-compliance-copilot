@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { searchSite, type SearchEntry } from '../lib/siteSearch';
+import { policySearchEntry, searchSite, type SearchEntry } from '../lib/siteSearch';
 
 // A "jump to" search over the site's own structure -- pages, every tracked
 // country, alliances and the real programs/lists this app screens against --
@@ -21,7 +21,11 @@ export function SiteSearch() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
-  const results = useMemo(() => searchSite(query), [query]);
+  const results = useMemo(() => {
+    const found = searchSite(query);
+    const live = policySearchEntry(query);
+    return live ? [...found, live] : found;
+  }, [query]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

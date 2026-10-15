@@ -3,6 +3,8 @@ import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { searchPartyCandidates, getSdnEntry, getCslEntry, getUnEntry, getUkEntry } from '../lib/db.js';
 import { rankCandidates } from '../lib/fuzzyMatch.js';
+import { normalizeNameString } from '../lib/normalize.js';
+import { lookupOwnership } from '../lib/gleif.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import {
   SCREENING_SYSTEM_PROMPT,
@@ -11,7 +13,7 @@ import {
   type ScreeningCandidateForPrompt,
   type ScreeningToolOutput,
 } from '../prompts/screening.js';
-import type { PartyMatch, PartyRole, PartyScreeningResult } from '../types/case.js';
+import type { PartyMatch, PartyOwnershipHint, PartyRole, PartyScreeningResult } from '../types/case.js';
 
 export const screeningRoute = new Hono<{ Bindings: Env }>();
 
@@ -33,6 +35,27 @@ const HARD_STOP_LIST_FRAGMENTS = ['Entity List', 'Denied Persons List'];
 const MEU_LIST_FRAGMENT = 'Military End User';
 
 class PartyScreeningFailure extends Error {}
+
+// A parent company's name is checked against the lists with the same pre-filter and fuzzy scoring as a typed party,
+// but without a model call: it is only a pointer to look further. 0.85 keeps near-identical names and drops loose ones.
+const PARENT_LIST_SCORE = 0.85;
+async function ownershipHint(env: Env, name: string): Promise<PartyOwnershipHint | undefined> {
+  const found = await lookupOwnership(name);
+  if (!found) return undefined;
+  const parents: PartyOwnershipHint['parents'] = [];
+  for (const [relation, p] of [['direct', found.direct_parent], ['ultimate', found.ultimate_parent]] as const) {
+    if (!p || parents.some((x) => x.lei === p.lei)) continue;
+    const top = rankCandidates(p.name, await searchPartyCandidates(env, normalizeNameString(p.name), 20), { limit: 1, minScore: PARENT_LIST_SCORE })[0];
+    parents.push({
+      relation,
+      lei: p.lei,
+      name: p.name,
+      country: p.country,
+      listed_as: top ? { list: top.candidate.source, name: top.candidate.name, score: top.score.score } : null,
+    });
+  }
+  return { entity: found.entity, parents, source_url: found.source_url };
+}
 
 // Each party costs a database search and an AI call, so one request may not fan out without limit.
 const MAX_PARTIES = 10;
@@ -59,7 +82,7 @@ screeningRoute.post('/:id/screening', async (c) => {
   let partyResults: PartyScreeningResult[];
   try {
   partyResults = await Promise.all(body.parties.map(async (party): Promise<PartyScreeningResult> => {
-    const rawCandidates = await searchPartyCandidates(c.env, party.name);
+    const [rawCandidates, ownership] = await Promise.all([searchPartyCandidates(c.env, party.name), ownershipHint(c.env, party.name)]);
     await logCaseEvent(c.env, caseId, 'screening', 'candidate_set', { party: party.name, rawCandidates });
 
     // Dedupe by (source, entity_id), keeping the highest-scoring name match per entity.
@@ -78,7 +101,7 @@ screeningRoute.post('/:id/screening', async (c) => {
     const ranked = rankCandidates(party.name, deduped, { limit: 5, minScore: 0.55 });
 
     if (ranked.length === 0) {
-      return { role: party.role, input_name: party.name, matches: [] };
+      return { role: party.role, input_name: party.name, matches: [], ...(ownership ? { ownership } : {}) };
     }
 
     // Fetch full entity detail for prompt context and final persistence. Each
@@ -208,7 +231,7 @@ screeningRoute.post('/:id/screening', async (c) => {
     });
 
     await logCaseEvent(c.env, caseId, 'screening', 'claude_response', { party: party.name, output });
-    return { role: party.role, input_name: party.name, matches };
+    return { role: party.role, input_name: party.name, matches, ...(ownership ? { ownership } : {}) };
   }));
   } catch (err) {
     if (err instanceof PartyScreeningFailure) return c.json({ error: err.message }, 502);

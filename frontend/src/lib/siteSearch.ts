@@ -11,7 +11,7 @@ import { SITE } from './site';
 // API) -- this is a static index of the site's own structure, for someone
 // who knows roughly what they want and would rather type than click through
 // tabs to find it.
-export type SearchEntryType = 'Page' | 'Country' | 'Alliance' | 'Topic';
+export type SearchEntryType = 'Page' | 'Country' | 'Alliance' | 'Topic' | 'Search';
 
 export interface SearchEntry {
   id: string;
@@ -278,6 +278,19 @@ function score(entry: SearchEntry, q: string): number {
 // Pure, synchronous, client-side -- no fetch, no debounce needed. Ranked by
 // how well a result matches (title match beats a keyword or description
 // match), then alphabetically within the same rank.
+/** The last row of every query: hand the words to the live U.S. policy search, which reads real notice titles and abstracts. */
+export function policySearchEntry(query: string): SearchEntry | null {
+  const q = query.trim();
+  if (q.length < 2) return null;
+  return {
+    id: 'policy-search',
+    title: `Search U.S. policy notices for "${q}"`,
+    description: 'Looks through the titles and summaries of every collected notice, not just the pages listed here.',
+    type: 'Search',
+    url: `/?tab=policy&q=${encodeURIComponent(q)}`,
+  };
+}
+
 export function searchSite(query: string, limit = 8): SearchEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];

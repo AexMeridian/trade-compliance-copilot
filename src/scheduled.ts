@@ -24,6 +24,9 @@ import { refreshFx, refreshQuotes } from './lib/pulse/markets.js';
 import { refreshMacro } from './lib/pulse/macro.js';
 import { refreshCofer } from './lib/pulse/cofer.js';
 import { refreshNews } from './lib/pulse/news.js';
+import { refreshWorldBank } from './lib/refresh/worldBank.js';
+import { refreshTreasury } from './lib/pulse/treasury.js';
+import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { logRefresh } from './lib/refresh/log.js';
 import { purgeExpiredCases } from './lib/caseStore.js';
@@ -56,6 +59,8 @@ const DAILY_JOBS: RefreshJob[] = [
   { source: 'pulse_news', run: refreshNews },
   { source: 'pulse_macro', run: refreshMacro },
   { source: 'pulse_cofer', run: refreshCofer },
+  { source: 'pulse_treasury', run: refreshTreasury },
+  { source: 'pulse_commodities', run: refreshCommodities },
   // Privacy: remove calculator cases past their 30-day retention (src/lib/caseStore.ts).
   { source: 'case_expiry', run: async (env) => ({ source: 'case_expiry', rows: await purgeExpiredCases(env) }) },
 ];
@@ -69,6 +74,7 @@ const BULK_JOBS: (RefreshJob & { typicalRows: number })[] = [
   { source: 'uk_sanctions', run: refreshUkSanctions, typicalRows: 8_000 },
   { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
   { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
+  { source: 'world_bank', run: refreshWorldBank, typicalRows: 400 },
   { source: 'hts', run: refreshHts, typicalRows: 32_000 },
   { source: 'schedule_b', run: refreshScheduleB, typicalRows: 15_000 },
   { source: 'xref', run: refreshXref, typicalRows: 30_000 },

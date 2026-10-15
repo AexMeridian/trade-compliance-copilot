@@ -16,8 +16,12 @@ const ITC_SLUG = 'international-trade-commission'; // AD/CVD injury determinatio
 const SANCTIONS_RE = /\bsanctions?\b|specially designated national|\bSDN\b/i;
 const EXPORT_CONTROL_RE = /export control|entity list|commerce control list|\bEAR\b|\bITAR\b|international traffic in arms/i;
 const TARIFF_RE =
-  /\btariff|\bsection 301\b|\bsection 232\b|\bsection 338\b|antidumping|countervailing duty|tariff-rate quota|safeguard|\bIEEPA\b|reciprocal tariff/i;
+  /\btariff|\bsection 301\b|\bsection 232\b|\bsection 338\b|antidumping|countervailing duty|tariff-rate quota|safeguard|\bIEEPA\b|reciprocal tariff|acts, policies,? and practices|product exclusions?|\bde minimis\b|low-value shipments/i;
 const TRADE_AGREEMENT_RE = /\bUSMCA\b|free trade agreement/i;
+
+// Routine notices that match the search terms only in passing (a gauger accreditation, passenger-rail data, records access)
+// and are not trade policy; they are skipped at ingest so they do not crowd the feed or the RSS readers' lists.
+export const NOT_TRADE_POLICY_RE = /^(accreditation and approval of|advance traveler information|public access to information)/i;
 
 export function tagDocument(doc: { title: string; abstract: string | null; agencySlugs: string[] }): PulseTag {
   const text = `${doc.title} ${doc.abstract ?? ''}`;
@@ -59,4 +63,17 @@ const SLUG_NAME_HINTS: Record<(typeof AGENCY_SLUGS)[number], string> = {
 export function resolveAgencySlugs(agencyNames: string[]): string[] {
   const lowerNames = agencyNames.map((n) => n.toLowerCase());
   return AGENCY_SLUGS.filter((slug) => lowerNames.some((n) => n.includes(SLUG_NAME_HINTS[slug])));
+}
+
+// Presidential documents carry no agency, and their titles use the President's own wording ("Adjusting Imports of
+// ... Into the United States", "Imposing Duties", "Blocking Property"), so they get their own small rule set
+// before falling back to the general one.
+const PRESIDENTIAL_TARIFF_RE =
+  /adjust(ing)? imports|competition from imports|imports of|import surcharge|de minimis|additional duties|imposing duties|\bduties\b|importation|reciprocal|\btariff|customs|agreement on trade|trade policy/i;
+const PRESIDENTIAL_SANCTIONS_RE = /blocking property|national emergency with respect to|\bsanction/i;
+
+export function tagPresidentialDocument(doc: { title: string; abstract: string | null }): PulseTag {
+  if (PRESIDENTIAL_SANCTIONS_RE.test(doc.title)) return 'Sanctions';
+  if (PRESIDENTIAL_TARIFF_RE.test(doc.title)) return 'Tariff';
+  return tagDocument({ ...doc, agencySlugs: [] });
 }

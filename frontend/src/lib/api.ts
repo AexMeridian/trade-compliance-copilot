@@ -293,3 +293,34 @@ export function getPulseConvergence(opts: { days?: number; limit?: number } = {}
   const qs = params.toString();
   return request<ConvergenceResponse>(`/pulse/convergence${qs ? `?${qs}` : ''}`);
 }
+
+export interface TicHolder {
+  id: string;
+  code: string;
+  label: string;
+  asOf: string;
+  billions: number;
+  yearAgoBillions: number | null;
+  history: [string, number][];
+}
+export interface TicHolders {
+  total: TicHolder | null;
+  official: TicHolder | null;
+  countries: TicHolder[];
+  source: string;
+  sourceUrl: string;
+}
+
+export function getTicHolders() {
+  return request<TicHolders>('/pulse/tic');
+}
+
+export interface RecentListings {
+  days: number;
+  total: number;
+  items: { id: string; date: string; title: string; url: string | null; source: string | null; countries: string[] }[];
+}
+
+export function getRecentListings(days = 30) {
+  return request<RecentListings>(`/pulse/recent-listings?days=${days}`);
+}

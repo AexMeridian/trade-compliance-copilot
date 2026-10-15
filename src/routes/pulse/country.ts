@@ -5,6 +5,7 @@ import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCo
 import { buildDutyStack } from '../../lib/dutyStack.js';
 import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
+import { extractCountries } from '../../lib/pulse/country.js';
 
 export const countryRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -34,6 +35,46 @@ const REPRESENTATIVE_HTS: { htsno: string; label: string }[] = [
 // status, and a sanctioned-entity count. Each section is independent, same
 // philosophy as /home: one section's failure never blanks the others.
 // ---------------------------------------------------------------------------
+// Countries whose plain names the news/notice text extractor deliberately does not match (they double as common words or
+// other places: Georgia, Jordan, Chad, Puerto Rico...) or does not list. The country page still passes their real name.
+const NAMES_THE_TEXT_EXTRACTOR_SKIPS: Record<string, string> = {
+  TD: 'Chad', TF: 'French Southern Territories', GE: 'Georgia', JO: 'Jordan', NC: 'New Caledonia', PR: 'Puerto Rico',
+  EH: 'Western Sahara', LI: 'Liechtenstein', BH: 'Bahrain', SG: 'Singapore',
+};
+
+// The two address text-matches below scan every SDN and CSL row (~51,000 rows read per country). The lists reload weekly, so the
+// answer for a country is kept in pulse_feed_state for a week (one small row) instead of being recomputed for every visitor and crawler.
+const SANCTION_COUNT_TTL_MS = 7 * 86_400_000;
+async function cachedSanctionCounts(env: Env, countryName: string): Promise<{ sdn: number; csl: number } | null> {
+  const key = `sanc:${countryName.toLowerCase().slice(0, 60)}`; // names are validated against the code before they get here, so keys are bounded by the country list
+  const row = await env.DB.prepare('SELECT last_success_at, last_note FROM pulse_feed_state WHERE source_key = ?1')
+    .bind(key)
+    .first<{ last_success_at: string | null; last_note: string | null }>()
+    .catch(() => null);
+  if (row?.last_success_at && row.last_note && Date.now() - Date.parse(row.last_success_at) < SANCTION_COUNT_TTL_MS) {
+    try {
+      const v = JSON.parse(row.last_note) as { sdn: number; csl: number };
+      if (Number.isFinite(v.sdn) && Number.isFinite(v.csl)) return v;
+    } catch {
+      /* recompute below */
+    }
+  }
+  const [sdn, csl] = await Promise.all([
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
+  ]);
+  if (!sdn || !csl) return null; // a failed count is not cached
+  const value = { sdn: sdn.n, csl: csl.n };
+  await env.DB.prepare(
+    `INSERT INTO pulse_feed_state (source_key, last_success_at, last_note) VALUES (?1, ?2, ?3)
+     ON CONFLICT(source_key) DO UPDATE SET last_success_at = excluded.last_success_at, last_note = excluded.last_note`
+  )
+    .bind(key, new Date().toISOString(), JSON.stringify(value))
+    .run()
+    .catch(() => {});
+  return value;
+}
+
 countryRoute.get('/country/:code', async (c) => {
   const code = c.req.param('code').toUpperCase();
   // The frontend already resolves code -> full display name from its own
@@ -43,7 +84,10 @@ countryRoute.get('/country/:code', async (c) => {
   // matched against a bare 2-letter code, which would false-positive
   // constantly against free-text OFAC/BIS address data (e.g. "IN" inside
   // "Inc" or a street name) -- a wrong count is worse than a disclosed gap.
-  const countryName = c.req.query('name') || null;
+  // Only a name that really is this country's is used: it drives table scans and a stored row, so an arbitrary string must not
+  // be able to mint either.
+  const rawName = (c.req.query('name') || '').slice(0, 80);
+  const countryName = rawName && (extractCountries(rawName).includes(code) || NAMES_THE_TEXT_EXTRACTOR_SKIPS[code]?.toLowerCase() === rawName.toLowerCase()) ? rawName : null;
   const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
 
   // Every section below is an independent read (dutyStack/coverage/sanctions
@@ -121,19 +165,10 @@ countryRoute.get('/country/:code', async (c) => {
 
     countryName
       ? (async () => {
-          const [sdn, csl] = await Promise.all([
-            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`)
-              .bind(countryName)
-              .first<{ n: number }>()
-              .catch(() => null),
-            c.env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`)
-              .bind(countryName)
-              .first<{ n: number }>()
-              .catch(() => null),
-          ]);
+          const counts = await cachedSanctionCounts(c.env, countryName);
           return {
-            sdnCount: sdn?.n ?? null,
-            cslCount: csl?.n ?? null,
+            sdnCount: counts?.sdn ?? null,
+            cslCount: counts?.csl ?? null,
             note: 'Text match on the OFAC/BIS address field, not a normalized country code -- see the full sanctions list for exact hits.',
           };
         })()

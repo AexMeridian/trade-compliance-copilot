@@ -25,8 +25,8 @@ interface SourceRow {
 // "last refreshed" column is live, not typed in.
 const SOURCES: SourceRow[] = [
   {
-    name: 'Federal Register notices',
-    publisher: 'Office of the Federal Register (U.S. government)',
+    name: 'Federal Register notices and presidential documents',
+    publisher: 'Office of the Federal Register (U.S. government). Agency notices from USTR, BIS, OFAC, CBP, ITA, ITC and State; executive orders and proclamations on trade, imports and national emergencies.',
     url: 'https://www.federalregister.gov/developers/documentation/api/v1',
     terms: 'U.S. government work; not subject to copyright in the United States.',
     cadence: 'Daily, and when a page asks for updates',
@@ -107,6 +107,30 @@ const SOURCES: SourceRow[] = [
     keys: ['pulse_cofer'],
   },
   {
+    name: 'Treasury yields and foreign holders of U.S. Treasuries',
+    publisher: 'U.S. Department of the Treasury (daily yield curve; Treasury International Capital, TIC)',
+    url: 'https://ticdata.treasury.gov/resource-center/data-chart-center/tic/Pages/index.aspx',
+    terms: 'U.S. government work; not subject to copyright in the United States.',
+    cadence: 'Yields each business day; holdings monthly (about a 6-week lag)',
+    keys: ['pulse_treasury'],
+  },
+  {
+    name: 'Commodity prices (oil, gas, metals, grains)',
+    publisher: 'International Monetary Fund, Primary Commodity Price System',
+    url: 'https://www.imf.org/en/Research/commodity-prices',
+    terms: 'IMF data, used with attribution under the IMF terms of use. Monthly averages, not live quotes.',
+    cadence: 'Monthly series, checked daily',
+    keys: ['pulse_commodities'],
+  },
+  {
+    name: 'Country baseline (population, GDP)',
+    publisher: 'The World Bank, World Development Indicators',
+    url: 'https://data.worldbank.org/',
+    terms: 'Licensed CC BY 4.0; attribution required. Region, income group and capital are from a dated snapshot.',
+    cadence: 'Checked weekly; the World Bank revises these once a year',
+    keys: ['world_bank'],
+  },
+  {
     name: 'NATO defence expenditure',
     publisher: 'North Atlantic Treaty Organization',
     url: 'https://www.nato.int/cps/en/natohq/topics_49198.htm',
@@ -132,7 +156,7 @@ const SOURCES: SourceRow[] = [
   },
   {
     name: 'News headlines (headline, link and a short summary only)',
-    publisher: 'BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank and the U.S. Federal Reserve',
+    publisher: 'BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the European Central Bank, the U.S. Federal Reserve and the U.S. Department of Justice',
     url: 'https://www.bbc.co.uk/news/10628494',
     terms: 'Each headline links to its publisher. No article text or photographs are stored or shown. Publishers keep all rights.',
     cadence: 'About every 30 minutes while the site is in use',
