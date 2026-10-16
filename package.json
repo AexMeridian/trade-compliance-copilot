@@ -31,7 +31,7 @@
     "frontend"
   ],
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260921.1",
+    "@cloudflare/workers-types": "^5.20261013.1",
     "@types/node": "^22.9.0",
     "axe-core": "^4.14.0",
     "playwright": "^1.63.0",
