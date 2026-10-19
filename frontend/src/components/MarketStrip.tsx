@@ -62,7 +62,7 @@ export function MarketStrip() {
   };
 
   return (
-    <div className="no-print border-b border-hairline bg-paper">
+    <div role="region" aria-label="Currency rates" className="no-print border-b border-hairline bg-paper">
       <div className="mx-auto flex max-w-7xl items-center gap-x-5 px-4 py-2 text-[13px]">
         <span className="shrink-0 font-semibold text-ink">{dayFmt.format(new Date())}</span>
         {/* The band scrolls on its own and pauses while pointed at or focused. With reduced motion it stays still and can be scrolled by hand. */}

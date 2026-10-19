@@ -180,7 +180,7 @@ export function CaseWizard() {
 function StepShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="display text-2xl text-ink">{title}</h2>
+      <h1 className="display text-2xl text-ink">{title}</h1>
       <div className="mt-4">{children}</div>
     </div>
   );

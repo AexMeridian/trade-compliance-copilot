@@ -10,6 +10,10 @@ const axeSource = require('fs').readFileSync(require.resolve('axe-core/axe.min.j
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
 const routes = ['/', '/?tab=policy', '/?tab=guide', '/calculator', '/methodology', '/terms', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', '/about', '/abroad', '/abroad?tab=alliances', '/abroad?tab=sanctions', '/allies?tab=soft', '/allies', '/country/cn', '/country/cn?tab=influence', '/compare?countries=CN,IN', '/compare?view=power&countries=US,CN,IN'];
 const browser = await chromium.launch();
+// The calculator's own pages (a sample case's steps and report) have different layouts from the public pages.
+const { samples } = await (await (await browser.newPage()).request.get(`${BASE}/api/cases/samples`)).json();
+if (samples?.[0]) routes.push(`/case/${samples[0].id}`, `/case/${samples[0].id}/report`);
+routes.push('/country/cn?tab=tariffs', '/country/cn?tab=sanctions');
 let failed = 0;
 for (const theme of ['dark', 'light']) {
   for (const [label, width] of [['desktop', 1280], ['mobile', 390]]) {

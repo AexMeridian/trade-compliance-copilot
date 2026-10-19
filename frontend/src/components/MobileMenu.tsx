@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 // Phone-width header: Pulse and Calculator fit beside the logo, so the other main pages live here instead
-// of being unreachable. Hidden from sm up, where the full nav shows.
+// of being unreachable. Hidden from lg up, where the full nav shows.
 const LINKS = [
   { to: '/abroad', label: 'U.S. abroad' },
   { to: '/allies', label: 'Dollar & allies' },
@@ -14,24 +14,30 @@ const LINKS = [
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    const onDown = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      toggle.current?.focus(); // closing from the keyboard returns focus to the button that opened the menu
+    };
+    const onDown = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
     window.addEventListener('keydown', onKey);
-    window.addEventListener('mousedown', onDown);
+    window.addEventListener('pointerdown', onDown);
     return () => {
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('pointerdown', onDown);
     };
   }, [open]);
 
   return (
-    <div ref={box} className="relative sm:hidden">
+    <div ref={box} className="relative lg:hidden">
       <button
+        ref={toggle}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}

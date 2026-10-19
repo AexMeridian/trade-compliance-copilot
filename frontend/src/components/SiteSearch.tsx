@@ -101,6 +101,21 @@ export function SiteSearch() {
               aria-label="Search the site"
               className="w-full max-w-lg border border-hairline bg-paper-raised shadow-xl"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                // The dialog is modal: Tab and Shift+Tab wrap inside it instead of reaching the page behind.
+                if (e.key !== 'Tab') return;
+                const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('input, button, a[href], [tabindex]:not([tabindex="-1"])'));
+                if (items.length === 0) return;
+                const first = items[0];
+                const last = items[items.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }}
             >
               <div className="flex items-center gap-2 border-b border-hairline px-4 py-3">
                 <svg
@@ -137,7 +152,7 @@ export function SiteSearch() {
                   }}
                   placeholder="Search pages, countries, programs…"
                   aria-label="Search query"
-                  aria-controls="site-search-results"
+                  aria-controls={query.trim() !== '' && results.length > 0 ? 'site-search-results' : undefined}
                   aria-activedescendant={results[activeIndex] ? `site-search-result-${results[activeIndex].id}` : undefined}
                   className="w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
                 />

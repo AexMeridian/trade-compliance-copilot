@@ -58,7 +58,7 @@ export function DutyStackTable({
 
       <ul className="mt-3 divide-y divide-hairline border-y border-hairline">
         {lines.map((line, i) => (
-          <li key={i} className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 py-3 ${line.applies ? '' : 'opacity-75'}`}>
+          <li key={i} className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 py-3`}>
             <div className="min-w-0">
               <p className={`text-sm font-semibold ${line.applies ? 'text-ink' : 'text-ink-muted'}`}>{line.layer}</p>
               <p className="mt-0.5 max-w-prose text-[13px] leading-snug text-ink-muted">{line.legal_basis}</p>

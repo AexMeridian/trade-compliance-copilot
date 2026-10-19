@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react';
 import { MobileMenu } from './components/MobileMenu';
 import { Routes, Route, Link, NavLink, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Pulse } from './pages/Pulse';
@@ -109,6 +109,15 @@ export default function App() {
     if (!location.hash) window.scrollTo({ top: 0 });
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After a page change (not on first load, and not for a tab or filter change) focus moves to the page itself, so a keyboard
+  // user continues from the new content instead of from the link they clicked, and a screen reader announces the new page.
+  const firstPath = useRef(location.pathname);
+  useEffect(() => {
+    if (firstPath.current === location.pathname) return;
+    firstPath.current = location.pathname;
+    if (!location.hash) document.getElementById('main')?.focus({ preventScroll: true });
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Visually hidden until focused -- the first tab stop on every page, so a
@@ -146,15 +155,15 @@ export default function App() {
               Pulse
             </NavLink>
             <NavLink to="/calculator" className={navClass}>
-              Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide sm:inline">Beta</span>
+              Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
             </NavLink>
-            <NavLink to="/abroad" className={(s) => `${navClass(s)} hidden sm:block`}>
+            <NavLink to="/abroad" className={(s) => `${navClass(s)} hidden lg:block`}>
               U.S. abroad
             </NavLink>
-            <NavLink to="/allies" className={(s) => `${navClass(s)} hidden sm:block`}>
+            <NavLink to="/allies" className={(s) => `${navClass(s)} hidden lg:block`}>
               Dollar &amp; allies
             </NavLink>
-            <NavLink to="/about" className={(s) => `${navClass(s)} hidden sm:block`}>
+            <NavLink to="/about" className={(s) => `${navClass(s)} hidden lg:block`}>
               About
             </NavLink>
             <SiteSearch />
@@ -166,7 +175,7 @@ export default function App() {
 
       <MarketStrip />
 
-      <main id="main" className="flex-1">
+      <main id="main" tabIndex={-1} className="flex-1 outline-none">
         {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>

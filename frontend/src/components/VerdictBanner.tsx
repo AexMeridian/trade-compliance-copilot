@@ -70,7 +70,7 @@ export function VerdictBanner({
             ))}
           </ul>
           {issues.length > 0 && (
-            <a href="#open-issues" className="no-print mt-2 inline-block text-sm text-accent hover:underline">
+            <a href="#open-issues" className="no-print mt-2 inline-block text-sm font-semibold text-ink underline underline-offset-2 hover:no-underline">
               See all {issues.length} open issue{issues.length === 1 ? '' : 's'}
             </a>
           )}
