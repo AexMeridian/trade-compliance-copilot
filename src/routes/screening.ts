@@ -6,6 +6,7 @@ import { rankCandidates } from '../lib/fuzzyMatch.js';
 import { normalizeNameString } from '../lib/normalize.js';
 import { lookupOwnership } from '../lib/gleif.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
+import { readObject } from '../lib/requestBody.js';
 import {
   SCREENING_SYSTEM_PROMPT,
   buildScreeningUserContent,
@@ -66,9 +67,7 @@ screeningRoute.post('/:id/screening', async (c) => {
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
 
-  const body = await c.req
-    .json<{ parties?: { role: PartyRole; name: string }[]; deemed_export_flag?: boolean }>()
-    .catch(() => ({}) as { parties?: { role: PartyRole; name: string }[]; deemed_export_flag?: boolean });
+  const body = await readObject<{ parties: { role: PartyRole; name: string }[]; deemed_export_flag: boolean }>(c.req);
   if (!Array.isArray(body.parties) || body.parties.length === 0) {
     return c.json({ error: 'At least one party ({ role, name }) is required to run screening.' }, 400);
   }

@@ -4,6 +4,7 @@ import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows } from '../lib/db.js';
 import { buildDutyStack, USMCA_COUNTRIES } from '../lib/dutyStack.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
+import { readObject } from '../lib/requestBody.js';
 import {
   IMPORT_NARRATION_SYSTEM_PROMPT,
   buildImportNarrationUserContent,
@@ -43,7 +44,10 @@ determinationRoute.post('/:id/determination', async (c) => {
   // Shared by both branches below the direction check, but only the import
   // branch currently does anything with it (a declared value has no meaning
   // for an export license determination).
-  const reqBody = await c.req.json<{ declared_value_usd?: number; destination_country?: string }>().catch(() => ({}) as { declared_value_usd?: number; destination_country?: string });
+  const reqBody = await readObject<{ declared_value_usd: number; destination_country: string }>(c.req);
+  if (reqBody.destination_country !== undefined && typeof reqBody.destination_country !== 'string') {
+    return c.json({ error: 'destination_country must be a text country code when provided.' }, 400);
+  }
   if (reqBody.declared_value_usd !== undefined && !(typeof reqBody.declared_value_usd === 'number' && Number.isFinite(reqBody.declared_value_usd) && reqBody.declared_value_usd >= 0)) {
     return c.json({ error: 'declared_value_usd must be a non-negative number when provided.' }, 400);
   }
@@ -58,7 +62,7 @@ determinationRoute.post('/:id/determination', async (c) => {
     const country = (caseFile.origin.final_assembly_country ?? '').toUpperCase();
     const hts = await getRateBearingHtsLine(c.env, code);
     if (!hts) {
-      return c.json({ error: `HTS line ${code} not found in reference data -- cannot compute duty stack.` }, 500);
+      return c.json({ error: `HTS line ${code} not found in reference data -- cannot compute duty stack.` }, 422);
     }
     const overlays = await getApplicableOverlays(c.env, code, country || null);
     await logCaseEvent(c.env, caseId, 'determination', 'candidate_set', { code, country, overlays });

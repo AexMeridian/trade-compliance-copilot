@@ -198,7 +198,9 @@ homeRoute.post('/snapshots', async (c) => {
     title = SNAPSHOT_SPECS.cofer.title;
     note = SNAPSHOT_SPECS.cofer.note;
   } else {
-    const months = clampInt(typeof body.params?.months === 'number' ? String(body.params.months) : undefined, { default: 24, min: 6, max: 120 });
+    // A short list of ranges (the chart's own choices), so the number of distinct saved variants stays small.
+    const asked = typeof body.params?.months === 'number' ? body.params.months : 24;
+    const months = [6, 12, 24, 36, 60, 120].includes(asked) ? asked : 24;
     const since = new Date();
     since.setUTCMonth(since.getUTCMonth() - months);
     const [series, trend] = await Promise.all([

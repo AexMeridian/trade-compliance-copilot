@@ -3,6 +3,7 @@ import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { findUsmcaRule } from '../lib/db.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
+import { readObject } from '../lib/requestBody.js';
 import { ORIGIN_SYSTEM_PROMPT, buildOriginUserContent, buildOriginTool, type OriginToolOutput } from '../prompts/origin.js';
 import type { OriginComponent } from '../types/case.js';
 
@@ -16,9 +17,7 @@ originRoute.post('/:id/origin', async (c) => {
     return c.json({ error: 'Module 1 (classification) must be complete before Module 2 (origin).' }, 409);
   }
 
-  const body = await c.req
-    .json<{ components?: OriginComponent[]; final_assembly_country?: string }>()
-    .catch(() => ({}) as { components?: OriginComponent[]; final_assembly_country?: string });
+  const body = await readObject<{ components: OriginComponent[]; final_assembly_country: string }>(c.req);
   if (!Array.isArray(body.components) || typeof body.final_assembly_country !== 'string' || !body.final_assembly_country) {
     return c.json({ error: 'components (array) and final_assembly_country are required to run origin determination.' }, 400);
   }

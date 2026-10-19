@@ -24,7 +24,9 @@ export function useLiveArcs(shouldPoll: () => boolean, enabled = true) {
   /** country code -> time (ms) until which a "new action" ping should show */
   const freshUntil = useRef(new Map<string, number>());
   const poll = useRef(shouldPoll);
-  poll.current = shouldPoll;
+  useEffect(() => {
+    poll.current = shouldPoll;
+  });
 
   useEffect(() => {
     if (!enabled) return;

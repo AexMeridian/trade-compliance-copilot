@@ -56,8 +56,20 @@ export function Snapshot() {
   if (error) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="display text-2xl text-ink">Snapshot not found</h1>
-        <p className="mt-2 text-sm text-ink-muted">{error} It may have been mistyped, or this link is simply wrong.</p>
+        {/not found/i.test(error) ? (
+          <>
+            <h1 className="display text-2xl text-ink">Snapshot not found</h1>
+            <p className="mt-2 text-sm text-ink-muted">{error} It may have been mistyped, or this link is simply wrong.</p>
+          </>
+        ) : (
+          <>
+            <h1 className="display text-2xl text-ink">Couldn't load this snapshot</h1>
+            <p className="mt-2 text-sm text-ink-muted">The link may be fine; the server did not answer properly. Please try again in a moment.</p>
+            <button type="button" className="btn mt-4" onClick={() => window.location.reload()}>
+              Try again
+            </button>
+          </>
+        )}
       </div>
     );
   }

@@ -136,6 +136,12 @@ app.use('/api/cases/*', async (c, next) => {
     if (!success) {
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
     }
+    // The shared example cases are read-only: re-running a step on one would overwrite it for every visitor.
+    const caseId = c.req.path.split('/')[3] ?? '';
+    const sample = await c.env.DB.prepare('SELECT is_sample FROM cases WHERE id = ?1').bind(caseId).first<{ is_sample: number }>().catch(() => null);
+    if (sample?.is_sample === 1) {
+      return c.json({ error: 'This is a shared example case and cannot be changed. Start a new case to run your own.' }, 403);
+    }
   }
   return next();
 });

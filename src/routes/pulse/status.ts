@@ -14,6 +14,9 @@ export interface SourceStatus {
   lastError: string | null; // latest failure message newer than the last success, if any
 }
 
+// Upstream error text can carry web addresses and paths; the public page keeps the reason but not those.
+const publicError = (message: string | null): string => (message ? message.replace(/https?:\/\/\S+/g, '[address]').slice(0, 200) : 'Last refresh failed');
+
 export const statusRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
 statusRoute.get('/data-status', async (c) => {
@@ -33,7 +36,7 @@ statusRoute.get('/data-status', async (c) => {
     return {
       source,
       lastSuccess: success,
-      lastError: err && (!success || err.last_error > success) ? (err.error_message ?? 'Last refresh failed') : null,
+      lastError: err && (!success || err.last_error > success) ? publicError(err.error_message) : null,
     };
   });
   c.header('Cache-Control', 'public, max-age=300');

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getCurrentTheme, setTheme, type Theme } from '../lib/theme';
 
 // Icon-only so it fits in the header's already-tight mobile nav row (see
@@ -6,11 +6,7 @@ import { getCurrentTheme, setTheme, type Theme } from '../lib/theme';
 // header bar in both themes (see index.css's dark-theme comment for why
 // that bar never changes), so its own colors are fixed, not token-based.
 export function ThemeToggle() {
-  const [theme, setThemeState] = useState<Theme>('light');
-
-  useEffect(() => {
-    setThemeState(getCurrentTheme());
-  }, []);
+  const [theme, setThemeState] = useState<Theme>(getCurrentTheme);
 
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';

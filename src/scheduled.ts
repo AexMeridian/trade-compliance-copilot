@@ -73,7 +73,14 @@ const DAILY_JOBS: RefreshJob[] = [
   { source: 'pulse_treasury', run: refreshTreasury },
   { source: 'pulse_commodities', run: refreshCommodities },
   // Privacy: remove calculator cases past their 30-day retention (src/lib/caseStore.ts).
-  { source: 'case_expiry', run: async (env) => ({ source: 'case_expiry', rows: await purgeExpiredCases(env) }) },
+  {
+    source: 'case_expiry',
+    run: async (env) => {
+      // Also trims the refresh log (about 25 rows a day) to the last 90 days, so it cannot grow without end.
+      await env.DB.prepare(`DELETE FROM data_refresh_log WHERE finished_at < date('now', '-90 days')`).run().catch(() => undefined);
+      return { source: 'case_expiry', rows: await purgeExpiredCases(env) };
+    },
+  },
 ];
 
 // Priority order = sanctions first (a stale list is a real compliance risk).
