@@ -131,6 +131,70 @@ const SOURCES: SourceRow[] = [
     keys: ['world_bank'],
   },
   {
+    name: 'Country indicators (aid, attraction, knowledge, governance, military)',
+    publisher: 'The World Bank, World Development Indicators and Worldwide Governance Indicators',
+    url: 'https://data.worldbank.org/',
+    terms: 'Licensed CC BY 4.0; attribution required. Figures are shown as published, with their year; nothing is estimated or combined into a score.',
+    cadence: 'Checked weekly; most series update once a year, some lag by several years',
+    keys: ['power_indicators'],
+  },
+  {
+    name: 'UN General Assembly voting positions',
+    publisher: 'Bailey, Strezhnev and Voeten, United Nations General Assembly ideal points (Harvard Dataverse)',
+    url: 'https://doi.org/10.7910/DVN/LEJUQZ',
+    terms: 'Released to the public domain (CC0). Cite Bailey, Strezhnev and Voeten (2017), "Estimating Dynamic State Preferences from United Nations Voting Data," Journal of Conflict Resolution 61(2). Gaps from the United States, China and Russia are our own arithmetic on their estimates.',
+    cadence: 'Checked weekly; updated about once a year after each Assembly session',
+    keys: ['un_voting'],
+  },
+  {
+    name: 'International students',
+    publisher: 'UNESCO Institute for Statistics (UIS), open data API',
+    url: 'https://databrowser.uis.unesco.org/',
+    terms: 'UIS data carry a Creative Commons Attribution-ShareAlike 4.0 licence; source: UNESCO Institute for Statistics (UIS). Countries define a mobile student differently.',
+    cadence: 'Checked weekly; UIS releases a few times a year',
+    keys: ['uis_students'],
+  },
+  {
+    name: 'Refugees hosted',
+    publisher: 'UNHCR Refugee Population Statistics Database',
+    url: 'https://www.unhcr.org/refugee-statistics',
+    terms: 'CC BY 4.0 with UNHCR’s supplemental terms (https://www.unhcr.org/terms-use-datasets): credit "UNHCR Refugee Population Statistics Database"; UNHCR does not endorse this use.',
+    cadence: 'Checked weekly; UNHCR publishes annually with a mid-year update',
+    keys: ['unhcr'],
+  },
+  {
+    name: 'Nobel Prize laureates by country',
+    publisher: 'The Nobel Prize, open API',
+    url: 'https://www.nobelprize.org/about/terms-of-use-for-api-nobelprize-org-and-data-nobelprize-org/',
+    terms: 'Free to use under the Creative Commons Zero (CC0) licence. Countries are the present-day countries of birthplaces and institutions.',
+    cadence: 'Checked weekly; the list changes once a year, in October',
+    keys: ['nobel'],
+  },
+  {
+    name: 'Humanitarian funding given',
+    publisher: 'UN OCHA, Financial Tracking Service (FTS)',
+    url: 'https://fts.unocha.org/',
+    terms: 'OCHA publishes this data on the Humanitarian Data Exchange under Creative Commons Attribution for Intergovernmental Organisations (CC BY-IGO); source: OCHA Financial Tracking Service. Only what donors report to FTS is counted.',
+    cadence: 'Checked weekly; the latest full year can still be revised as reports arrive',
+    keys: ['fts'],
+  },
+  {
+    name: 'Public opinion of the U.S. and China',
+    publisher: 'Pew Research Center, Global Attitudes Survey (Spring 2025 and Spring 2026)',
+    url: 'https://www.pewresearch.org/topic/international-affairs/',
+    terms: 'Only the share with a favorable view, for the countries Pew polled, read from the published report charts and checked against each report’s published median. Used as an excerpt with attribution; Pew bears no responsibility for the analyses or interpretations of the data presented here.',
+    cadence: 'Annual, manual',
+    keys: [],
+  },
+  {
+    name: 'Views of China and the U.S. in Africa',
+    publisher: 'Afrobarometer, Round 10 (38 countries, 2024-2025)',
+    url: 'https://www.afrobarometer.org/data/merged-data/',
+    terms: 'Afrobarometer makes its survey data free to use with attribution. The site keeps only each country’s weighted share saying the influence of China, or of the United States, is positive or negative, computed offline from the public merged file and shown with fieldwork dates.',
+    cadence: 'One round every two to three years, manual',
+    keys: [],
+  },
+  {
     name: 'NATO defence expenditure',
     publisher: 'North Atlantic Treaty Organization',
     url: 'https://www.nato.int/cps/en/natohq/topics_49198.htm',
@@ -304,6 +368,33 @@ export function Methodology() {
         Also hand-curated from primary sources and cited on the pages that use them: the USMCA rules of origin (General Note 11 of the HTSUS), the Commerce
         Control List classifications and the Commerce Country Chart (15 CFR Part 738 and Part 774), and the tariff overlay table (Federal Register notices).
       </p>
+
+      <H id="power">What the Power profile does and does not measure</H>
+      <p className="mt-3">
+        The Power profile (Compare, Power view) follows the usual definition of soft power as attraction resting on a country’s culture, its political values and its foreign
+        policy. It shows published figures by country and year, each with its source and a caveat, and it has no composite score: scores mix resources with outcomes and hide the
+        weights, so you see the figures instead.
+      </p>
+      <ul className="mt-3 list-disc space-y-1 pl-5">
+        <li>
+          <span className="text-ink">Attitudes</span> are shown only where a pollster asked. Pew covers 24 to 37 countries a year and Afrobarometer 38 African countries; every other
+          country has no reading, and a blank is not a zero. Different pollsters ask different questions, so their results are never averaged or compared.
+        </li>
+        <li>
+          <span className="text-ink">Resources and outcomes are kept apart</span> so you can see where goodwill follows resources and where it does not. A strong correlation is not
+          evidence that one causes the other.
+        </li>
+        <li>
+          <span className="text-ink">UN voting</span> shows behavior, not influence: countries vote alike for many reasons.
+        </li>
+        <li>
+          <span className="text-ink">Not measured:</span> media, film, music, sport and brands; language reach; embassy networks; peacekeeping; Chinese overseas lending; where students
+          from each country study; and anything covert. The page lists each one it looked for and why it was left out.
+        </li>
+        <li>
+          <span className="text-ink">Pressure and support</span> on a country’s Influence tab are different units and are never netted into one figure.
+        </li>
+      </ul>
 
       <H id="coverage">Coverage and known limits</H>
       <p className="mt-3">What is actually loaded, counted live from the database:</p>

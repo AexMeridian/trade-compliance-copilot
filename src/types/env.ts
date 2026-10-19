@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   ANTHROPIC_API_KEY: string;
+  ANTHROPIC_WORKSPACE_ID?: string; // only for a user-level key (sk-ant-usr-...), which is not scoped to a workspace
   CLAUDE_RATE_LIMITER: RateLimit;
   PULSE_RATE_LIMITER: RateLimit;
   WRITE_RATE_LIMITER: RateLimit;

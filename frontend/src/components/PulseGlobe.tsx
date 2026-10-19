@@ -278,6 +278,8 @@ export function PulseGlobe({
   describe,
   legend,
   ariaLabel,
+  plain = false,
+  hint,
 }: {
   breakdown: { country: string; count: number }[];
   activeCountry: string | null;
@@ -294,6 +296,10 @@ export function PulseGlobe({
   // Optional: replace the "Fewer ... actions" count key with a different legend.
   legend?: { swatch: string; label: string }[];
   ariaLabel?: string;
+  // Optional: a map of something other than U.S. notices. No live notice feed is fetched and no trade-flow arcs are drawn.
+  plain?: boolean;
+  // Optional: replace the instruction line under the globe (the default talks about notice counts).
+  hint?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const onScreenRef = useRef(true); // false once the globe has scrolled out of view
@@ -316,7 +322,7 @@ export function PulseGlobe({
 
   // Live arcs: the same counts the page loaded with, refreshed every five minutes while this
   // globe is on screen (lib/useLiveArcs.ts), plus the latest actions behind each busy country.
-  const { live, freshUntil } = useLiveArcs(() => onScreenRef.current);
+  const { live, freshUntil } = useLiveArcs(() => onScreenRef.current, !plain);
   const breakdown = useMemo(() => (live ? live.countries.map((c) => ({ country: c.country, count: c.count })) : breakdownProp), [live, breakdownProp]);
   const latestFor = useMemo(() => new Map((live?.countries ?? []).map((c) => [c.country, c.latest])), [live]);
   const arcRunsRef = useRef(new Map<string, [number, number][][]>()); // each arc's on-screen polyline runs, rebuilt every draw, for hit-testing
@@ -887,7 +893,7 @@ export function PulseGlobe({
         </div>
       </div>
       <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink">
-        {shownMessage ?? (world ? 'Move over a country to see its count. Press it for details. Drag to turn the globe.' : 'Loading the globe…')}
+        {shownMessage ?? (world ? (hint ?? 'Move over a country to see its count. Press it for details. Drag to turn the globe.') : 'Loading the globe…')}
       </p>
       {live && (
         <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-hero-ink-faint" title="Counts refresh about every five minutes while this page is open">

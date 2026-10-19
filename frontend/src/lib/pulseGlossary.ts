@@ -30,6 +30,17 @@ export const TAG_HINTS: Record<string, string> = {
   Other: "Doesn't fit neatly into the categories above.",
 };
 
+// Terms the Power profile uses; shown in a short glossary at the foot of that page.
+export const POWER_TERMS: [string, string][] = [
+  ['Soft power', 'Getting others to want what you want through attraction (culture, political values, foreign policy) rather than payment or force. The term is Joseph Nye’s.'],
+  ['Hard power', 'Influence through military strength or economic coercion and payment.'],
+  ['Smart power', 'Combining hard and soft power. Not measured here: it describes a strategy, not a figure.'],
+  ['Favorability', 'The share of people in a country who say they have a favorable opinion of another country. It measures attitudes, not influence.'],
+  ['Net perception', 'Positive minus negative views of a country in a poll. This site shows the shares themselves, not nets.'],
+  ['ODA', 'Official development assistance: aid from governments, as counted by the OECD’s Development Assistance Committee (DAC).'],
+  ['Ideal point', 'A country’s estimated position on the main dividing line in UN General Assembly votes. Countries with close positions vote alike more often.'],
+];
+
 export const CITATION_HINT = 'Federal Register citation: volume and page number, the official way to cite this document.';
 
 // Plain-language gloss for the market/news panels (tooltips on hover).

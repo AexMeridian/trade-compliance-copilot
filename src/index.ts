@@ -13,6 +13,7 @@ import { scheduled } from './scheduled.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { normalizeFilters } from './lib/feed.js';
+import { normalizeCountries } from './lib/power/compute.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -61,6 +62,9 @@ for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p
 app.use('/api/pulse/sanction-counts', edgeCache(21600));
 app.use('/api/pulse/data-status', edgeCache(300));
 app.use('/api/pulse/stats', edgeCache(21600));
+// Weekly country indicators: the key is the validated, sorted country list, so odd query strings cannot mint cache entries.
+app.use('/api/pulse/un-alignment', edgeCache(3600));
+app.use('/api/pulse/power', edgeCache(3600, (url) => `${url.origin}${url.pathname}?countries=${normalizeCountries(url.searchParams.get('countries')).join(',')}`));
 
 // Feeds are polled by readers around the clock, so they get a longer edge window, a cache
 // key built from the validated query (junk or reordered parameters share one entry), and

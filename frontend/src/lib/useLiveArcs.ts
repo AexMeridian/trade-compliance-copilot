@@ -17,7 +17,7 @@ export interface LiveArcs {
 const REFRESH_MS = 5 * 60_000;
 const FRESH_MS = 12_000; // how long a country keeps its "new action" ping
 
-export function useLiveArcs(shouldPoll: () => boolean) {
+export function useLiveArcs(shouldPoll: () => boolean, enabled = true) {
   const [live, setLive] = useState<LiveArcs | null>(null);
   const lastCounts = useRef<Map<string, number> | null>(null);
   const lastFetch = useRef(0);
@@ -27,6 +27,7 @@ export function useLiveArcs(shouldPoll: () => boolean) {
   poll.current = shouldPoll;
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     async function load() {
@@ -63,7 +64,7 @@ export function useLiveArcs(shouldPoll: () => boolean) {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [enabled]);
 
   return { live, freshUntil };
 }

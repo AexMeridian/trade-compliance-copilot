@@ -2,6 +2,8 @@
 # In production, set these as Worker secrets instead: wrangler secret put <NAME>
 
 ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Only if the key is a user-level key (sk-ant-usr-...): the workspace it should bill to (wrkspc_...). Leave out for a workspace key.
+# ANTHROPIC_WORKSPACE_ID=wrkspc_xxxxxxxx
 
 # Optional. Raises the BLS public API's rate limit from 25 to 500 requests/day
 # (free instant signup, no approval wait: https://www.bls.gov/developers/).

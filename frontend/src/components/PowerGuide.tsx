@@ -28,8 +28,8 @@ const QA: [string, string][] = [
     "No single figure supports that claim. It means central banks, in aggregate, hold a smaller share of their reserves in dollars than they did in 1999 -- a real, slow-moving trend, not a prediction about what replaces it or how fast.",
   ],
   [
-    'Why isn\'t there a "cultural influence" section?',
-    "Because nothing on this page would be a genuine measurement of it. Media reach, cultural influence and similar ideas are real, but this app doesn't have a real, sourced number for them -- so they're left out rather than estimated.",
+    'Where is soft power, such as culture and how other countries see the U.S.?',
+    "On the Power profile, under Compare. It shows what can be sourced: published opinion polls, UN voting, students, refugees, aid and Nobel laureates, each by country and year. Film, music, brands and embassy networks have no open dataset, so they are left out rather than estimated, and the page lists what it looked for and skipped.",
   ],
   [
     'Does it use AI?',

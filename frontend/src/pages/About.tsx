@@ -50,6 +50,11 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
     terms: "This is the one source on this page that is not a government or official statistics body -- it's an independent research database (University of St. Gallen-affiliated), free for non-commercial use under a CC BY-NC 4.0 license. Requires a free API key; limited here to a recent window, not its full archive back to 2009.",
   },
   {
+    name: 'Country comparison (Power profile): World Bank, UN General Assembly voting (Harvard Dataverse), UNESCO, UNHCR, Nobel Prize API, UN OCHA FTS, Pew Research Center, Afrobarometer',
+    used: 'On the Compare page, Power view: each country’s development, governance, students, refugees, aid, humanitarian funding, UN voting alignment and published opinion of the U.S. and China.',
+    terms: 'Each source’s licence and required citation is listed on the Methodology page. Figures are shown by country and year with no combined score. Pew figures are excerpts used with attribution; Pew bears no responsibility for the analyses or interpretations of the data presented here.',
+  },
+  {
     name: 'U.S. Customs and Border Protection, Withhold Release Orders & Findings (cbp.gov)',
     used: "On each country's page: forced-labor merchandise/entity orders under Section 307 (19 U.S.C. 1307) naming that country, active and historical.",
     terms: 'Official U.S. government enforcement data, published as a CSV that CBP updates periodically. A separate, newer DHS list (the UFLPA Entity List) is linked to directly rather than ingested, since DHS publishes it only as a web page with no bulk data file.',

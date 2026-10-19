@@ -6,6 +6,9 @@ import { logRefresh } from '../../lib/refresh/log.js';
 import type { PulseAction } from '../../lib/pulse/types.js';
 import type { PulseApp } from './util.js';
 import { clampInt, slimAction } from './util.js';
+import { loaded as loadPower } from './power.js';
+import { buildIndicatorView } from '../../lib/power/compute.js';
+import { INDICATOR_BY_ID, sourceFor } from '../../lib/power/indicators.js';
 
 // Global cooldown, not per-caller -- Pulse's risk is Worker CPU/subrequest
 // exhaustion from repeated Federal Register calls, a shared resource, not an
@@ -163,19 +166,36 @@ const SNAPSHOT_SPECS = {
 } as const;
 
 homeRoute.post('/snapshots', async (c) => {
-  const body = await c.req.json<{ chart_type?: string; params?: { months?: unknown } }>().catch(() => null);
+  const body = await c.req.json<{ chart_type?: string; params?: { months?: unknown; indicator?: unknown } }>().catch(() => null);
   if (!body) return c.json({ error: 'Invalid JSON body.' }, 400);
-  const type = body.chart_type as keyof typeof SNAPSHOT_SPECS;
-  if (!type || !(type in SNAPSHOT_SPECS)) {
-    return c.json({ error: `chart_type must be one of: ${Object.keys(SNAPSHOT_SPECS).join(', ')}` }, 400);
+  const type = body.chart_type as keyof typeof SNAPSHOT_SPECS | 'power';
+  if (!type || (type !== 'power' && !(type in SNAPSHOT_SPECS))) {
+    return c.json({ error: `chart_type must be one of: ${[...Object.keys(SNAPSHOT_SPECS), 'power'].join(', ')}` }, 400);
   }
+  let title = '';
+  let note = '';
 
   let params: Record<string, unknown> = {};
   let data: unknown;
-  if (type === 'cofer') {
+  if (type === 'power') {
+    // A ranking of every country on one Power-profile measure, rebuilt here from the stored indicator rows. Only the measure's
+    // id is taken from the request; the title, source and numbers come from this site's own data.
+    const def = INDICATOR_BY_ID.get(String(body.params?.indicator ?? ''));
+    if (!def || def.hidden) return c.json({ error: 'params.indicator must be the id of a Power-profile measure.' }, 400);
+    const { rows } = await loadPower(c);
+    const view = buildIndicatorView(def, rows.get(def.id) ?? {}, []);
+    if (view.distribution.length === 0) return c.json({ error: 'No data to save yet.' }, 409);
+    const src = sourceFor(def);
+    title = `${def.label}: highest 25 countries`;
+    note = `${src.name} (${src.url}), latest value for each country, as of ${view.latestYear}. ${def.caveat}`;
+    params = { indicator: def.id };
+    data = { unit: def.unit, year: view.latestYear, rows: [...view.distribution].reverse().slice(0, 25) };
+  } else if (type === 'cofer') {
     const { results } = await c.env.DB.prepare(`SELECT obs_date, value FROM market_series WHERE series_id = 'COFER:USD_SHARE' ORDER BY obs_date`).all<{ obs_date: string; value: number }>();
     if (results.length === 0) return c.json({ error: 'No data to save yet.' }, 409);
     data = { points: results.map((r) => [r.obs_date, r.value]) };
+    title = SNAPSHOT_SPECS.cofer.title;
+    note = SNAPSHOT_SPECS.cofer.note;
   } else {
     const months = clampInt(typeof body.params?.months === 'number' ? String(body.params.months) : undefined, { default: 24, min: 6, max: 120 });
     const since = new Date();
@@ -194,6 +214,8 @@ homeRoute.post('/snapshots', async (c) => {
     const prior30 = trend?.prior_30d ?? 0;
     params = { months };
     data = { months: series.results, trendPct: prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : null };
+    title = SNAPSHOT_SPECS.tempo.title;
+    note = SNAPSHOT_SPECS.tempo.note;
   }
 
   const paramsJson = JSON.stringify(params);
@@ -210,7 +232,7 @@ homeRoute.post('/snapshots', async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO pulse_snapshots (id, chart_type, title, params_json, data_json, source_note, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
   )
-    .bind(id, type, SNAPSHOT_SPECS[type].title, paramsJson, dataJson, SNAPSHOT_SPECS[type].note, createdAt)
+    .bind(id, type, title, paramsJson, dataJson, note, createdAt)
     .run();
 
   return c.json({ id, created_at: createdAt });

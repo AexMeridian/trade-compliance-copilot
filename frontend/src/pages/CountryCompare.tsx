@@ -9,20 +9,30 @@ import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { STATUS_LABEL as EXPORT_STATUS_LABEL } from '../lib/pulseCountries';
 import { freightNoteFor } from '../lib/freightNotes';
 import type { PulseCountryDetail } from '../types/pulse';
+import { PowerProfile } from '../components/PowerProfile';
+import { POWER_CODES, POWER_LABELS } from '../lib/powerCountries';
 
-const MAX_COUNTRIES = 3;
-const DEFAULT_CODES = ['CN', 'MX'];
+type View = 'trade' | 'power';
 
-const SORTED_CODES = Object.keys(TARIFF_COUNTRY_LABELS).sort((a, b) => TARIFF_COUNTRY_LABELS[a].localeCompare(TARIFF_COUNTRY_LABELS[b]));
+// Two views share one country picker. Trade policy covers the countries the U.S. has trade data for (not the U.S. itself);
+// the power profile covers every country on the globe, the United States included, and compares up to four.
+const VIEWS = {
+  trade: { labels: TARIFF_COUNTRY_LABELS, max: 3, defaults: ['CN', 'MX'], codes: Object.keys(TARIFF_COUNTRY_LABELS).sort((a, b) => TARIFF_COUNTRY_LABELS[a].localeCompare(TARIFF_COUNTRY_LABELS[b])) },
+  power: { labels: POWER_LABELS, max: 4, defaults: ['US', 'CN'], codes: POWER_CODES },
+} as const;
 
-function parseCodes(raw: string | null): string[] {
-  if (!raw) return DEFAULT_CODES;
-  const codes = raw
-    .split(',')
-    .map((s) => s.trim().toUpperCase())
-    .filter((c) => TARIFF_COUNTRY_LABELS[c])
-    .slice(0, MAX_COUNTRIES);
-  return codes.length ? codes : DEFAULT_CODES;
+function parseCodes(raw: string | null, view: View): string[] {
+  const { labels, max, defaults } = VIEWS[view];
+  if (!raw) return [...defaults];
+  const codes = [
+    ...new Set(
+      raw
+        .split(',')
+        .map((s) => s.trim().toUpperCase())
+        .filter((c) => labels[c]),
+    ),
+  ].slice(0, max);
+  return codes.length ? codes : [...defaults];
 }
 
 // A procurement reader comparing sourcing options wants this exact view --
@@ -33,12 +43,23 @@ function parseCodes(raw: string | null): string[] {
 // here 2-3 times in parallel), so no backend change was needed for this page.
 export function CountryCompare() {
   const [params, setParams] = useSearchParams();
-  const codes = parseCodes(params.get('countries'));
+  const view: View = params.get('view') === 'power' ? 'power' : 'trade';
+  const { labels, max: MAX_COUNTRIES, codes: SORTED_CODES } = VIEWS[view];
+  const codes = parseCodes(params.get('countries'), view);
+
+  function setView(next: View) {
+    const q = new URLSearchParams(params);
+    if (next === 'power') q.set('view', 'power');
+    else q.delete('view');
+    q.set('countries', parseCodes(params.get('countries'), next).join(','));
+    setParams(q, { replace: true });
+  }
   const [data, setData] = useState<Record<string, PulseCountryDetail | 'error'>>({});
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<Record<string, { topic: string; count: number }[]>>({});
 
   useEffect(() => {
+    if (view !== 'trade') return;
     let cancelled = false;
     setLoading(true);
     Promise.all(
@@ -55,10 +76,11 @@ export function CountryCompare() {
     return () => {
       cancelled = true;
     };
-  }, [codes.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [codes.join(','), view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // What each country is involved in right now, by topic (src/lib/pulse/topic.ts).
   useEffect(() => {
+    if (view !== 'trade') return;
     let cancelled = false;
     Promise.all(codes.map((code) => getPulseConnections(code, { name: TARIFF_COUNTRY_LABELS[code], days: 60 }).then((r) => [code, r.topicCounts] as const).catch(() => [code, []] as const))).then((rows) => {
       if (!cancelled) setTopics(Object.fromEntries(rows));
@@ -66,7 +88,7 @@ export function CountryCompare() {
     return () => {
       cancelled = true;
     };
-  }, [codes.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [codes.join(','), view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setCodeAt(i: number, code: string) {
     const next = [...codes];
@@ -96,9 +118,25 @@ export function CountryCompare() {
       <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Compare countries' }]} />
       <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
-        Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page. This
-        link is shareable as-is; the countries you pick are saved in the URL, not an account.
+        {view === 'trade'
+          ? "Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page."
+          : 'Soft power and hard-power context side by side: governance, aid, ties and exchange, knowledge and weight in the world, each with its source and no score.'}{' '}
+        This link is shareable as-is; the countries you pick are saved in the URL, not an account.
       </p>
+
+      <div role="group" aria-label="View" className="mt-5 inline-flex border border-hairline-strong text-sm">
+        {([['trade', 'Trade policy'], ['power', 'Power profile']] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            aria-pressed={view === id}
+            className={`px-4 py-1.5 font-semibold ${view === id ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {codes.map((code, i) => (
@@ -111,7 +149,7 @@ export function CountryCompare() {
             >
               {SORTED_CODES.map((c) => (
                 <option key={c} value={c}>
-                  {TARIFF_COUNTRY_LABELS[c]}
+                  {labels[c]}
                 </option>
               ))}
             </select>
@@ -119,7 +157,7 @@ export function CountryCompare() {
               <button
                 type="button"
                 onClick={() => removeSlot(i)}
-                aria-label={`Remove ${TARIFF_COUNTRY_LABELS[code]}`}
+                aria-label={`Remove ${labels[code]}`}
                 className="text-ink-faint hover:text-stop"
               >
                 &times;
@@ -134,7 +172,7 @@ export function CountryCompare() {
         )}
       </div>
 
-      {(() => {
+      {view === 'trade' && (() => {
         // What the countries share: blocs they all belong to, and topics all of
         // them were named under in the last 60 days. Only shown when there is
         // something real to say.
@@ -162,7 +200,9 @@ export function CountryCompare() {
         );
       })()}
 
-      {loading && codes.every((c) => !data[c]) ? (
+      {view === 'power' ? (
+        <PowerProfile codes={codes} />
+      ) : loading && codes.every((c) => !data[c]) ? (
         <p className="mt-10 text-sm text-ink-faint">Loading…</p>
       ) : (
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -25,6 +25,12 @@ import { refreshMacro } from './lib/pulse/macro.js';
 import { refreshCofer } from './lib/pulse/cofer.js';
 import { refreshNews } from './lib/pulse/news.js';
 import { refreshWorldBank } from './lib/refresh/worldBank.js';
+import { refreshPowerIndicators } from './lib/refresh/powerIndicators.js';
+import { refreshUnVoting } from './lib/refresh/unVoting.js';
+import { refreshUisStudents } from './lib/refresh/uisStudents.js';
+import { refreshUnhcr } from './lib/refresh/unhcr.js';
+import { refreshNobel } from './lib/refresh/nobel.js';
+import { refreshFts } from './lib/refresh/fts.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
@@ -75,6 +81,12 @@ const BULK_JOBS: (RefreshJob & { typicalRows: number })[] = [
   { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
   { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
   { source: 'world_bank', run: refreshWorldBank, typicalRows: 400 },
+  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 25 },
+  { source: 'un_voting', run: refreshUnVoting, typicalRows: 1 },
+  { source: 'uis_students', run: refreshUisStudents, typicalRows: 2 },
+  { source: 'unhcr', run: refreshUnhcr, typicalRows: 1 },
+  { source: 'nobel', run: refreshNobel, typicalRows: 2 },
+  { source: 'fts', run: refreshFts, typicalRows: 1 },
   { source: 'hts', run: refreshHts, typicalRows: 32_000 },
   { source: 'schedule_b', run: refreshScheduleB, typicalRows: 15_000 },
   { source: 'xref', run: refreshXref, typicalRows: 30_000 },

@@ -10,7 +10,7 @@ const b = await chromium.launch();
 const { samples } = await (await (await b.newPage()).request.get(`${B}/api/cases/samples`)).json();
 const s = samples[0];
 const routes = ['/', '/?tab=policy', '/?tab=markets', '/?tab=news', '/?tab=data', '/?tab=guide', '/calculator', '/methodology', '/terms', '/abroad', '/abroad?tab=alliances', '/abroad?tab=sanctions', '/allies', '/allies?tab=soft', '/footprint', '/standing', '/vs-world', '/influence', '/power',
-  '/country/cn', '/country/ng', '/compare?countries=CN,IN', '/about', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', `/case/${s.id}`, `/case/${s.id}/report`, '/definitely-not-a-page'];
+  '/country/cn', '/country/cn?tab=influence', '/country/ng', '/compare?countries=CN,IN', '/compare?view=power&countries=US,CN,IN', '/about', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', `/case/${s.id}`, `/case/${s.id}/report`, '/definitely-not-a-page'];
 let bad = 0;
 for (const [name, w] of [['desktop', 1280], ['mobile', 390]]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });

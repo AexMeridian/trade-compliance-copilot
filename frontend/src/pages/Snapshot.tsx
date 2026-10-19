@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getSnapshot, type PulseSnapshot } from '../lib/api';
+import { getSnapshot, type PowerUnit, type PulseSnapshot } from '../lib/api';
 import { PulseTempoChart } from '../components/PulseTempoChart';
 import { PulseLineChart, type LineSeries } from '../components/PulseCharts';
 import { PowerCoferChart } from '../components/PowerCoferChart';
+import { PowerRanking } from '../components/PowerRanking';
 import type { TempoPoint } from '../types/pulse';
 
 function friendlyTimestamp(iso: string): string {
@@ -18,6 +19,10 @@ function Chart({ snapshot }: { snapshot: PulseSnapshot }) {
   if (snapshot.chart_type === 'markets') {
     const data = snapshot.data as { series: LineSeries[] };
     return <PulseLineChart series={data.series} />;
+  }
+  if (snapshot.chart_type === 'power') {
+    const data = snapshot.data as { unit: PowerUnit; year: number | null; rows: [string, number][] };
+    return <PowerRanking rows={data.rows} unit={data.unit} year={data.year} />;
   }
   const data = snapshot.data as { points: [string, number][] };
   return <PowerCoferChart points={data.points} />;

@@ -13,7 +13,15 @@ export function getClient(env: Env): Anthropic {
   // Explicit limits: the SDK default is a 10-minute timeout, long enough for one hung
   // call to hold a request (and a user) far past any useful answer. 60s covers the
   // slowest legitimate forced-tool call; two retries absorb transient 429/5xx.
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 2 });
+  // A user-level key (sk-ant-usr-...) is not tied to a workspace, so Anthropic needs the workspace named on every request.
+  // A workspace-scoped key does not need it; leave ANTHROPIC_WORKSPACE_ID unset then.
+  const workspace = env.ANTHROPIC_WORKSPACE_ID?.trim();
+  return new Anthropic({
+    apiKey: env.ANTHROPIC_API_KEY,
+    timeout: 60_000,
+    maxRetries: 2,
+    ...(workspace ? { defaultHeaders: { 'anthropic-workspace-id': workspace } } : {}),
+  });
 }
 
 export class ClaudeGroundingError extends Error {}

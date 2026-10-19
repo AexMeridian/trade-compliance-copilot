@@ -62,6 +62,14 @@ const PAGES: SearchEntry[] = [
     url: '/compare',
   },
   {
+    id: 'power-profile',
+    title: 'Power profile: soft power compared',
+    description: 'Governance, aid given and received, tourism, migration, research and military spending for up to four countries, each ranked with its source. No score.',
+    type: 'Page',
+    url: '/compare?view=power',
+    keywords: ['soft power', 'hard power', 'aid', 'governance', 'oda', 'wgi', 'influence', 'nye'],
+  },
+  {
     id: 'about',
     title: `About ${SITE.name}`,
     description: 'What this app is, its data sources, and how it works.',

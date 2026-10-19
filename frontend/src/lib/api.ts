@@ -222,6 +222,90 @@ export function getSanctionCounts() {
   return request<SanctionCounts>('/pulse/sanction-counts');
 }
 
+export type PowerUnit = 'usd' | 'usd_per_person' | 'pct' | 'count' | 'index' | 'distance' | 'per_1000';
+export interface PowerStanding {
+  value: number;
+  year: number;
+  rank: number;
+  of: number;
+}
+export interface PowerIndicator {
+  id: string;
+  label: string;
+  unit: PowerUnit;
+  dimension: string;
+  definition: string;
+  caveat: string;
+  higherIs: string;
+  sourceCode: string;
+  source: { name: string; url: string };
+  latestYear: number | null;
+  standings: Record<string, PowerStanding | null>;
+  series: Record<string, [number, number][]>;
+  /** Every ranked country's newest value, ascending. */
+  distribution: [string, number][];
+}
+export interface PowerResponse {
+  asOf: string | null;
+  loaded: boolean;
+  countries: string[];
+  dimensions: { id: string; label: string; blurb: string }[];
+  indicators: PowerIndicator[];
+}
+
+export function getPower(countries: string[]) {
+  return request<PowerResponse>(`/pulse/power?countries=${encodeURIComponent(countries.join(','))}`);
+}
+
+export interface OpinionSurvey {
+  id: string;
+  pollster: string;
+  subject: 'US' | 'CN';
+  year: number;
+  title: string;
+  release: string;
+  fieldwork: string;
+  url: string;
+  publishedMedian: number;
+  countriesInMedian: number;
+  favorable: Record<string, number>;
+  citation: string;
+}
+export interface AfroShare {
+  pos: number;
+  neg: number;
+  n: number;
+}
+export interface AfroOpinion {
+  name: string;
+  url: string;
+  question: string;
+  citation: string;
+  medianPositive: { cn: number; us: number };
+  countries: Record<string, { cn: AfroShare; us: AfroShare; from: string; to: string }>;
+}
+export interface OpinionResponse {
+  question: string;
+  disclaimer: string;
+  surveys: OpinionSurvey[];
+  africa: AfroOpinion;
+}
+
+export function getOpinion() {
+  return request<OpinionResponse>('/pulse/opinion');
+}
+
+export interface UnAlignment {
+  asOf: string | null;
+  years: number[];
+  /** Position by country, one entry per year in `years`; null where the country did not vote that year. */
+  positions: Record<string, (number | null)[]>;
+}
+
+export function getUnAlignment() {
+  return request<UnAlignment>('/pulse/un-alignment');
+}
+
 export function syncPulse() {
   // request() already throws with the server's `error` message on a non-2xx
   // response (429 cooldown, 502 Federal Register failure) -- a resolved call
@@ -254,7 +338,7 @@ export function getPulseCoverage() {
 
 export interface PulseSnapshot<TData = unknown, TParams = unknown> {
   id: string;
-  chart_type: 'tempo' | 'markets' | 'cofer';
+  chart_type: 'tempo' | 'markets' | 'cofer' | 'power';
   title: string;
   params: TParams;
   data: TData;
@@ -263,7 +347,7 @@ export interface PulseSnapshot<TData = unknown, TParams = unknown> {
 }
 
 // The server rebuilds the snapshot's data itself; only the chart type and its range are taken from the request.
-export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer'; title?: string; params: unknown; data?: unknown; source_note?: string }) {
+export function createSnapshot(args: { chart_type: 'tempo' | 'markets' | 'cofer' | 'power'; title?: string; params: unknown; data?: unknown; source_note?: string }) {
   return request<{ id: string; created_at: string }>('/pulse/snapshots', { method: 'POST', body: JSON.stringify(args) });
 }
 

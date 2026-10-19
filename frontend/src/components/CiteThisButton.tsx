@@ -14,10 +14,10 @@ export function CiteThisButton({
   data,
   sourceNote,
 }: {
-  chartType: 'tempo' | 'markets' | 'cofer';
+  chartType: 'tempo' | 'markets' | 'cofer' | 'power';
   title: string;
   params: unknown;
-  data: unknown;
+  data?: unknown;
   sourceNote: string;
 }) {
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');

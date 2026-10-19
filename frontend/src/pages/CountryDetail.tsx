@@ -4,6 +4,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseMarkets, getPulseNews } from '../lib/api';
 import { COUNTRY_TABS, CountryTabs, type CountryTabId } from '../components/CountryTabs';
 import { CountryGuide } from '../components/CountryGuide';
+import { InstrumentsLedger } from '../components/InstrumentsLedger';
+import { PowerProfile } from '../components/PowerProfile';
 import { ConnectionsPanel } from '../components/ConnectionsPanel';
 import { PulsePanel } from '../components/PulsePanel';
 import { PulseTempoChart } from '../components/PulseTempoChart';
@@ -422,6 +424,13 @@ export function CountryDetail() {
                 with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
               </p>
             </PulsePanel>
+          </div>
+        )}
+
+        {tab === 'influence' && (
+          <div className="flex flex-col gap-8">
+            <InstrumentsLedger code={code} name={name} data={data} />
+            <PowerProfile codes={[code]} />
           </div>
         )}
 

@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
-import type { NatoDefenseCountry } from '../lib/api';
+import { getPower, type NatoDefenseCountry, type PowerIndicator } from '../lib/api';
+import { CiteThisButton } from './CiteThisButton';
+import { formatValue, ordinal } from '../lib/powerFormat';
+import { nameFor } from '../lib/powerCountries';
 import { PulseCountryCard } from './PulseCountryCard';
 import { MeasureHero, type HeroMeasure } from './MeasureHero';
 import { RankedBars, type BarRow } from './RankedBars';
@@ -8,7 +11,7 @@ import { PowerCoferChart } from './PowerCoferChart';
 import { PulseCurrencyMovers } from './PulseCharts';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 
-type MeasureId = 'reserves' | 'defense' | 'currencies';
+type MeasureId = 'reserves' | 'defense' | 'giving' | 'currencies';
 
 // Top of the Dollar & allies page: three plain measures of where the dollar and the U.S. alliance
 // network stand, each with its own real, sourced figure and picture. No globe here; it lives on Pulse.
@@ -44,6 +47,26 @@ export function PowerHero({
   natoDefense: Record<string, NatoDefenseCountry>;
 }) {
   const [measure, setMeasure] = useState<MeasureId>('reserves');
+  // Humanitarian funding per resident, every donor ranked: the one soft-power measure that sits naturally beside the dollar
+  // and defense spending. Loaded on its own; if it fails the other measures are unaffected.
+  const [giving, setGiving] = useState<PowerIndicator | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getPower(['US'])
+      .then((r) => !cancelled && setGiving(r.indicators.find((i) => i.id === 'humanitarian_per_person') ?? null))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const givingRows: BarRow[] = useMemo(
+    () =>
+      giving
+        ? [...giving.distribution].reverse().map(([code, v]) => ({ code, label: nameFor(code), value: v, text: formatValue(giving.unit, v).replace(' per person', '') }))
+        : [],
+    [giving],
+  );
+  const usGiving = giving?.standings.US ?? null;
 
   const coferLatest = coferPoints.length > 0 ? coferPoints[coferPoints.length - 1] : null;
   const coferFirst = coferPoints.length > 0 ? coferPoints[0] : null;
@@ -91,6 +114,34 @@ export function PowerHero({
         'NATO defense-spending figures are not available right now.'
       ),
       body: <RankedBars rows={defenseRows} activeCountry={activeCountry} onSelect={onCountry} />,
+    },
+    {
+      id: 'giving',
+      label: 'Humanitarian giving',
+      figure: usGiving ? ordinal(usGiving.rank) : 'n/a',
+      caption: usGiving ? (
+        <>
+          of {usGiving.of} donor governments for humanitarian funding reported to the UN per resident in {usGiving.year} ({formatValue('usd_per_person', usGiving.value)}). In total dollars the
+          United States ranks higher. Source: the UN's Financial Tracking Service; only what donors report is counted.
+        </>
+      ) : (
+        'Humanitarian funding figures are not available right now.'
+      ),
+      body: (
+        <>
+          <RankedBars rows={givingRows} activeCountry={activeCountry} onSelect={onCountry} />
+          {givingRows.length > 0 && (
+            <div className="mt-3">
+              <CiteThisButton
+                chartType="power"
+                title="Humanitarian funding given per resident"
+                params={{ indicator: 'humanitarian_per_person' }}
+                sourceNote="UN OCHA Financial Tracking Service."
+              />
+            </div>
+          )}
+        </>
+      ),
     },
     {
       id: 'currencies',

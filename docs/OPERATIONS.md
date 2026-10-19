@@ -39,6 +39,26 @@ already handled in the repository.
 - Check the news feeds' terms. BBC, The Guardian, NPR and others provide RSS for non-commercial use. The site shows only
   headlines, links and a short summary and is free with no ads, but it is operated by a company. Keep an official-source
   fallback (ECB, Federal Reserve, Federal Register) if a publisher objects.
+- Public-opinion figures (Pew Research Center, `src/lib/power/opinion.ts`): Pew's terms allow excerpts of survey data with
+  attribution and its no-responsibility statement, which the site shows, but forbid republishing datasets in full. The site holds
+  only each country's favorable share from four published reports. Before launch, ask Pew in writing (pewresearch.org contact
+  form) for permission to show these four sets, and keep the reply. If Pew objects, delete the entries in that file; the page
+  hides the section automatically. Gallup and the Democracy Perception Index were not added because their reuse terms could not
+  be confirmed.
+- Afrobarometer Round 10 (`src/lib/power/afrobarometer.generated.ts`, built by `scripts/opinion/afrobarometer.py`): the data page
+  says the survey data are free to use, but its terms page returned 404 when checked. Keep a dated copy of the terms and
+  cite as the page shows. To refresh for a new round, download the merged SPSS file and rerun the script. Arab Barometer's
+  downloads need a registration form, so they are not used; ask them for permission if you want them.
+- UNESCO Institute for Statistics data (international students) are licensed CC BY-SA 4.0 on its data browser. Attribution is on the
+  Methodology page. Share-alike can reach adapted charts and the CSV downloads; ask counsel whether that matters for a commercial
+  site, or drop the two UNESCO series (`students_inbound`, `students_net_ratio` in `src/lib/power/indicators.ts`) if it does.
+- UNHCR data are CC BY 4.0 with supplemental terms (credit, link to its terms, no implied endorsement); the Methodology page
+  carries them. The latest year can be a mid-year figure.
+- Humanitarian funding (OCHA FTS): the API's own terms page could not be read; OCHA publishes the same data on the Humanitarian Data
+  Exchange under CC BY-IGO, which is what the Methodology page cites. Confirm with OCHA if you want it in writing.
+- Left out for licence or reliability reasons (listed for readers in `frontend/src/components/LeftOut.tsx`): UNESCO World Heritage
+  counts (non-commercial terms; ask UNESCO/WHC for permission if you want them), official languages, peacekeeping contributors,
+  AidData. Update that file whenever one is added.
 - Quotes from Yahoo Finance are switched off. Do not turn them back on without a licensed market-data source.
 - Trademark: run a clearance search and consider filing for "Aex Terminal" (USPTO, classes 9, 36, 42).
 - Keep the LLC in good standing: Colorado periodic report, registered agent, a separate bank account.
