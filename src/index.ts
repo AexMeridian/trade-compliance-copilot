@@ -15,7 +15,7 @@ import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { normalizeFilters } from './lib/feed.js';
 import { normalizeCountries } from './lib/power/compute.js';
-import { countryCacheKey, pulseCacheKey } from './lib/pulse/cacheKeys.js';
+import { countryCacheKey, feedCacheable, pulseCacheKey } from './lib/pulse/cacheKeys.js';
 import { KNOWN_COUNTRY_CODES } from './lib/pulse/country.js';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -56,8 +56,14 @@ app.use('/api/pulse/*', async (c, next) => {
 // (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
 // Each key is built from only the parameters the endpoint reads (lib/pulse/cacheKeys.ts), so junk or out-of-range query strings
 // share one entry instead of minting new ones (every miss reads thousands of rows).
-const EDGE_CACHED = ['connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'tic', 'recent-listings', 'export-control-chart', 'active-measures', 'live-arcs'];
+const EDGE_CACHED = ['connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'cofer', 'tic', 'recent-listings', 'export-control-chart', 'active-measures', 'live-arcs'];
 for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCacheKey(p)));
+// Large scans with tiny answers over data that changes weekly (coverage) or once a year (NATO spending): held much longer.
+app.use('/api/pulse/coverage', edgeCache(21600, pulseCacheKey('coverage')));
+app.use('/api/pulse/nato-defense', edgeCache(86400, pulseCacheKey('nato-defense')));
+// The home page's policy feed is read on every visit. A keyword search (`q`) is a text scan with free input, so it is left uncached.
+const feedCache = edgeCache(60, pulseCacheKey('feed'));
+app.use('/api/pulse/feed', (c, next) => (feedCacheable(new URL(c.req.url)) ? feedCache(c, next) : next()));
 // A country page costs ~15,000 rows read uncached and there are ~170 of them (a crawler can visit them all), so it is held for an hour.
 // A code that is not a country is turned away before it reaches the database or the cache.
 app.use('/api/pulse/country/*', async (c, next) => {
@@ -67,7 +73,7 @@ app.use('/api/pulse/country/*', async (c, next) => {
 });
 app.use('/api/pulse/country/*', edgeCache(3600, countryCacheKey));
 // Startup calls made by every page view (and the header ticker): short windows keep a burst of visitors to one read per window.
-app.use('/api/pulse/home', edgeCache(60, pulseCacheKey('home')));
+app.use('/api/pulse/home', edgeCache(300, pulseCacheKey('home')));
 for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCacheKey(p)));
 // Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
 app.use('/api/pulse/sanction-counts', edgeCache(21600, pulseCacheKey('sanction-counts')));

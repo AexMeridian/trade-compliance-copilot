@@ -6,6 +6,7 @@ import { buildDutyStack } from '../../lib/dutyStack.js';
 import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
 import { isNameOfCountry } from '../../lib/pulse/country.js';
+import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
 
 export const countryRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -98,13 +99,18 @@ countryRoute.get('/country/:code', async (c) => {
       .all<PulseAction>()
       .catch(() => ({ results: [] as PulseAction[] })),
 
-    c.env.DB.prepare(
-      `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
-       FROM trade_policy_actions, json_each(countries) je
-       WHERE je.value = ?1 GROUP BY month ORDER BY month`
-    )
-      .bind(code)
-      .all<TempoPoint>()
+    // The json_each scan reads every notice (~9,000 rows); a country's monthly counts are kept for an hour.
+    cachedAggregate(c.env, `country-tempo:${code}`, 60 * 60_000, async () => {
+      const { results } = await c.env.DB.prepare(
+        `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
+         FROM trade_policy_actions, json_each(countries) je
+         WHERE je.value = ?1 GROUP BY month ORDER BY month`
+      )
+        .bind(code)
+        .all<TempoPoint>();
+      return results;
+    })
+      .then((results) => ({ results }))
       .catch(() => ({ results: [] as TempoPoint[] })),
 
     c.env.DB.prepare(

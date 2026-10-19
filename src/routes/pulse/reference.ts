@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { clampInt } from './util.js';
-import { isKnownCountryName } from '../../lib/pulse/country.js';
+import { isKnownCountryName, KNOWN_COUNTRY_CODES } from '../../lib/pulse/country.js';
 import { MAX_OFFSET } from '../../lib/pulse/cacheKeys.js';
 
 export const referenceRoute: PulseApp = new Hono<{ Bindings: Env }>();
@@ -19,6 +19,10 @@ export const referenceRoute: PulseApp = new Hono<{ Bindings: Env }>();
 referenceRoute.get('/tariffs', async (c) => {
   const program = c.req.query('program') || null;
   const country = c.req.query('country') || null;
+  // The same shapes the cache key accepts: anything else is refused, never answered and filed under another key.
+  if ((program && !/^[A-Za-z0-9_]{1,40}$/.test(program)) || (country && !/^[A-Za-z0-9_]{1,40}$/.test(country))) {
+    return c.json({ error: 'Invalid program or country.' }, 400);
+  }
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
   const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
@@ -49,6 +53,7 @@ referenceRoute.get('/sanctions', async (c) => {
     return c.json({ error: 'Enter the name of a country, for example Russia or Iran.' }, 400);
   }
   const list = c.req.query('list'); // 'sdn' | 'csl' | omitted = both
+  if (list && list !== 'sdn' && list !== 'csl') return c.json({ error: 'list must be sdn or csl.' }, 400);
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
   const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
@@ -163,6 +168,7 @@ referenceRoute.get('/export-control-chart', async (c) => {
 // /sanctions' address-text match, not a normalized code lookup.
 referenceRoute.get('/gta', async (c) => {
   const countryName = c.req.query('country') || null;
+  if (countryName && countryName.length > 60) return c.json({ error: 'country is too long.' }, 400);
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
   const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
@@ -203,6 +209,7 @@ referenceRoute.get('/gta', async (c) => {
 referenceRoute.get('/wro', async (c) => {
   const country = c.req.query('country')?.toUpperCase() || null;
   const status = c.req.query('status') || null; // 'Active' | omitted = all
+  if ((country && !KNOWN_COUNTRY_CODES.has(country)) || (status && status !== 'Active')) return c.json({ error: 'Invalid country or status.' }, 400);
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
   const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 

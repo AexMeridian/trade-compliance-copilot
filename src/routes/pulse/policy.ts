@@ -3,6 +3,7 @@ import type { Env } from '../../types/env.js';
 import type { PulseAction, TempoPoint } from '../../lib/pulse/types.js';
 import type { PulseApp } from './util.js';
 import { clampInt, csvParam } from './util.js';
+import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
 
 export const policyRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -70,12 +71,16 @@ policyRoute.get('/tempo', async (c) => {
     d.setUTCMonth(d.getUTCMonth() - months);
     return d.toISOString().slice(0, 10);
   })();
-  const { results } = await c.env.DB.prepare(
-    `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
-     FROM trade_policy_actions WHERE publication_date >= ?1 GROUP BY month ORDER BY month`
-  )
-    .bind(since)
-    .all<TempoPoint>();
+  // The scan reads every notice in the window (thousands of rows) for a monthly chart, so the answer is kept for 30 minutes.
+  const results = await cachedAggregate(c.env, `tempo:${months}`, 30 * 60_000, async () => {
+    const { results } = await c.env.DB.prepare(
+      `SELECT strftime('%Y-%m', publication_date) AS month, COUNT(*) AS count
+       FROM trade_policy_actions WHERE publication_date >= ?1 GROUP BY month ORDER BY month`
+    )
+      .bind(since)
+      .all<TempoPoint>();
+    return results;
+  });
   return c.json({ months: results });
 });
 

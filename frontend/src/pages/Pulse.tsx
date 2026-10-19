@@ -47,6 +47,7 @@ import {
   type PulsePrefs,
 } from '../lib/pulsePrefs';
 import { GROUP_HUE, SERIES_HUES, TAG_HUE } from '../lib/pulseColors';
+import { pollWhileVisible } from '../lib/pollWhileVisible';
 import type { PulseHome, ActiveMeasure, NewsCategory, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, PulseTag, TempoPoint } from '../types/pulse';
 
 // Market/news data is cached server-side and refreshed on demand when stale
@@ -145,8 +146,7 @@ export function Pulse() {
         .catch(() => setMarketsFailed(true));
     // First load comes with the single /home call below; this only keeps a
     // tab that stays open current.
-    const t = setInterval(load, MARKET_POLL_MS);
-    return () => clearInterval(t);
+    return pollWhileVisible(load, MARKET_POLL_MS);
   }, []);
 
   // Fetched once for every category; the News tab's chips filter client-side,
@@ -160,8 +160,7 @@ export function Pulse() {
         })
         .catch(() => setNewsFailed(true))
         .finally(() => setLoadingNews(false));
-    const t = setInterval(load, MARKET_POLL_MS);
-    return () => clearInterval(t);
+    return pollWhileVisible(load, MARKET_POLL_MS);
   }, []);
 
   // Typing shouldn't fire a request per keystroke -- wait for a short pause.

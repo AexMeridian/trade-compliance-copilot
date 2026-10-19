@@ -48,6 +48,11 @@ export const KEY_PARAMS: Record<string, Record<string, Param>> = {
     topic: oneOf(TOPICS),
   },
   related: { kind: oneOf(['action', 'news']), id: (raw) => (raw && raw.length <= 80 ? raw : null), days: intParam(14, 1, 60) },
+  feed: {
+    limit: intParam(30, 1, 100),
+    tag: (raw) => (raw && /^[A-Za-z ,&-]{1,80}$/.test(raw) ? raw.split(',').map((s) => s.trim()).filter(Boolean).sort().join(',') : null),
+    country: codeList,
+  },
   convergence: { days: intParam(60, 7, 90), limit: intParam(8, 1, 20) },
   'recent-listings': { days: intParam(30, 7, 90) },
   markets: { days: intParam(70, 30, 430) },
@@ -67,6 +72,16 @@ export function pulseCacheKey(endpoint: string): (url: URL) => string {
     }
     return `${url.origin}${url.pathname}${parts.length ? `?${parts.join('&')}` : ''}`;
   };
+}
+
+/** The feed is cached only for the filters the home page uses: a keyword search, or a tag/country the key cannot describe, is passed through. */
+export function feedCacheable(url: URL): boolean {
+  const p = url.searchParams;
+  if (p.has('q')) return false;
+  const tag = p.get('tag');
+  if (tag !== null && !/^[A-Za-z ,&-]{1,80}$/.test(tag)) return false;
+  const country = p.get('country');
+  return country === null || codeList(country, p) !== null;
 }
 
 /** Key for /country/:code: the code in the path (validated before this runs) and the display name only when it is that country's. */

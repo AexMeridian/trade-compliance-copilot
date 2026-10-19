@@ -509,13 +509,27 @@ export const EU_MEMBER_CODES = new Set([
   'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
 ]);
 
+// The overlay table is a few dozen hand-verified rows that change only with a deploy, but a country page asks for it once per
+// sample HTS line. Held in memory for a few minutes so those calls share one read.
+let overlaysMemo: { at: number; rows: Promise<TariffOverlayRow[]> } | null = null;
+function loadOverlays(env: Env): Promise<TariffOverlayRow[]> {
+  if (!overlaysMemo || Date.now() - overlaysMemo.at > 5 * 60_000) {
+    const rows = env.DB.prepare(`SELECT * FROM tariff_overlays`).all<TariffOverlayRow>().then((r) => r.results);
+    overlaysMemo = { at: Date.now(), rows };
+    rows.catch(() => {
+      if (overlaysMemo?.rows === rows) overlaysMemo = null;
+    });
+  }
+  return overlaysMemo.rows;
+}
+
 export async function getApplicableOverlays(
   env: Env,
   htsno: string,
   countryCode: string | null
 ): Promise<TariffOverlayRow[]> {
   const digits = htsno.replace(/\./g, '');
-  const { results } = await env.DB.prepare(`SELECT * FROM tariff_overlays`).all<TariffOverlayRow>();
+  const results = await loadOverlays(env);
   return results.filter((r) => {
     const patternMatches = r.hts_pattern === '%' || digits.startsWith(r.hts_pattern);
     const countryMatches =

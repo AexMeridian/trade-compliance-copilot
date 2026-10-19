@@ -2,7 +2,7 @@
 // reads thousands of database rows. No network, no database. Run: npm run test:unit
 
 import assert from 'node:assert/strict';
-import { countryCacheKey, MAX_OFFSET, pulseCacheKey } from '../src/lib/pulse/cacheKeys.js';
+import { countryCacheKey, feedCacheable, MAX_OFFSET, pulseCacheKey } from '../src/lib/pulse/cacheKeys.js';
 import { isKnownCountryName, isNameOfCountry, KNOWN_COUNTRY_CODES } from '../src/lib/pulse/country.js';
 
 let failures = 0;
@@ -55,6 +55,15 @@ test('known country names and codes', () => {
   assert.ok(!KNOWN_COUNTRY_CODES.has('QQ') && !KNOWN_COUNTRY_CODES.has('XX'));
   assert.ok(isKnownCountryName('China') && isKnownCountryName('Georgia') && !isKnownCountryName('zz1') && !isKnownCountryName(''));
   assert.ok(isNameOfCountry('CN', 'China') && !isNameOfCountry('CN', 'Mexico') && isNameOfCountry('JO', 'Jordan'));
+});
+
+test('the policy feed is cached only for filters its key can describe', () => {
+  const u = (q: string) => new URL(`https://t.example/api/pulse/feed${q}`);
+  assert.ok(feedCacheable(u('?limit=30')) && feedCacheable(u('?tag=Tariff&country=CN')));
+  assert.ok(!feedCacheable(u('?q=steel')), 'a keyword search is a free-text scan and is not cached');
+  assert.ok(!feedCacheable(u('?tag=%21%21')), 'a tag the key would drop must not be filed under the unfiltered key');
+  assert.ok(!feedCacheable(u('?country=QQ')));
+  assert.equal(key('feed', 'feed?tag=Tariff,Sanctions&junk=1'), key('feed', 'feed?tag=Sanctions,Tariff'));
 });
 
 if (failures) {
