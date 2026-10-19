@@ -5,7 +5,7 @@ import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCo
 import { buildDutyStack } from '../../lib/dutyStack.js';
 import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
-import { extractCountries } from '../../lib/pulse/country.js';
+import { isNameOfCountry } from '../../lib/pulse/country.js';
 
 export const countryRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -35,12 +35,7 @@ const REPRESENTATIVE_HTS: { htsno: string; label: string }[] = [
 // status, and a sanctioned-entity count. Each section is independent, same
 // philosophy as /home: one section's failure never blanks the others.
 // ---------------------------------------------------------------------------
-// Countries whose plain names the news/notice text extractor deliberately does not match (they double as common words or
-// other places: Georgia, Jordan, Chad, Puerto Rico...) or does not list. The country page still passes their real name.
-const NAMES_THE_TEXT_EXTRACTOR_SKIPS: Record<string, string> = {
-  TD: 'Chad', TF: 'French Southern Territories', GE: 'Georgia', JO: 'Jordan', NC: 'New Caledonia', PR: 'Puerto Rico',
-  EH: 'Western Sahara', LI: 'Liechtenstein', BH: 'Bahrain', SG: 'Singapore',
-};
+
 
 // The two address text-matches below scan every SDN and CSL row (~51,000 rows read per country). The lists reload weekly, so the
 // answer for a country is kept in pulse_feed_state for a week (one small row) instead of being recomputed for every visitor and crawler.
@@ -87,7 +82,7 @@ countryRoute.get('/country/:code', async (c) => {
   // Only a name that really is this country's is used: it drives table scans and a stored row, so an arbitrary string must not
   // be able to mint either.
   const rawName = (c.req.query('name') || '').slice(0, 80);
-  const countryName = rawName && (extractCountries(rawName).includes(code) || NAMES_THE_TEXT_EXTRACTOR_SKIPS[code]?.toLowerCase() === rawName.toLowerCase()) ? rawName : null;
+  const countryName = isNameOfCountry(code, rawName) ? rawName : null;
   const activeOverlay = `effective_date <= date('now') AND (expiration_date IS NULL OR expiration_date >= date('now'))`;
 
   // Every section below is an independent read (dutyStack/coverage/sanctions

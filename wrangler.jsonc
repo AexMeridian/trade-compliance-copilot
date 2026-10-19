@@ -53,6 +53,14 @@
       }
     },
     {
+      "name": "MISS_RATE_LIMITER",
+      "namespace_id": "1004",
+      "simple": {
+        "limit": 40,
+        "period": 60
+      }
+    },
+    {
       "name": "PULSE_RATE_LIMITER",
       "namespace_id": "1002",
       "simple": {

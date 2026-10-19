@@ -5,6 +5,8 @@ export interface Env {
   ANTHROPIC_WORKSPACE_ID?: string; // only for a user-level key (sk-ant-usr-...), which is not scoped to a workspace
   CLAUDE_RATE_LIMITER: RateLimit;
   PULSE_RATE_LIMITER: RateLimit;
+  /** Per visitor, counts only requests the edge cache could not answer (see lib/edgeCache.ts). */
+  MISS_RATE_LIMITER: RateLimit;
   WRITE_RATE_LIMITER: RateLimit;
   CLAUDE_DAILY_CAP?: string; // max Claude-calling requests per UTC day across all visitors (default 300)
   NEWS_IMAGES?: string; // "off" hides publisher lead images

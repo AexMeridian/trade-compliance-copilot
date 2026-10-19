@@ -10,10 +10,13 @@ import { screeningRoute } from './routes/screening.js';
 import { determinationRoute } from './routes/determination.js';
 import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
+import { ClaudeDailyCapError } from './lib/anthropic.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { normalizeFilters } from './lib/feed.js';
 import { normalizeCountries } from './lib/power/compute.js';
+import { countryCacheKey, pulseCacheKey } from './lib/pulse/cacheKeys.js';
+import { KNOWN_COUNTRY_CODES } from './lib/pulse/country.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -51,19 +54,27 @@ app.use('/api/pulse/*', async (c, next) => {
 
 // Slow-changing, comparatively expensive reads are cached at the edge for 5 minutes
 // (see lib/edgeCache.ts for why, and which endpoints must NOT be listed here).
+// Each key is built from only the parameters the endpoint reads (lib/pulse/cacheKeys.ts), so junk or out-of-range query strings
+// share one entry instead of minting new ones (every miss reads thousands of rows).
 const EDGE_CACHED = ['connections', 'convergence', 'related', 'tariffs', 'sanctions', 'gta', 'wro', 'coverage', 'nato-defense', 'cofer', 'tic', 'recent-listings', 'export-control-chart', 'active-measures', 'live-arcs'];
-for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300));
+for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCacheKey(p)));
 // A country page costs ~15,000 rows read uncached and there are ~170 of them (a crawler can visit them all), so it is held for an hour.
-app.use('/api/pulse/country/*', edgeCache(3600));
+// A code that is not a country is turned away before it reaches the database or the cache.
+app.use('/api/pulse/country/*', async (c, next) => {
+  const code = (c.req.path.split('/').pop() ?? '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code) || !KNOWN_COUNTRY_CODES.has(code)) return c.json({ error: 'Unknown country code.' }, 404);
+  return next();
+});
+app.use('/api/pulse/country/*', edgeCache(3600, countryCacheKey));
 // Startup calls made by every page view (and the header ticker): short windows keep a burst of visitors to one read per window.
-app.use('/api/pulse/home', edgeCache(60));
-for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p}`, edgeCache(300));
+app.use('/api/pulse/home', edgeCache(60, pulseCacheKey('home')));
+for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCacheKey(p)));
 // Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
-app.use('/api/pulse/sanction-counts', edgeCache(21600));
-app.use('/api/pulse/data-status', edgeCache(300));
-app.use('/api/pulse/stats', edgeCache(21600));
+app.use('/api/pulse/sanction-counts', edgeCache(21600, pulseCacheKey('sanction-counts')));
+app.use('/api/pulse/data-status', edgeCache(300, pulseCacheKey('data-status')));
+app.use('/api/pulse/stats', edgeCache(21600, pulseCacheKey('stats')));
 // Weekly country indicators: the key is the validated, sorted country list, so odd query strings cannot mint cache entries.
-app.use('/api/pulse/un-alignment', edgeCache(3600));
+app.use('/api/pulse/un-alignment', edgeCache(3600, pulseCacheKey('un-alignment')));
 app.use('/api/pulse/power', edgeCache(3600, (url) => `${url.origin}${url.pathname}?countries=${normalizeCountries(url.searchParams.get('countries')).join(',')}`));
 
 // Feeds are polled by readers around the clock, so they get a longer edge window, a cache
@@ -108,36 +119,15 @@ const CLAUDE_CALLING_SUFFIXES = ['/classification', '/origin', '/screening', '/d
 // spend on the deploying account's key. Every other route (health check,
 // case reads, samples) is a plain D1 read and stays unthrottled.
 //
-// Besides the per-visitor limit there is a daily ceiling across everyone (CLAUDE_DAILY_CAP, default 300
-// Claude-calling requests per UTC day), so a coordinated burst can never run up an unbounded bill. It is one
-// counter row in D1 per day. If the counter itself cannot be read, requests are allowed rather than blocked.
-async function claudeCapReached(env: Env): Promise<boolean> {
-  const cap = Number(env.CLAUDE_DAILY_CAP ?? 300);
-  if (!Number.isFinite(cap) || cap <= 0) return false;
-  try {
-    const day = new Date().toISOString().slice(0, 10);
-    const row = await env.DB.prepare(
-      `INSERT INTO pulse_feed_state (source_key, last_note) VALUES (?1, '1')
-       ON CONFLICT(source_key) DO UPDATE SET last_note = CAST(CAST(pulse_feed_state.last_note AS INTEGER) + 1 AS TEXT)
-       RETURNING last_note`
-    )
-      .bind(`claude-calls:${day}`)
-      .first<{ last_note: string }>();
-    return Number(row?.last_note ?? 0) > cap;
-  } catch {
-    return false;
-  }
-}
-
+// The daily ceiling across everyone (CLAUDE_DAILY_CAP, default 300 Claude calls per UTC day) is counted where each call is made
+// (claimClaudeCall in lib/anthropic.ts), after the case and the request body have been checked, so invalid requests cannot use
+// it up and a multi-party screening counts once per call it really makes.
 app.use('/api/cases/*', async (c, next) => {
   if (c.req.method === 'POST' && CLAUDE_CALLING_SUFFIXES.some((s) => c.req.path.endsWith(s))) {
     const key = c.req.header('cf-connecting-ip') ?? 'unknown';
     const { success } = await c.env.CLAUDE_RATE_LIMITER.limit({ key });
     if (!success) {
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
-    }
-    if (await claudeCapReached(c.env)) {
-      return c.json({ error: "The calculator has reached its daily capacity for AI-assisted checks. Please try again tomorrow." }, 503);
     }
   }
   return next();
@@ -157,6 +147,7 @@ const limitWrites: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
 };
 app.use('/api/cases', limitWrites);
 app.use('/api/pulse/snapshots', limitWrites);
+app.use('/api/pulse/sync', limitWrites);
 
 app.route('/api/cases', casesRoute);
 app.route('/api/cases', classificationRoute);
@@ -174,6 +165,9 @@ app.get('/api/health', (c) => c.json({ ok: true }));
 // surfaced. This keeps every route's error contract the same ({ error }, as
 // json) and logs the real cause to the Worker's own log instead of the client.
 app.onError((err, c) => {
+  if (err instanceof ClaudeDailyCapError) {
+    return c.json({ error: 'The calculator has reached its daily capacity for AI-assisted checks. Please try again tomorrow.' }, 503);
+  }
   console.error(err);
   return c.json({ error: 'Something went wrong on our end. Please try again shortly.' }, 500);
 });

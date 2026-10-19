@@ -74,6 +74,24 @@ await test('with nothing cached, a failure is passed through', async () => {
   assert.equal(res.status, 503);
 });
 
+await test('a miss over the limit gets the stale copy when there is one, otherwise a 429, and hits are never limited', async () => {
+  let allow = true;
+  const env = { MISS_RATE_LIMITER: { limit: async () => ({ success: allow }) } };
+  let calls = 0;
+  const app = appWith(() => (calls++, new Response('v')), 0.001);
+  const first = await app.request('http://t/x?m=1', {}, env, ctx);
+  assert.equal(first.status, 200);
+  await new Promise((r) => setTimeout(r, 30)); // the entry is now stale
+  allow = false;
+  const stale = await app.request('http://t/x?m=1', {}, env, ctx);
+  assert.equal(stale.headers.get('X-Edge-Cache'), 'STALE');
+  assert.equal(calls, 1, 'a limited request must not reach the handler');
+  const fresh = await app.request('http://t/x?m=2', {}, env, ctx);
+  assert.equal(fresh.status, 429);
+  assert.equal(fresh.headers.get('Retry-After'), '30');
+  assert.equal(calls, 1);
+});
+
 if (failures) {
   console.error(`\n${failures} FAIL`);
   process.exit(1);

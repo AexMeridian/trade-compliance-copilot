@@ -243,3 +243,27 @@ export function focusCountries(title: string, stored: string[]): string[] {
   const inTitle = extractCountries(title);
   return inTitle.length > 0 ? inTitle : stored;
 }
+
+// Countries whose plain names the text extractor deliberately does not match (they double as common words or other places:
+// Georgia, Jordan, Chad, Puerto Rico...) or does not list. Callers that accept a country name from a request use these to
+// check the name really belongs to the code before it drives a table scan, a cache key or a stored row.
+export const NAMES_THE_TEXT_EXTRACTOR_SKIPS: Record<string, string> = {
+  TD: 'Chad', TF: 'French Southern Territories', GE: 'Georgia', JO: 'Jordan', NC: 'New Caledonia', PR: 'Puerto Rico',
+  EH: 'Western Sahara', LI: 'Liechtenstein', BH: 'Bahrain', SG: 'Singapore',
+};
+
+/** Every country code this app can name: the text extractor's list plus the few it skips on purpose. */
+export const KNOWN_COUNTRY_CODES: ReadonlySet<string> = new Set([...Object.keys(COUNTRY_LABELS), ...Object.keys(NAMES_THE_TEXT_EXTRACTOR_SKIPS), 'US']);
+
+/** True when `name` is a real name for `code` (so an arbitrary string cannot reach a table scan or a cache key). */
+export function isNameOfCountry(code: string, name: string): boolean {
+  const clean = name.slice(0, 80);
+  return !!clean && (extractCountries(clean).includes(code) || NAMES_THE_TEXT_EXTRACTOR_SKIPS[code]?.toLowerCase() === clean.toLowerCase());
+}
+
+/** True when `name` is a recognizable country name (any country). */
+export function isKnownCountryName(name: string): boolean {
+  const clean = name.slice(0, 80);
+  if (!clean) return false;
+  return extractCountries(clean).length > 0 || Object.values(NAMES_THE_TEXT_EXTRACTOR_SKIPS).some((n) => n.toLowerCase() === clean.toLowerCase());
+}

@@ -25,6 +25,32 @@ export function getClient(env: Env): Anthropic {
 }
 
 export class ClaudeGroundingError extends Error {}
+export class ClaudeDailyCapError extends Error {}
+
+/**
+ * Counts one Claude call against the day's shared ceiling (CLAUDE_DAILY_CAP, default 300 per UTC day; one counter row in D1).
+ * Called immediately before each real call, so requests that fail validation never use it up. If the counter cannot be read,
+ * the call is allowed rather than blocked.
+ */
+export async function claimClaudeCall(env: Env): Promise<void> {
+  const cap = Number(env.CLAUDE_DAILY_CAP ?? 300);
+  if (!Number.isFinite(cap) || cap <= 0) return;
+  let used = 0;
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const row = await env.DB.prepare(
+      `INSERT INTO pulse_feed_state (source_key, last_note) VALUES (?1, '1')
+       ON CONFLICT(source_key) DO UPDATE SET last_note = CAST(CAST(pulse_feed_state.last_note AS INTEGER) + 1 AS TEXT)
+       RETURNING last_note`
+    )
+      .bind(`claude-calls:${day}`)
+      .first<{ last_note: string }>();
+    used = Number(row?.last_note ?? 0);
+  } catch {
+    return;
+  }
+  if (used > cap) throw new ClaudeDailyCapError('Daily Claude call ceiling reached.');
+}
 
 /**
  * Calls Claude with a single tool, forced (tool_choice), and returns the
@@ -45,6 +71,7 @@ export async function callClaudeTool<T>(
     maxTokens?: number;
   }
 ): Promise<T> {
+  await claimClaudeCall(env);
   const client = getClient(env);
   const response = await client.messages.create({
     model: CLAUDE_MODEL,

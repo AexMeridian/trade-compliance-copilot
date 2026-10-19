@@ -43,6 +43,18 @@ export function edgeCache(ttlSeconds: number, cacheKeyUrl?: (url: URL) => string
       stale = asServed('STALE');
     }
 
+    // A miss is what costs database reads. A visitor who keeps asking for entries nobody has cached gets the last good copy when
+    // there is one and otherwise a short "slow down", so a script cycling through URLs cannot drain the daily read allowance.
+    // (A normal page view makes a handful of misses at most. The limiter is absent in some test runtimes.)
+    const limiter = (c.env as { MISS_RATE_LIMITER?: { limit: (o: { key: string }) => Promise<{ success: boolean }> } } | undefined)?.MISS_RATE_LIMITER;
+    if (limiter) {
+      const { success } = await limiter.limit({ key: c.req.header('cf-connecting-ip') ?? 'unknown' }).catch(() => ({ success: true }));
+      if (!success) {
+        if (stale) return stale;
+        return c.json({ error: 'Too many requests. Please wait a moment and try again.' }, 429, { 'Retry-After': '30' });
+      }
+    }
+
     await next();
     if (c.res.status === 200) {
       const copy = c.res.clone();

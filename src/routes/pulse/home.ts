@@ -18,13 +18,14 @@ import { INDICATOR_BY_ID, sourceFor } from '../../lib/power/indicators.js';
 // POSTs can't both see the cooldown as expired, because "claim the right to
 // sync" and "check the cooldown" are the same statement, not two steps with
 // a gap between them.
-const SYNC_COOLDOWN_MS = 60_000;
+// Fifteen minutes: the daily job and the lazy refresh already keep the data current, so this button only needs to be
+// available now and then, and anyone can press it (it makes up to ~68 outbound requests).
+const SYNC_COOLDOWN_MS = 15 * 60_000;
 
 // Citable snapshots -- see migrations/0021_schema_pulse_snapshots.sql's header
 // for why this is its own frozen-copy table rather than reusing any
-// existing last_updated/data_as_of column. Already covered by index.ts's
-// blanket /api/pulse/* rate limit (120/min/IP), same as every other route
-// here -- no extra limiter needed just for the write.
+// existing last_updated/data_as_of column. Also under index.ts's write limiter
+// (10/min/IP) on top of the blanket /api/pulse/* limit.
 
 
 export function homeRoute(root: PulseApp): PulseApp {

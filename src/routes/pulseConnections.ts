@@ -4,7 +4,7 @@ import type { PulseAction } from '../lib/pulse/types.js';
 import { topicsFor, topicHintForActionTag, TOPICS, type Topic } from '../lib/pulse/topic.js';
 import { converge, findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
 import { CURRENCY_FOR, MARKET_TILE_FOR, TOPIC_COMMODITY } from '../lib/pulse/countryMarkets.js';
-import { extractCountries, focusCountries } from '../lib/pulse/country.js';
+import { extractCountries, focusCountries, isNameOfCountry } from '../lib/pulse/country.js';
 
 // Cross-domain connections. Everything here is derived from rows that already
 // exist (actions, news, trade barriers, forced-labor findings, market series)
@@ -218,7 +218,9 @@ connectionsRoute.get('/connections', async (c) => {
   if (isGroup ? group.length > 12 || !group.every((g) => /^[A-Z]{2}$/.test(g)) : !/^[A-Z]{2}$/.test(code)) {
     return c.json({ error: isGroup ? 'countries must be up to 12 two-letter codes' : 'country must be a 2-letter code' }, 400);
   }
-  const name = c.req.query('name') || null;
+  // A display name only counts when it is really this country's: it is shown on the page and keyed into the cache.
+  const rawName = c.req.query('name') || '';
+  const name = !isGroup && isNameOfCountry(code, rawName) ? rawName : null;
   const days = clampInt(c.req.query('days'), 60, 7, 180);
   const topic = c.req.query('topic');
   const wanted = (TOPICS as readonly string[]).includes(topic ?? '') ? (topic as Topic) : null;
@@ -289,7 +291,8 @@ connectionsRoute.get('/related', async (c) => {
   const id = c.req.query('id');
   if (!id || (kind !== 'action' && kind !== 'news')) return c.json({ error: 'kind must be action or news, and id is required' }, 400);
   const names = (c.req.query('names') ?? '').split('|').filter(Boolean); // optional "CN:China|MX:Mexico"
-  const nameMap = new Map(names.map((p) => p.split(':') as [string, string]));
+  // Names are shown on the page, so one is kept only when it is really that country's.
+  const nameMap = new Map(names.map((p) => p.split(':') as [string, string]).filter(([code, name]) => code && name && isNameOfCountry(code, name)));
   const nameOf = (code: string) => nameMap.get(code) ?? code;
 
   let subject: ConnEvent | null = null;

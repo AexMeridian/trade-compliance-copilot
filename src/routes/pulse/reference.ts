@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { clampInt } from './util.js';
+import { isKnownCountryName } from '../../lib/pulse/country.js';
+import { MAX_OFFSET } from '../../lib/pulse/cacheKeys.js';
 
 export const referenceRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -18,7 +20,7 @@ referenceRoute.get('/tariffs', async (c) => {
   const program = c.req.query('program') || null;
   const country = c.req.query('country') || null;
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
-  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
   const where = `(?1 IS NULL OR program = ?1) AND (?2 IS NULL OR country_scope = ?2)`;
   const [{ results }, total, programs] = await Promise.all([
@@ -41,9 +43,14 @@ referenceRoute.get('/sanctions', async (c) => {
   // section: addresses.country is free text from OFAC/BIS source data, not a
   // normalized ISO code, so this matches a full country name, not a code.
   const countryName = c.req.query('country') || null;
+  // The match scans every listed party's address, so only a real country name is accepted (this is what the page's "Country
+  // name" box asks for); anything else is turned away before it costs a table scan.
+  if (countryName && !isKnownCountryName(countryName)) {
+    return c.json({ error: 'Enter the name of a country, for example Russia or Iran.' }, 400);
+  }
   const list = c.req.query('list'); // 'sdn' | 'csl' | omitted = both
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
-  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
   const sdnWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
   const cslWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
@@ -157,7 +164,7 @@ referenceRoute.get('/export-control-chart', async (c) => {
 referenceRoute.get('/gta', async (c) => {
   const countryName = c.req.query('country') || null;
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
-  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
   const where = countryName
     ? `WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)`
@@ -197,7 +204,7 @@ referenceRoute.get('/wro', async (c) => {
   const country = c.req.query('country')?.toUpperCase() || null;
   const status = c.req.query('status') || null; // 'Active' | omitted = all
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
-  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0 });
+  const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
   const where = `(?1 IS NULL OR country_code = ?1) AND (?2 IS NULL OR status = ?2)`;
   const [{ results }, total] = await Promise.all([
