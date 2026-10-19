@@ -31,13 +31,12 @@ export function SiteFooter() {
 
           <nav aria-label="Sections" className={col}>
             <h2 className={head}>Sections</h2>
-            <Link to="/" className={link}>Pulse</Link>
+            <Link to="/" className={link}>Wire</Link>
             <Link to="/?tab=policy" className={link}>U.S. policy</Link>
             <Link to="/?tab=markets" className={link}>Markets</Link>
             <Link to="/?tab=news" className={link}>News</Link>
-            <Link to="/abroad" className={link}>U.S. abroad</Link>
-            <Link to="/allies" className={link}>Dollar &amp; allies</Link>
-            <Link to="/compare" className={link}>Compare countries</Link>
+            <Link to="/hard-power" className={link}>Hard Power</Link>
+            <Link to="/soft-power" className={link}>Soft Power</Link>
             <Link to="/calculator" className={link}>Compliance calculator (Beta)</Link>
           </nav>
 

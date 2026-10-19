@@ -62,22 +62,21 @@ await test('a failed-only job (no success on record) is still due', async () => 
   assert.equal(picked[0].source, 'sdn');
 });
 
-await test('indicator jobs on a fresh install stay inside the 40-request budget; the rest wait a day', async () => {
+await test('every indicator job fits the 40-request budget on a fresh install (World Bank series are batched)', async () => {
   const picked = await pickDueIndicatorJobs(envWith([]), NOW);
-  const fetches: Record<string, number> = { world_bank: 2, power_indicators: 22, un_voting: 2, uis_students: 2, unhcr: 2, nobel: 4, fts: 9 };
-  assert.ok(picked.length >= 5 && picked.length < 7, picked.map((j) => j.source).join(','));
+  const fetches: Record<string, number> = { world_bank: 2, power_indicators: 7, un_voting: 2, uis_students: 2, unhcr: 2, nobel: 4, fts: 9, undp_hdr: 2, openalex: 6 };
+  assert.equal(picked.length, 9, picked.map((j) => j.source).join(','));
   assert.ok(picked.reduce((n, j) => n + fetches[j.source], 0) <= 40);
-  assert.ok(!picked.some((j) => j.source === 'fts'), 'the 9-request job is the one that waits');
 });
 
-await test('a day later the job that waited runs, and nothing already fresh does', async () => {
-  const log = ['world_bank', 'power_indicators', 'un_voting', 'uis_students', 'unhcr', 'nobel'].map((source) => ({ source, biggest: 5, last_ok: daysAgo(1) }));
+await test('indicator jobs that ran this week are not picked again', async () => {
+  const log = ['world_bank', 'power_indicators', 'un_voting', 'uis_students', 'unhcr', 'nobel', 'undp_hdr', 'openalex'].map((source) => ({ source, biggest: 5, last_ok: daysAgo(1) }));
   assert.deepEqual((await pickDueIndicatorJobs(envWith(log), NOW)).map((j) => j.source), ['fts']);
 });
 
 await test('no indicator job is in the heavy reference-table group', async () => {
   const picked = await pickDueBulkJobs(envWith([]), NOW);
-  assert.ok(!picked.some((j) => ['power_indicators', 'un_voting', 'uis_students', 'unhcr', 'nobel', 'fts', 'world_bank'].includes(j.source)));
+  assert.ok(!picked.some((j) => ['power_indicators', 'un_voting', 'uis_students', 'unhcr', 'nobel', 'fts', 'world_bank', 'undp_hdr', 'openalex'].includes(j.source)));
 });
 
 if (failures) {

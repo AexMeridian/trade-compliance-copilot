@@ -12,6 +12,7 @@ import { LogoMark } from './components/LogoMark';
 import { SiteFooter } from './components/SiteFooter';
 import { SITE } from './lib/site';
 import { pageMeta } from './lib/pageMeta';
+import { legacyRedirect } from './lib/powerTabs';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
 // Everything except the home page loads on demand, so a first visit downloads only
@@ -20,8 +21,8 @@ const lazyPage = <K extends string>(load: () => Promise<Record<K, ComponentType>
 const Landing = lazyPage(() => import('./pages/Landing'), 'Landing');
 const CaseWizard = lazyPage(() => import('./pages/CaseWizard'), 'CaseWizard');
 const Report = lazyPage(() => import('./pages/Report'), 'Report');
-const Influence = lazyPage(() => import('./pages/Influence'), 'Influence');
-const Power = lazyPage(() => import('./pages/Power'), 'Power');
+const HardPower = lazyPage(() => import('./pages/HardPower'), 'HardPower');
+const SoftPower = lazyPage(() => import('./pages/SoftPower'), 'SoftPower');
 const CountryDetail = lazyPage(() => import('./pages/CountryDetail'), 'CountryDetail');
 const About = lazyPage(() => import('./pages/About'), 'About');
 const Methodology = lazyPage(() => import('./pages/Methodology'), 'Methodology');
@@ -32,7 +33,6 @@ const Cookies = lazyPage(() => import('./pages/Cookies'), 'Cookies');
 const Disclaimer = lazyPage(() => import('./pages/Disclaimer'), 'Disclaimer');
 const Copyright = lazyPage(() => import('./pages/Copyright'), 'Copyright');
 const Security = lazyPage(() => import('./pages/Security'), 'Security');
-const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'CountryCompare');
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
@@ -61,6 +61,20 @@ function usePageMeta(pathname: string, tab: string | null) {
       robots.remove();
     }
   }, [pathname, tab]);
+}
+
+// An old address (see lib/powerTabs.ts) opens its new home, keeping the tab and any country choices.
+function Legacy() {
+  const { pathname, search } = useLocation();
+  const to = legacyRedirect(pathname, new URLSearchParams(search));
+  return <Navigate to={to ?? '/'} replace />;
+}
+
+// The Wire is the home page; its old Data tab now lives on Hard Power.
+function Home() {
+  const { pathname, search } = useLocation();
+  const to = legacyRedirect(pathname, new URLSearchParams(search));
+  return to ? <Navigate to={to} replace /> : <Pulse />;
 }
 
 // On the top bar (which follows the theme): quiet text, and the current page is a solid ink pill.
@@ -123,16 +137,16 @@ export default function App() {
           </Link>
           <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <NavLink to="/" end className={navClass}>
-              Pulse
+              Wire
             </NavLink>
             <NavLink to="/calculator" className={navClass}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
             </NavLink>
-            <NavLink to="/abroad" className={(s) => `${navClass(s)} hidden lg:block`}>
-              U.S. abroad
+            <NavLink to="/hard-power" className={(s) => `${navClass(s)} hidden lg:block`}>
+              Hard Power
             </NavLink>
-            <NavLink to="/allies" className={(s) => `${navClass(s)} hidden lg:block`}>
-              Dollar &amp; allies
+            <NavLink to="/soft-power" className={(s) => `${navClass(s)} hidden lg:block`}>
+              Soft Power
             </NavLink>
             <NavLink to="/about" className={(s) => `${navClass(s)} hidden lg:block`}>
               About
@@ -151,16 +165,14 @@ export default function App() {
         {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>
-          <Route path="/" element={<Pulse />} />
+          <Route path="/" element={<Home />} />
           <Route path="/calculator" element={<Landing />} />
-          <Route path="/abroad" element={<Influence />} />
-          <Route path="/allies" element={<Power />} />
-          <Route path="/footprint" element={<Navigate to={{ pathname: '/abroad', search: location.search }} replace />} />
-          <Route path="/standing" element={<Navigate to={{ pathname: '/allies', search: location.search }} replace />} />
-          <Route path="/vs-world" element={<Navigate to={{ pathname: '/allies', search: location.search }} replace />} />
-          {/* Old addresses keep working: bookmarks, shared links and search results. */}
-          <Route path="/influence" element={<Navigate to={{ pathname: '/abroad', search: location.search }} replace />} />
-          <Route path="/power" element={<Navigate to={{ pathname: '/allies', search: location.search }} replace />} />
+          <Route path="/hard-power" element={<HardPower />} />
+          <Route path="/soft-power" element={<SoftPower />} />
+          {/* Old addresses keep working (the Worker also answers them with a 301): bookmarks, shared links and search results. */}
+          {['/abroad', '/influence', '/footprint', '/allies', '/power', '/standing', '/vs-world', '/compare'].map((path) => (
+            <Route key={path} path={path} element={<Legacy />} />
+          ))}
           <Route path="/country/:code" element={<CountryDetail />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
@@ -173,7 +185,6 @@ export default function App() {
           <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/copyright" element={<Copyright />} />
           <Route path="/security" element={<Security />} />
-          <Route path="/compare" element={<CountryCompare />} />
           <Route path="/snapshot/:id" element={<Snapshot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -131,7 +131,7 @@ const SOURCES: SourceRow[] = [
     keys: ['world_bank'],
   },
   {
-    name: 'Country indicators (aid, attraction, knowledge, governance, military)',
+    name: 'Country indicators (aid, exchange, knowledge, governance, military)',
     publisher: 'The World Bank, World Development Indicators and Worldwide Governance Indicators',
     url: 'https://data.worldbank.org/',
     terms: 'Licensed CC BY 4.0; attribution required. Figures are shown as published, with their year; nothing is estimated or combined into a score.',
@@ -179,6 +179,30 @@ const SOURCES: SourceRow[] = [
     keys: ['fts'],
   },
   {
+    name: 'Shared language and colonial history',
+    publisher: 'CEPII, GeoDist database (Mayer and Zignago 2011)',
+    url: 'https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=6',
+    terms: 'Licensed Etalab 2.0 (open, commercial reuse with attribution). For each country and seven major powers, only two facts are kept: whether they share an official language as CEPII codes it, and whether they ever had a colonial relationship. Prepared offline.',
+    cadence: 'Static; the file dates from 2011',
+    keys: [],
+  },
+  {
+    name: 'Human development',
+    publisher: 'UNDP Human Development Report Office, composite indices time series',
+    url: 'https://hdr.undp.org/data-center',
+    terms: 'Licensed CC BY 3.0 IGO: commercial reuse allowed with credit, a link to the licence and a note of any changes. The Human Development Index, Gender Inequality Index and mean years of schooling are shown as published; UNDP recomputes them each year.',
+    cadence: 'Checked weekly; UNDP publishes annually',
+    keys: ['undp_hdr'],
+  },
+  {
+    name: 'Scientific co-authorship',
+    publisher: 'OpenAlex',
+    url: 'https://openalex.org/',
+    terms: 'OpenAlex data are released under CC0. For each country, the share of its research papers from the last five full years that have at least one author based in the U.S., China, Russia or the U.K.; countries with fewer than 1,000 papers are left out.',
+    cadence: 'Checked weekly',
+    keys: ['openalex'],
+  },
+  {
     name: 'Public opinion of the U.S. and China',
     publisher: 'Pew Research Center, Global Attitudes Survey (Spring 2025 and Spring 2026)',
     url: 'https://www.pewresearch.org/topic/international-affairs/',
@@ -187,10 +211,10 @@ const SOURCES: SourceRow[] = [
     keys: [],
   },
   {
-    name: 'Views of China and the U.S. in Africa',
+    name: 'Views of the U.S., China and other powers in Africa',
     publisher: 'Afrobarometer, Round 10 (38 countries, 2024-2025)',
     url: 'https://www.afrobarometer.org/data/merged-data/',
-    terms: 'Afrobarometer makes its survey data free to use with attribution. The site keeps only each country’s weighted share saying the influence of China, or of the United States, is positive or negative, computed offline from the public merged file and shown with fieldwork dates.',
+    terms: 'Afrobarometer makes its survey data free to use with attribution. The site keeps only country-level weighted shares, computed offline from the public merged file and shown with fieldwork dates: whether the influence of China, the U.S., Russia, India, the EU and the former colonial power is positive or negative, which power helped most with COVID-19, and which side people would take in the Russia-Ukraine war.',
     cadence: 'One round every two to three years, manual',
     keys: [],
   },
@@ -454,7 +478,7 @@ export function Methodology() {
 
       <H id="automation">Automation and AI</H>
       <p className="mt-3">
-        The Pulse, U.S. abroad and Dollar & allies pages use no AI model. Labels, counts, rankings and links come from fixed, published rules applied to
+        The Wire, Hard Power and Soft Power pages use no AI model. Labels, counts, rankings and links come from fixed, published rules applied to
         source data. The Compliance calculator (Beta) is different: an AI model (Anthropic's Claude) reads the product description, suggests a tariff
         classification and writes explanations, and every suggestion is grounded in rows of the official tariff schedule that the system supplies. All
         arithmetic (duty stacks, percentages) is computed by deterministic code, never by the model, and party-name screening uses a fixed two-stage

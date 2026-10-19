@@ -1,19 +1,25 @@
 import { SectionHeader } from '../components/SectionHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseHome, getPulseTempo, syncPulse } from '../lib/api';
+import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type TicHolders as TicData } from '../lib/api';
+import { TicHolders } from '../components/TicHolders';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
-import { PulseSanctionsBrowser } from '../components/PulseSanctionsBrowser';
+import { HardPowerGuide } from '../components/HardPowerGuide';
+import { HardPowerHero } from '../components/HardPowerHero';
 import { RecentListings } from '../components/RecentListings';
-import { InfluenceGuide } from '../components/InfluenceGuide';
-import { InfluenceHero } from '../components/InfluenceHero';
-import { InfluenceTabs, INFLUENCE_TABS, type InfluenceTabId } from '../components/InfluenceTabs';
+import { PulseSanctionsBrowser } from '../components/PulseSanctionsBrowser';
+import { PulseTariffBrowser } from '../components/PulseTariffBrowser';
+import { PulseExportChart } from '../components/PulseExportChart';
+import { CountryCompare } from './CountryCompare';
+import { PowerCoferChart } from '../components/PowerCoferChart';
+import { CiteThisButton } from '../components/CiteThisButton';
+import { SectionTabs } from '../components/SectionTabs';
+import { HARD_TABS, hardTabFrom, type HardTabId } from '../lib/powerTabs';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseCurrencyMovers } from '../components/PulseCharts';
-import { PulseMacroStrip } from '../components/PulseMacroStrip';
 import { PulseMarketStrip } from '../components/PulseMarketStrip';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { ConvergencePanel } from '../components/ConvergencePanel';
@@ -23,14 +29,15 @@ import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { agoText, plainSummary } from '../lib/pulsePlain';
 import { SITE } from '../lib/site';
-import type { ActiveMeasure, NewsItem, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
+import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
-// A second lens on the same real Aex Terminal data (see InfluenceGuide
-// for exactly what's reused vs. new): pressure = the tariff/sanctions/export
-// tools already tracked there; reach = the dollar's reach and
-// diplomatic/political news, already collected there too; alliances = one
-// new, static, sourced reference file (lib/pulseBlocs.ts). No new backend
-// route, no LLM, nothing fabricated -- see routes/pulse.ts for the source.
+// A third lens on the same real Aex Terminal data (see PowerGuide for
+// exactly what's reused vs. new): hard power = the same tariff/sanctions/
+// export tools Influence's Pressure tab already tracks; soft power = the
+// dollar's reach Influence's Reach tab already tracks, PLUS one genuinely
+// new data point (IMF COFER, the dollar's reserve-currency share); alliances
+// = the same static, sourced bloc file Influence uses. No new fabricated
+// score anywhere -- see routes/pulse.ts and lib/pulse/cofer.ts for sources.
 const Item = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex min-w-0 flex-col border-t-4 border-ink p-4">
     <h2 className="font-sans text-[13px] font-semibold tracking-normal text-ink">{label}</h2>
@@ -39,7 +46,7 @@ const Item = ({ label, children }: { label: string; children: React.ReactNode })
 );
 const Unavailable = ({ loading }: { loading: boolean }) => <p className="text-sm text-ink-faint">{loading ? 'Loading…' : 'Not available right now.'}</p>;
 
-export function Influence() {
+export function HardPower() {
   const [summary, setSummary] = useState<PulseSummary | null>(null);
   const [months, setMonths] = useState<TempoPoint[]>([]);
   const [tempoRange, setTempoRange] = useState<TempoRangeId>('2yr');
@@ -49,6 +56,9 @@ export function Influence() {
   const [marketsFailed, setMarketsFailed] = useState(false);
   const [news, setNews] = useState<PulseNewsResponse | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
+  const [coferPoints, setCoferPoints] = useState<[string, number][]>([]);
+  const [tic, setTic] = useState<TicData | null>(null);
+  const [natoDefense, setNatoDefense] = useState<Record<string, NatoDefenseCountry>>({});
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -57,13 +67,13 @@ export function Influence() {
 
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
-  const tab: InfluenceTabId = INFLUENCE_TABS.some((t) => t.id === tabParam) ? (tabParam as InfluenceTabId) : 'overview';
-  const setTab = (id: InfluenceTabId, reveal = false) => {
+  const tab: HardTabId = hardTabFrom(tabParam);
+  const setTab = (id: HardTabId, reveal = false) => {
     const next = new URLSearchParams(params);
     if (id === 'overview') next.delete('tab');
     else next.set('tab', id);
     setParams(next, { replace: true });
-    if (reveal) requestAnimationFrame(() => document.getElementById('influence-tabs')?.scrollIntoView({ block: 'start' }));
+    if (reveal) requestAnimationFrame(() => document.getElementById('hard-tabs')?.scrollIntoView({ block: 'start' }));
   };
 
   // Guards against a slower, earlier range request resolving after a faster,
@@ -80,12 +90,20 @@ export function Influence() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const home = await getPulseHome();
+    const [home, cofer, natoDef, ticData] = await Promise.all([
+      getPulseHome(),
+      getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] })),
+      getNatoDefenseSpending().catch(() => ({ countries: {} as Record<string, NatoDefenseCountry> })),
+      getTicHolders().catch(() => null),
+    ]);
+    setTic(ticData);
     if (home.tempo) setMonths(home.tempo.months);
     if (home.overlays) setOverlays(home.overlays.overlays);
     if (home.summary) setSummary(home.summary);
     if (home.recent) setRecentAll(home.recent.actions);
     setPolicyChecked(home.status?.policy ?? null);
+    setCoferPoints(cofer.points);
+    setNatoDefense(natoDef.countries);
     if (home.markets) {
       setMarkets(home.markets);
       setMarketsFailed(false);
@@ -120,40 +138,38 @@ export function Influence() {
     }
   }
 
-  // Same fix as Pulse.tsx: reflects when the feed was last successfully
-  // checked, not the newest document's own date, so a quiet policy day
-  // doesn't read as a stale page.
   const lastSynced = policyChecked;
   const topAction = rankSignals(recentAll, 1)[0] ?? null;
   const politicalNews = (news?.items ?? []).filter((n) => n.category === 'Elections & Politics' || n.category === 'Official');
   const headline = politicalNews[0] ?? null;
-  // Based on the ECB reference rates (always on), not on a stock-quote feed.
-  const fx = (markets?.currencies ?? []).filter((r) => r.change30dPct !== null);
-  const dollarUp = fx.filter((r) => (r.change30dPct ?? 0) > 0).length;
   const tilesIn = (group: string) => (markets?.tiles ?? []).filter((t) => t.group === group);
-  const priceTiles = (markets?.tiles ?? []).filter((t) => t.id === 'BLS:IMPORT_PX' || t.id === 'BLS:EXPORT_PX');
   const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
-  const seeAll = (label: string, to: InfluenceTabId) => (
+  const seeAll = (label: string, to: HardTabId) => (
     <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
       {label}
     </button>
   );
 
+  const coferLatest = coferPoints.length > 0 ? { date: coferPoints[coferPoints.length - 1][0], value: coferPoints[coferPoints.length - 1][1] } : null;
+  const coferEarliest = coferPoints.length > 0 ? { date: coferPoints[0][0], value: coferPoints[0][1] } : null;
+
   return (
     <div>
-      <InfluenceHero
+      <HardPowerHero
         summary={summary}
         markets={markets}
         activeCountry={activeCountry}
         onCountry={setActiveCountry}
         onClearCountry={() => setActiveCountry(null)}
-        onSeeAll={() => setTab('pressure', true)}
+        onSeeAll={() => setTab('trade', true)}
         recent={recentAll}
         news={news?.items ?? []}
-        onExplore={() => setTab('pressure', true)}
+        onExplore={() => setTab('trade', true)}
         updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
         syncing={syncing}
         onRefresh={handleRefresh}
+        coferPoints={coferPoints}
+        natoDefense={natoDefense}
       />
 
       <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
@@ -163,13 +179,13 @@ export function Influence() {
           </p>
         )}
 
-        <InfluenceTabs active={tab} onChange={(id) => setTab(id)} />
+        <SectionTabs tabs={HARD_TABS} active={tab} onChange={(id) => setTab(id)} idPrefix="hard" label="Hard Power sections" />
 
-        <div role="tabpanel" id="influence-tabpanel" aria-labelledby={`influence-tab-${tab}`} className="pt-6">
+        <div role="tabpanel" id="hard-tabpanel" aria-labelledby={`hard-tab-${tab}`} className="pt-6">
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
               <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-                <Item label="Biggest trade measure lately">
+                <Item label="Biggest trade action lately">
                   {topAction ? (
                     <>
                       <a
@@ -186,19 +202,21 @@ export function Influence() {
                     <Unavailable loading={loading} />
                   )}
                 </Item>
-                <Item label="The dollar's reach">
-                  {fx.length > 0 ? (
+                <Item label="The dollar's reserve share">
+                  {coferLatest ? (
                     <>
                       <p className="text-base font-semibold leading-snug text-ink">
-                        <span className="mr-1.5 text-2xl tabular-nums">
-                          {dollarUp} of {fx.length}
-                        </span>
-                        currencies fell against the dollar
+                        <span className="mr-1.5 text-2xl tabular-nums">{coferLatest.value.toFixed(0)}%</span>
+                        of world FX reserves
                       </p>
-                      <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">Over the last 30 days, using the European Central Bank's daily reference rates.</p>
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
+                        {coferEarliest && coferEarliest.date !== coferLatest.date
+                          ? `Down from ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)} (IMF COFER).`
+                          : 'IMF COFER, the U.S. dollar share of allocated reserves.'}
+                      </p>
                     </>
                   ) : (
-                    <Unavailable loading={!markets && !marketsFailed} />
+                    <Unavailable loading={loading} />
                   )}
                 </Item>
                 <Item label="Top diplomatic headline">
@@ -224,19 +242,25 @@ export function Influence() {
               </div>
 
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
-                Every figure above and on the tabs below is a real, sourced number -- the same data behind{' '}
+                Every figure above and on the tabs below is a real, sourced number -- most of it the same data behind{' '}
                 <Link to="/" className="text-accent hover:underline">
                   {SITE.name}
+                </Link>{' '}
+                . Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. Nothing here is combined into a score.
+                For attraction rather than coercion, see{' '}
+                <Link to="/soft-power" className="text-accent hover:underline">
+                  Soft Power
                 </Link>
-                , organized by trade measures and reach. See the Guide tab for what that does and doesn't mean.
+                .
               </p>
             </div>
           )}
 
-          {tab === 'pressure' && (
+          {tab === 'trade' && (
             <div className="flex flex-col gap-4">
-              <SectionHeader title="Trade measures" description="
-                  Tariffs, sanctions and export controls: the tools the U.S. uses to raise costs or cut off access, as published in the Federal Register.
+              <SectionHeader title="Trade tools" description="
+                  Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
+                  Register.
                 " />
               <PulsePanel
                 title="Where measures converge"
@@ -261,7 +285,11 @@ export function Influence() {
                     help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
-                    {loading || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}
+                    {loading || !summary ? (
+                      loadingBlock
+                    ) : (
+                      <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />
+                    )}
                   </PulsePanel>
                 </div>
                 <div className="min-w-0 lg:col-span-8">
@@ -282,7 +310,7 @@ export function Influence() {
                     {loading ? loadingBlock : <PulseAgencyBreakdown breakdown={summary?.agencyBreakdown ?? []} />}
                   </PulsePanel>
                   <PulsePanel
-                    title="Pace of U.S. trade notices"
+                    title="Pace of U.S. trade actions"
                     help="How many actions were published each month. Taller bars mean a busier month. Pick a shorter or longer window with the range buttons."
                     subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`}
                   >
@@ -294,18 +322,83 @@ export function Influence() {
                   </PulsePanel>
                 </div>
               </div>
-              {seeAll(`Full detail on ${SITE.name}`, 'overview')}
+              <PulsePanel
+                title="Tariff programs, every row"
+                help="Every row in this app's tariff_overlays table: one per (program, HTS pattern, country). Active measures above groups these into one row per real-world measure; this is the full underlying data."
+              >
+                <PulseTariffBrowser />
+              </PulsePanel>
+              <PulsePanel title="Commerce Country Chart, full curation" help="Every destination this app has hand-verified export-control status for, and an honest count of how many it hasn't.">
+                <PulseExportChart />
+              </PulsePanel>
+              {seeAll(`Latest notices on ${SITE.name}`, 'overview')}
             </div>
           )}
 
-          {tab === 'reach' && (
-            <div className="flex flex-col gap-8">
-              <SectionHeader title="Reach" description="
-                  Two real proxies, not a measure of favorability: the dollar's reach in world markets, and diplomatic/political news.
+          {tab === 'sanctions' && (
+            <div className="flex flex-col gap-4">
+              <SectionHeader title="Sanctions" description="
+                  Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
+                  text match on each entry's address field, not a normalized code -- see the note below the search box.
                 " />
+              <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
+                <RecentListings />
+              </PulsePanel>
+              <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
+                <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
+              </PulsePanel>
+            </div>
+          )}
+
+          {tab === 'money' && (
+            <div className="flex flex-col gap-8">
+              <SectionHeader title="Money and the dollar" description="
+                  The dollar's pull as the world's reserve currency, who holds U.S. debt, and its reach in world markets. A measure of financial leverage, not of
+                  favorability.
+                " />
+
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">The dollar's reserve-currency share</h3>
+                <PulsePanel
+                  title="Percent of world FX reserves held in U.S. dollars"
+                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings -- not a prediction about what replaces it."
+                  subtitle="Quarterly since 1999."
+                >
+                  {coferPoints.length === 0 ? (
+                    loadingBlock
+                  ) : (
+                    <>
+                      <PowerCoferChart points={coferPoints} />
+                      <div className="mt-3">
+                        <CiteThisButton
+                          chartType="cofer"
+                          title="U.S. dollar's share of world FX reserves"
+                          params={{}}
+                          data={{ points: coferPoints }}
+                          sourceNote="International Monetary Fund, COFER (data.imf.org), quarterly, share of allocated reserves."
+                        />
+                      </div>
+                    </>
+                  )}
+                </PulsePanel>
+              </section>
+
+              {tic && tic.countries.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h3 className="font-display text-xl font-bold text-ink">Who holds U.S. debt</h3>
+                  <PulsePanel
+                    title="Largest foreign holders of U.S. Treasury securities"
+                    help="The Treasury's monthly survey of who owns U.S. government debt. Holdings are reported by where the securities are held, so financial centers such as Belgium, Luxembourg and the Cayman Islands can hold securities on behalf of investors elsewhere."
+                    subtitle="Monthly, about a six-week lag."
+                  >
+                    <TicHolders data={tic} />
+                  </PulsePanel>
+                </section>
+              )}
+
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
               <section className="flex flex-col gap-4">
-                <h3 className="font-display text-xl font-bold text-ink">The dollar and world markets</h3>
+                <h3 className="font-display text-xl font-bold text-ink">The dollar's market reach</h3>
                 <PulseMarketStrip tiles={tilesIn('Rates & dollar')} />
                 <PulseMarketStrip tiles={tilesIn('World stocks')} />
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -325,66 +418,57 @@ export function Influence() {
                   </PulsePanel>
                 </div>
               </section>
-              {priceTiles.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h3 className="font-display text-xl font-bold text-ink">Are trade measures reaching prices?</h3>
-                  <p className="text-sm text-ink-muted">
-                    What the U.S. actually pays for imports, and what buyers abroad actually pay for U.S. exports -- the closest real, published read on whether
-                    tariffs (and the dollar's moves) are showing up in prices, not just in policy announcements.
-                  </p>
-                  <PulseMacroStrip tiles={priceTiles} />
-                </section>
-              )}
-              <section className="flex flex-col gap-4">
-                <h3 className="font-display text-xl font-bold text-ink">Diplomatic and political headlines</h3>
-                {newsFailed && !news ? (
-                  <p className="text-sm text-ink-faint">Couldn't load news right now.</p>
-                ) : politicalNews.length === 0 ? (
-                  <p className="text-sm text-ink-faint">{loading ? 'Loading…' : 'No elections, politics or official headlines right now.'}</p>
-                ) : (
-                  <ul className="card divide-y divide-hairline">
-                    {politicalNews.slice(0, 10).map((n: NewsItem) => (
-                      <li key={n.id} className="flex gap-3 p-4">
-                        <NewsThumb src={n.image_url} className="h-16 w-16 shrink-0 rounded" />
-                        <div className="min-w-0">
-                          <a
-                            href={n.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block text-[15px] font-medium leading-snug text-ink no-underline hover:text-accent"
-                          >
-                            {n.title}
-                          </a>
-                          <p className="mt-1 text-xs text-ink-faint">
-                            {n.source}, {timeAgo(n.published_at)}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+
               <p className="text-xs leading-relaxed text-ink-faint">
-                Currency rates are the ECB's daily reference rates, published once per business day. News is BBC, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC, the ECB and the
-                Fed, filtered to their Elections & Politics and Official categories.
+                Reserve-share data is the IMF's COFER series, published quarterly with roughly a one-quarter lag. Currency rates are the ECB's daily reference rates,
+                published once per business day.
               </p>
             </div>
           )}
 
-          {tab === 'alliances' && (
+          {tab === 'military' && (
             <div className="flex flex-col gap-4">
-              <SectionHeader title="Alliances" description="
-                  Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown. See the Guide tab for sources and
-                  limits.
+              <SectionHeader title="Military and alliances" description="
+                  Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown, and NATO's own defense-spending
+                  estimates. See the Guide tab for sources and limits.
                 " />
               {loading ? (
                 loadingBlock
               ) : (
                 <InfluenceBlocs breakdown={summary?.countryBreakdown ?? []} activeCountry={activeCountry} onSelect={setActiveCountry} />
               )}
+
+              {Object.keys(natoDefense).length > 0 && (
+                <PulsePanel
+                  title="NATO defense spending, % of GDP"
+                  subtitle="NATO's own published estimates, not a live feed -- re-verified by hand roughly once a year."
+                  help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. The United States is shown as the comparison baseline this panel exists to provide, not because it needs to meet its own guideline. NATO's own target is 2% of GDP on core defense (raised in 2025 to a path toward 5% by 2035, split 3.5% core / 1.5% related spending)."
+                >
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {Object.entries(natoDefense)
+                      .map(([code, d]) => ({ code, latest: d.points[d.points.length - 1] }))
+                      .filter((r) => r.latest)
+                      .sort((a, b) => b.latest[1] - a.latest[1])
+                      .map(({ code, latest }) => (
+                        <li key={code} className="flex items-center justify-between gap-3 border-b border-hairline pb-2 last:border-0 last:pb-0">
+                          <span className="text-ink">{COUNTRY_LABELS[code] ?? code}</span>
+                          <span className="tabular-nums">
+                            <span className={`font-semibold ${latest[1] >= 2 ? 'text-ink' : 'text-review'}`}>{latest[1].toFixed(2)}%</span>{' '}
+                            <span className="text-xs text-ink-faint">({latest[0].slice(0, 4)})</span>
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </PulsePanel>
+              )}
+
               {activeCountry && (
                 <p className="text-sm text-ink-muted">
-                  Selected: <span className="text-ink">{COUNTRY_LABELS[activeCountry] ?? activeCountry}</span>. See its details on the hero above, or{' '}
+                  Selected: <span className="text-ink">{COUNTRY_LABELS[activeCountry] ?? activeCountry}</span>. See its{' '}
+                  <Link to={`/country/${activeCountry}`} className="text-accent hover:underline">
+                    full country page
+                  </Link>
+                  , or{' '}
                   <button type="button" onClick={() => setTab('overview', true)} className="text-accent hover:underline">
                     scroll up
                   </button>
@@ -394,22 +478,9 @@ export function Influence() {
             </div>
           )}
 
-          {tab === 'sanctions' && (
-            <div className="flex flex-col gap-4">
-              <SectionHeader title="Sanctions" description="
-                  Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
-                  text match on each entry's address field, not a normalized code -- see the note below the search box.
-                " />
-              <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
-                <RecentListings />
-              </PulsePanel>
-              <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
-                <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
-              </PulsePanel>
-            </div>
-          )}
+          {tab === 'compare' && <CountryCompare view="trade" embedded />}
 
-          {tab === 'guide' && <InfluenceGuide />}
+          {tab === 'guide' && <HardPowerGuide />}
         </div>
 
         <div className="card mt-10 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">

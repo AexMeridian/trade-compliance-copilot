@@ -7,8 +7,6 @@ import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTemp
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
-import { PulseTariffBrowser } from '../components/PulseTariffBrowser';
-import { PulseExportChart } from '../components/PulseExportChart';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
@@ -560,8 +558,8 @@ export function Pulse() {
                       title="Where it's all connecting"
                       description="Countries named by policy, news, sanctions and more at once, last 60 days. It counts what was published; it is not a risk score."
                       action={
-                        <Link to="/abroad?tab=pressure" className="text-accent hover:underline">
-                          More on U.S. abroad
+                        <Link to="/hard-power?tab=trade" className="text-accent hover:underline">
+                          More on Hard Power
                         </Link>
                       }
                     />
@@ -844,21 +842,6 @@ export function Pulse() {
                 Currency rates are the ECB's daily reference rates, published once per business day. Inflation and jobs figures come from the U.S. Bureau of Labor
                 Statistics.
               </p>
-            </div>
-          )}
-
-          {tab === 'data' && (
-            <div className="flex flex-col gap-6">
-              <SectionHeader title="Data" description="The raw reference tables behind this page's summaries, for checking a specific rate or country yourself." />
-              <PulsePanel
-                title="Tariff programs, every row"
-                help="Every row in this app's tariff_overlays table: one per (program, HTS pattern, country). /active-measures above groups these into one row per real-world measure, and the tariff-exposure panel picks three specific slices -- this is the full underlying data both are built from."
-              >
-                <PulseTariffBrowser />
-              </PulsePanel>
-              <PulsePanel title="Commerce Country Chart, full curation" help="Every destination this app has hand-verified export-control status for, and an honest count of how many it hasn't.">
-                <PulseExportChart />
-              </PulsePanel>
             </div>
           )}
 

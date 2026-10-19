@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-// Phone-width header: Pulse and Calculator fit beside the logo, so the other main pages live here instead
+// Phone-width header: Wire and Calculator fit beside the logo, so the other main pages live here instead
 // of being unreachable. Hidden from lg up, where the full nav shows.
 const LINKS = [
-  { to: '/abroad', label: 'U.S. abroad' },
-  { to: '/allies', label: 'Dollar & allies' },
-  { to: '/compare', label: 'Compare countries' },
+  { to: '/hard-power', label: 'Hard Power' },
+  { to: '/soft-power', label: 'Soft Power' },
   { to: '/about', label: 'About' },
   { to: '/methodology', label: 'Methodology and sources' },
 ];

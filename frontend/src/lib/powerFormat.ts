@@ -24,6 +24,8 @@ export function formatValue(unit: PowerUnit, v: number): string {
       return `${v > 0 ? '+' : ''}${v.toFixed(2)}`;
     case 'distance':
       return v.toFixed(2);
+    case 'points':
+      return v.toFixed(1);
     case 'per_1000':
       return `${v < 1 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString('en-US')} per 1,000`;
   }

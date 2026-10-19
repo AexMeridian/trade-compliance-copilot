@@ -9,6 +9,9 @@ import { parseUnhcr } from '../src/lib/refresh/unhcr.js';
 import { countNobel } from '../src/lib/refresh/nobel.js';
 import { parseFtsYear, seriesFromYears } from '../src/lib/refresh/fts.js';
 import { deriveRows, buildPowerView } from '../src/lib/power/compute.js';
+import { parseSeriesMulti, planBatches } from '../src/lib/refresh/powerIndicators.js';
+import { parseUndp } from '../src/lib/refresh/undp.js';
+import { parseGroups, shares, MIN_WORKS } from '../src/lib/refresh/openalex.js';
 import { INDICATORS } from '../src/lib/power/indicators.js';
 
 let failures = 0;
@@ -201,6 +204,57 @@ test('every provider has at least one series, and every non-derived series is un
   for (const p of ['worldbank', 'voeten', 'uis', 'unhcr', 'nobel', 'fts', 'derived']) assert.ok(providers.has(p as never), p);
   assert.equal(new Set(INDICATORS.map((i) => i.id)).size, INDICATORS.length);
   for (const d of INDICATORS.filter((i) => i.reference)) assert.ok(['US', 'CN', 'RU'].includes(d.reference!));
+});
+
+test('World Bank series are grouped by database, six at a time, so a page never overflows', () => {
+  const defs = INDICATORS.filter((d) => d.provider === 'worldbank');
+  const batches = planBatches(defs);
+  assert.equal(batches.flat().length, defs.length, 'every series is in exactly one request');
+  for (const b of batches) {
+    assert.ok(b.length >= 1 && b.length <= 6);
+    assert.equal(new Set(b.map((d) => d.wbSource)).size, 1, 'one database per request');
+  }
+  assert.ok(batches.length <= 7, `${batches.length} requests`);
+});
+
+test('a multi-indicator World Bank response is split by indicator, real countries only', () => {
+  const countries = new Set(['US', 'CN']);
+  const row = (id: string, cc: string, date: string, value: number | null) => ({ indicator: { id }, country: { id: cc }, date, value });
+  const body = [{ pages: 1 }, [row('A', 'US', '2023', 1), row('A', 'CN', '2023', 2), row('B', 'US', '2022', 5), row('B', 'US', '2023', null), row('B', '1W', '2023', 9), row('A', 'US', '2024', 3)]];
+  const out = parseSeriesMulti(body, countries);
+  assert.deepEqual(out.get('A')?.US, [[2023, 1], [2024, 3]]);
+  assert.deepEqual(out.get('A')?.CN, [[2023, 2]]);
+  assert.deepEqual(out.get('B')?.US, [[2022, 5]]);
+  assert.equal(out.get('B')?.['1W'], undefined, 'aggregates are dropped');
+  assert.throws(() => parseSeriesMulti([{ message: [{ value: 'The indicator was not found.' }] }], countries), /not found/);
+  assert.throws(() => parseSeriesMulti([{ pages: 2 }, []], countries), /more than one page/);
+});
+
+test('UNDP wide CSV: one series per measure, countries only, blanks and the ".." marker skipped', () => {
+  const csv = [
+    'iso3,country,hdicode,hdi_2022,hdi_2023,gii_2023,mys_2023',
+    'USA,United States,Very High,0.931,0.938,0.169,13.9',
+    'NGA,Nigeria,Low,..,0.56,0.677,7.586',
+    'ZZA.VHHD,Very high human development,,0.9,0.91,,',
+    'XXX,Unknown place,,0.5,0.5,0.5,5',
+  ].join('\n');
+  const out = parseUndp(csv, new Map([['USA', 'US'], ['NGA', 'NG']]));
+  assert.deepEqual(out.hdi.US, [[2022, 0.931], [2023, 0.938]]);
+  assert.deepEqual(out.hdi.NG, [[2023, 0.56]]);
+  assert.deepEqual(out.gii.NG, [[2023, 0.677]]);
+  assert.deepEqual(Object.keys(out.hdi).sort(), ['NG', 'US']);
+  assert.throws(() => parseUndp('country,x\nA,1', new Map()), /iso3/);
+});
+
+test('OpenAlex: shares are works with the partner over a country\'s own total; small and missing countries get no reading', () => {
+  const key = (cc: string) => `https://openalex.org/countries/${cc}`;
+  const totals = parseGroups({ group_by: [{ key: key('US'), count: 6000 }, { key: key('NG'), count: 2000 }, { key: key('TV'), count: 40 }, { key: key('KE'), count: 1500 }, { key: 'bad', count: 5 }] });
+  assert.equal(totals.size, 4);
+  const withUs = parseGroups({ group_by: [{ key: key('US'), count: 6000 }, { key: key('NG'), count: 142 }, { key: key('TV'), count: 20 }] });
+  const out = shares(totals, withUs, 'US', 2025, new Set(['US', 'NG', 'TV', 'KE']));
+  assert.deepEqual(out, { NG: [[2025, 7.1]] }, 'partner skipped; TV below the minimum; KE absent from the breakdown');
+  assert.ok(MIN_WORKS >= 500);
+  assert.throws(() => parseGroups({}), /shape changed/);
 });
 
 if (failures) {

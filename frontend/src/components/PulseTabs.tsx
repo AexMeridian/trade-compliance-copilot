@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { SECTION_HUE } from '../lib/pulseColors';
 
-export type PulseTabId = 'overview' | 'policy' | 'markets' | 'news' | 'data' | 'guide';
+export type PulseTabId = 'overview' | 'policy' | 'markets' | 'news' | 'guide';
 
 export const PULSE_TABS: { id: PulseTabId; label: string; hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version' },
   { id: 'policy', label: 'U.S. policy', hint: 'Tariffs, sanctions and export rules' },
   { id: 'markets', label: 'Markets', hint: 'Exchange rates and key economic numbers' },
   { id: 'news', label: 'News', hint: 'Trade-related headlines from around the world' },
-  { id: 'data', label: 'Data', hint: 'Browse the raw tariff and export-control reference tables' },
   { id: 'guide', label: 'Guide', hint: 'New here? How to read this page' },
 ];
 
@@ -17,7 +16,6 @@ const TAB_BORDER: Record<PulseTabId, string> = {
   policy: SECTION_HUE.policy.border,
   markets: SECTION_HUE.markets.border,
   news: SECTION_HUE.news.border,
-  data: 'border-hue-gray',
   guide: 'border-ink',
 };
 
@@ -42,7 +40,7 @@ export function PulseTabs({ active, onChange, children }: { active: PulseTabId; 
     <div id="pulse-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
-        aria-label="Pulse sections"
+        aria-label="Wire sections"
         ref={listRef}
         onScroll={measure}
         style={moreRight ? { maskImage: 'linear-gradient(to right, black 82%, transparent)', WebkitMaskImage: 'linear-gradient(to right, black 82%, transparent)' } : undefined}

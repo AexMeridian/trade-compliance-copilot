@@ -61,7 +61,7 @@ test('indicator definitions are unique, complete and sourced', () => {
     assert.ok(i.label && i.definition && i.caveat && i.higherIs, `${i.id} is missing text`);
     assert.ok(i.minCountries > 0);
   }
-  assert.ok(INDICATORS.filter((i) => i.dimension === 'political_values').every((i) => i.wbSource === 3), 'WGI series live in World Bank source 3');
+  assert.ok(INDICATORS.filter((i) => i.id.startsWith('wgi_')).every((i) => i.wbSource === 3), 'WGI series live in World Bank source 3');
 });
 
 const def = INDICATORS[0];

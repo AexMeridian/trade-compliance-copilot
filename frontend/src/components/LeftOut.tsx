@@ -7,8 +7,8 @@ const LEFT_OUT: { measure: string; reason: string }[] = [
     reason: "UNESCO's terms for the World Heritage list limit reuse to non-commercial syndication and do not allow licensing the material. This site is run by a company, so it does not copy the list.",
   },
   {
-    measure: 'Official languages and language reach',
-    reason: 'No open dataset is reliable enough. The one free source we tested (Wikidata) lists Spanish as official in the United States and omits Russian in Kyrgyzstan, among other errors.',
+    measure: 'Language reach and learning',
+    reason: 'Only shared official language and colonial history with seven major powers is shown (CEPII). Language learning, the reach of a language beyond official status and Wikipedia editions have no open, reliable dataset we could verify; Wikidata, which we tested, lists Spanish as official in the United States and omits Russian in Kyrgyzstan.',
   },
   {
     measure: 'Peacekeeping contributions',
@@ -23,8 +23,8 @@ const LEFT_OUT: { measure: string; reason: string }[] = [
     reason: 'The data exist (UNESCO) but need about 200 requests per refresh, more than this site can make on its free hosting plan. Total students hosted and the net flow are shown instead.',
   },
   {
-    measure: 'Public opinion beyond Pew',
-    reason: 'Gallup and the Democracy Perception Index publish headline results but no confirmed right to reuse country tables. Afrobarometer (Africa) is included above. Arab Barometer’s files sit behind a registration form with no public download, so it is not used.',
+    measure: 'Public opinion beyond Pew and Afrobarometer',
+    reason: 'Gallup and the Democracy Perception Index publish headline results but no confirmed right to reuse country tables. Latinobarómetro allows non-commercial use only, Arab Barometer’s files sit behind a registration form, and Asian Barometer is restricted to researchers. Pew’s questions on the UN, NATO, the EU and leaders are published but not yet entered here.',
   },
   {
     measure: 'Embassies, scholarships, film, music, sport and brands',

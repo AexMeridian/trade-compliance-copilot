@@ -2,9 +2,9 @@
 // the Indicators API; nothing is combined into a score. `caveat` is shown beside the number, because practitioners will
 // ask what a figure does not tell them.
 export type Dimension = 'political_values' | 'foreign_policy' | 'culture' | 'knowledge' | 'ties' | 'alignment' | 'hard_power';
-export type Unit = 'usd' | 'usd_per_person' | 'pct' | 'count' | 'index' | 'distance' | 'per_1000';
+export type Unit = 'usd' | 'usd_per_person' | 'pct' | 'count' | 'index' | 'distance' | 'per_1000' | 'points';
 /** Where a series comes from. 'derived' series are computed from stored ones when requested and have no row of their own. */
-export type Provider = 'worldbank' | 'voeten' | 'uis' | 'unhcr' | 'nobel' | 'fts' | 'derived';
+export type Provider = 'worldbank' | 'voeten' | 'uis' | 'unhcr' | 'nobel' | 'fts' | 'undp' | 'openalex' | 'derived';
 
 export interface IndicatorDef {
   id: string;
@@ -36,7 +36,7 @@ export interface DimensionInfo {
   blurb: string;
 }
 export const DIMENSIONS: DimensionInfo[] = [
-  { id: 'political_values', label: 'Political values', blurb: 'How a country’s governance is perceived. Attraction rests on values that are lived up to at home.' },
+  { id: 'political_values', label: 'Political values', blurb: 'How a country’s governance is perceived, and how people fare at home. Attraction rests on values that are lived up to at home.' },
   { id: 'foreign_policy', label: 'Foreign policy', blurb: 'What a country gives abroad. Legitimacy comes from policies others see as generous and fair.' },
   { id: 'culture', label: 'Culture', blurb: 'What draws people in: heritage, learning and the arts.' },
   { id: 'knowledge', label: 'Knowledge and technology', blurb: 'Research and innovation that other countries want to be near.' },
@@ -121,6 +121,77 @@ export const INDICATORS: IndicatorDef[] = [
     caveat: 'Re-exports and assembly can raise it without domestic invention.',
     higherIs: 'a larger high-tech share of manufactured exports', minCountries: 100,
   },
+  {
+    id: 'internet_users', provider: 'worldbank', code: 'IT.NET.USER.ZS', label: 'Internet users', unit: 'pct', dimension: 'culture',
+    definition: 'Individuals who used the internet in the last three months, as a percentage of the population.',
+    caveat: 'Measures reach, not content: a connected population can be reached by any country’s media, not only its own.',
+    higherIs: 'a larger share online', minCountries: 150,
+  },
+  {
+    id: 'ip_receipts', provider: 'worldbank', code: 'BX.GSR.ROYL.CD', label: 'Intellectual-property receipts', unit: 'usd', dimension: 'knowledge',
+    definition: 'Charges received for the use of intellectual property (patents, trademarks, copyrights, franchises, media and film rights), current US dollars.',
+    caveat: 'Includes payments between branches of one company, which can move with tax planning, so large figures partly reflect where firms book their rights.',
+    higherIs: 'more earned from licensing', minCountries: 100,
+  },
+  {
+    id: 'ict_exports', provider: 'worldbank', code: 'BX.GSR.CCIS.CD', label: 'ICT service exports', unit: 'usd', dimension: 'knowledge',
+    definition: 'Exports of computer, communications and information services, current US dollars.',
+    caveat: 'Counts what a country sells abroad, not what others think of it. Outsourcing hubs and platform headquarters both rank high.',
+    higherIs: 'more exported', minCountries: 120,
+  },
+  {
+    id: 'researchers', provider: 'worldbank', code: 'SP.POP.SCIE.RD.P6', label: 'Researchers (per million people)', unit: 'count', dimension: 'knowledge',
+    definition: 'Full-time-equivalent researchers in research and development, per million inhabitants.',
+    caveat: 'Many countries report only every few years, so the year shown differs from country to country.',
+    higherIs: 'more researchers per resident', minCountries: 80,
+  },
+  {
+    id: 'patents_resident', provider: 'worldbank', code: 'IP.PAT.RESD', label: 'Patent applications by residents', unit: 'count', dimension: 'knowledge',
+    definition: 'Patent applications filed by a country’s own residents at its national patent office.',
+    caveat: 'Counts filings, not inventions or their quality. Filing habits and fees differ widely between countries.',
+    higherIs: 'more filings', minCountries: 100,
+  },
+  {
+    id: 'women_parliament', provider: 'worldbank', code: 'SG.GEN.PARL.ZS', label: 'Women in national parliaments', unit: 'pct', dimension: 'political_values',
+    definition: 'Seats held by women in the lower or single house of the national parliament, as a percentage of all seats.',
+    caveat: 'Measures representation in a legislature, whatever that legislature’s real powers are. Quotas raise it without changing other freedoms.',
+    higherIs: 'a larger share of seats held by women', minCountries: 150,
+  },
+  {
+    id: 'gini', provider: 'worldbank', code: 'SI.POV.GINI', label: 'Income inequality (Gini index)', unit: 'points', dimension: 'political_values',
+    definition: 'How unequally income is spread: 0 means everyone has the same income and 100 means one person has it all.',
+    caveat: 'Surveys differ in method and year across countries, and many countries have no recent reading, so the ranking covers fewer countries than most.',
+    higherIs: 'more unequal incomes', minCountries: 60,
+  },
+  // Human Development Index and its parts (UNDP). Shown to two decimals, which the 'distance' unit already does.
+  {
+    id: 'hdi', provider: 'undp', code: 'hdi', label: 'Human Development Index', unit: 'distance', dimension: 'political_values',
+    definition: 'A summary of three things people can do or have: a long and healthy life, knowledge, and a decent standard of living, on a scale from 0 to 1.',
+    caveat: 'An index built from life expectancy, schooling and income per head; the weights are UNDP’s. It describes how people fare at home, not how others see the country.',
+    higherIs: 'higher human development', minCountries: 150,
+  },
+  {
+    id: 'gii', provider: 'undp', code: 'gii', label: 'Gender Inequality Index', unit: 'distance', dimension: 'political_values',
+    definition: 'Inequality between women and men in health, empowerment (education and parliament seats) and the labour market, from 0 (equal) to 1 (most unequal).',
+    caveat: 'Some countries are missing because the inputs are not reported. It measures outcomes for women and men, not laws or attitudes alone.',
+    higherIs: 'greater inequality between women and men', minCountries: 120,
+  },
+  {
+    id: 'mean_schooling', provider: 'undp', code: 'mys', label: 'Mean years of schooling', unit: 'points', dimension: 'knowledge',
+    definition: 'Average number of years of education completed by adults aged 25 and over.',
+    caveat: 'Counts time in school, not what was learned.',
+    higherIs: 'more years of schooling', minCountries: 150,
+  },
+  // Scientific co-authorship (OpenAlex): the share of each country's research papers with at least one author based in the partner country.
+  ...(['us:the U.S.:U.S.', 'cn:China:Chinese', 'ru:Russia:Russian', 'gb:the U.K.:British'] as const).map((spec): IndicatorDef => {
+    const [cc, place, adj] = spec.split(':');
+    return {
+      id: `coauthor_${cc}`, provider: 'openalex', code: `openalex:${cc.toUpperCase()}`, label: `Papers co-authored with ${adj} researchers`, unit: 'pct', dimension: 'knowledge',
+      definition: `Share of a country’s research papers from the last five full years that have at least one author based in ${place}.`,
+      caveat: 'Co-authorship follows funding, language and geography as well as attraction, and large countries co-publish with everyone. Based on author affiliations; countries with fewer than 1,000 papers are left out.',
+      higherIs: `a larger share of papers written with researchers in ${place}`, minCountries: 80,
+    };
+  }),
   wgi('wgi_voice', 'GOV_WGI_VA.EST', 'Voice and accountability', 'How far citizens can take part in choosing their government, and the freedom of expression, association and media.'),
   wgi('wgi_effectiveness', 'GOV_WGI_GE.EST', 'Government effectiveness', 'The quality of public services, the civil service and policy delivery.'),
   wgi('wgi_rule_of_law', 'GOV_WGI_RL.EST', 'Rule of law', 'Confidence in contract enforcement, property rights, the police and the courts.'),
@@ -242,6 +313,10 @@ export function sourceFor(def: IndicatorDef): { name: string; url: string } {
       return { name: 'The Nobel Prize', url: 'https://www.nobelprize.org/' };
     case 'fts':
       return { name: 'OCHA Financial Tracking Service', url: 'https://fts.unocha.org/' };
+    case 'undp':
+      return { name: 'UNDP Human Development Report Office (CC BY 3.0 IGO)', url: 'https://hdr.undp.org/data-center' };
+    case 'openalex':
+      return { name: 'OpenAlex (CC0)', url: 'https://openalex.org/' };
     case 'derived':
       if (def.id === 'humanitarian_per_person') return { name: 'OCHA Financial Tracking Service and World Bank population', url: 'https://fts.unocha.org/' };
       if (def.id === 'refugees_per_1000') return { name: 'UNHCR Refugee Population Statistics Database and World Bank population', url: 'https://www.unhcr.org/refugee-statistics' };

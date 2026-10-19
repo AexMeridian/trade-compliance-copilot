@@ -24,17 +24,13 @@ const PAGES: Record<string, { title: string; description: string }> = {
     title: 'Compliance calculator',
     description: 'A Beta calculator that classifies a product, checks origin and USMCA eligibility, screens parties against sanctions lists and builds a sourced duty stack. Not legal or customs advice.',
   },
-  '/abroad': {
-    title: 'U.S. abroad: where U.S. policy lands',
-    description: 'Where U.S. trade actions, sanctions and tariffs land around the world: policy by country, sanctions lists, trade barriers and alliances, each with its source.',
+  '/hard-power': {
+    title: 'Hard Power: sanctions, tariffs, the dollar and defense',
+    description: 'What the U.S. can compel or withhold: sanctioned parties, tariffs and export controls, the dollar and Treasury holders, NATO and defense spending, and a country comparison, each with its source.',
   },
-  '/allies': {
-    title: 'Dollar & allies: trade tools, the dollar and alliances',
-    description: "Where the dollar stands in the world's reserves, how allies spend on defense, who funds humanitarian aid, and how currencies are moving, with sources.",
-  },
-  '/compare': {
-    title: 'Compare countries',
-    description: 'Compare countries on U.S. tariffs, sanctions and export controls, or on culture, political values, public opinion, UN voting and humanitarian giving, by country and year, with no combined score.',
+  '/soft-power': {
+    title: 'Soft Power: attitudes, culture, values and aid',
+    description: 'What draws people to a country: published polls on views of the U.S. and China, students, tourism, science, governance, aid and UN voting, by country and year, with no combined score.',
   },
   '/about': { title: 'About', description: 'Who runs Aex Terminal, what it covers, where its data comes from and how it is kept accurate.' },
   '/methodology': { title: 'Methodology and sources', description: 'How every figure on Aex Terminal is calculated, each source and its licence, what is not measured, and how corrections are made.' },
@@ -48,7 +44,7 @@ const PAGES: Record<string, { title: string; description: string }> = {
 };
 
 // Old addresses that still open a page (the app redirects them).
-const LEGACY = ['/footprint', '/standing', '/vs-world', '/influence', '/power'];
+const LEGACY = ['/abroad', '/allies', '/compare', '/footprint', '/standing', '/vs-world', '/influence', '/power'];
 
 /**
  * Head details for an address. `tabLabel` is the home page's current tab label (the app passes it; the Worker does not, so it

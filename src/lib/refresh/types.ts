@@ -20,6 +20,8 @@ export interface RefreshResult {
     | 'unhcr'
     | 'nobel'
     | 'fts'
+    | 'undp_hdr'
+    | 'openalex'
     | 'pulse_treasury'
     | 'pulse_commodities'
     | 'gta'

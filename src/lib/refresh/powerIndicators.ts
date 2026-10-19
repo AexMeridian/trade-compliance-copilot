@@ -13,7 +13,7 @@ import { getJson, upsertIndicators } from './indicatorStore.js';
 
 const API = 'https://api.worldbank.org/v2';
 const KEEP_POINTS = 12;
-const PARALLEL = 6;
+const PARALLEL = 2;
 const WORLD_BANK_DEFS = INDICATORS.filter((d) => d.provider === 'worldbank');
 
 /** Real countries from the World Bank country list (aggregates such as "World" or "Euro area" carry region id "NA"). */
@@ -21,11 +21,10 @@ export function parseCountryList(body: unknown): Set<string> {
   return parseCountryCodes(body).iso2;
 }
 
-/** Turns an Indicators API response into { country: [[year, value], ...] }, oldest first, real countries only, last few years. */
-export function parseSeries(body: unknown, countries: Set<string>): SeriesByCountry {
-  if (!Array.isArray(body) || !Array.isArray(body[1])) throw new Error('World Bank response shape changed -- expected [meta, rows]');
+/** Turns one row list into { country: [[year, value], ...] }, oldest first, real countries only, last few years. */
+function collect(rows: { country?: { id?: string }; date?: string; value?: number | null }[], countries: Set<string>): SeriesByCountry {
   const out: SeriesByCountry = {};
-  for (const r of body[1] as { country?: { id?: string }; date?: string; value?: number | null }[]) {
+  for (const r of rows) {
     const cc = r?.country?.id;
     const year = Number(r?.date);
     if (!cc || !countries.has(cc) || !Number.isInteger(year) || typeof r.value !== 'number' || !Number.isFinite(r.value)) continue;
@@ -38,12 +37,56 @@ export function parseSeries(body: unknown, countries: Set<string>): SeriesByCoun
   return out;
 }
 
-async function fetchSeries(def: IndicatorDef, countries: Set<string>, year: number): Promise<SeriesByCountry> {
-  const source = def.wbSource ? `&source=${def.wbSource}` : '';
-  const body = await getJson(`${API}/country/all/indicator/${def.code}?format=json&per_page=20000&date=${year - 14}:${year}${source}`);
-  const data = parseSeries(body, countries);
-  if (Object.keys(data).length < def.minCountries) throw new Error(`${def.code} returned ${Object.keys(data).length} countries, expected at least ${def.minCountries}`);
-  return data;
+/** Turns an Indicators API response for ONE indicator into { country: [[year, value], ...] }. */
+export function parseSeries(body: unknown, countries: Set<string>): SeriesByCountry {
+  if (!Array.isArray(body) || !Array.isArray(body[1])) throw new Error('World Bank response shape changed -- expected [meta, rows]');
+  return collect(body[1], countries);
+}
+
+/** The same for a response that carries several indicators (`a;b;c` in the URL): one series per World Bank indicator code. */
+export function parseSeriesMulti(body: unknown, countries: Set<string>): Map<string, SeriesByCountry> {
+  if (!Array.isArray(body) || !Array.isArray(body[1])) {
+    const why = (body as { message?: { value?: string }[] }[] | null)?.[0]?.message?.[0]?.value;
+    throw new Error(`World Bank response shape changed -- expected [meta, rows]${why ? ` (${why.slice(0, 120)})` : ''}`);
+  }
+  const meta = body[0] as { pages?: number };
+  if (meta?.pages !== undefined && meta.pages > 1) throw new Error('World Bank response needs more than one page; use fewer series per request');
+  const byCode = new Map<string, { country?: { id?: string }; date?: string; value?: number | null }[]>();
+  for (const r of body[1] as { indicator?: { id?: string }; country?: { id?: string }; date?: string; value?: number | null }[]) {
+    const code = r?.indicator?.id;
+    if (!code) continue;
+    (byCode.get(code) ?? byCode.set(code, []).get(code)!).push(r);
+  }
+  return new Map([...byCode].map(([code, rows]) => [code, collect(rows, countries)]));
+}
+
+// Series per request. Each series is about 4,000 rows over fifteen years and a page holds 32,500, so six always fit in one.
+const BATCH = 6;
+
+/** Groups the series into requests: the same World Bank database (the default, or WGI = source 3), BATCH at a time. */
+export function planBatches(defs: IndicatorDef[]): IndicatorDef[][] {
+  const bySource = new Map<number | undefined, IndicatorDef[]>();
+  for (const d of defs) (bySource.get(d.wbSource) ?? bySource.set(d.wbSource, []).get(d.wbSource)!).push(d);
+  const out: IndicatorDef[][] = [];
+  for (const list of bySource.values()) for (let i = 0; i < list.length; i += BATCH) out.push(list.slice(i, i + BATCH));
+  return out;
+}
+
+async function fetchBatch(defs: IndicatorDef[], countries: Set<string>, year: number): Promise<Map<string, SeriesByCountry>> {
+  // Several indicators in one request need an explicit database: 2 is World Development Indicators, 3 the governance indicators.
+  const source = `&source=${defs[0].wbSource ?? 2}`;
+  const codes = defs.map((d) => d.code).join(';');
+  const body = await getJson(`${API}/country/all/indicator/${codes}?format=json&per_page=32500&date=${year - 14}:${year}${source}`, 60_000);
+  const byCode = parseSeriesMulti(body, countries);
+  const result = new Map<string, SeriesByCountry>();
+  const problems: string[] = [];
+  for (const def of defs) {
+    const data = byCode.get(def.code) ?? {};
+    if (Object.keys(data).length < def.minCountries) problems.push(`${def.code} returned ${Object.keys(data).length} countries, expected at least ${def.minCountries}`);
+    else result.set(def.id, data);
+  }
+  if (problems.length) console.warn(`World Bank series skipped: ${problems.join('; ')}`);
+  return result;
 }
 
 export async function refreshPowerIndicators(env: Env): Promise<RefreshResult> {
@@ -52,12 +95,16 @@ export async function refreshPowerIndicators(env: Env): Promise<RefreshResult> {
   const year = new Date().getUTCFullYear();
   const fetched = new Map<string, SeriesByCountry>();
   const failures: string[] = [];
-  for (let i = 0; i < WORLD_BANK_DEFS.length; i += PARALLEL) {
-    const batch = WORLD_BANK_DEFS.slice(i, i + PARALLEL);
-    const settled = await Promise.allSettled(batch.map((def) => fetchSeries(def, countries, year)));
+  const batches = planBatches(WORLD_BANK_DEFS);
+  for (let i = 0; i < batches.length; i += PARALLEL) {
+    const group = batches.slice(i, i + PARALLEL);
+    const settled = await Promise.allSettled(group.map((defs) => fetchBatch(defs, countries, year)));
     settled.forEach((r, j) => {
-      if (r.status === 'fulfilled') fetched.set(batch[j].id, r.value);
-      else failures.push(`${batch[j].code}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+      if (r.status === 'fulfilled') {
+        for (const [id, data] of r.value) fetched.set(id, data);
+        // A series that came back too thin was skipped inside the batch; report it so the run is not marked unchanged.
+        for (const d of group[j]) if (!r.value.has(d.id)) failures.push(`${d.code}: too few countries`);
+      } else failures.push(`${group[j].map((d) => d.code).join(',')}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
     });
   }
   if (fetched.size === 0) throw new Error(`No indicator could be fetched. ${failures.join('; ')}`);

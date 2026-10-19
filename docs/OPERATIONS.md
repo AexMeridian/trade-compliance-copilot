@@ -133,3 +133,20 @@ about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a 
 - `GET /api/health` queries the database (one row) and returns 503 if it cannot, so an uptime monitor can use it.
 - The shared daily AI ceiling (`CLAUDE_DAILY_CAP`, default 300) now counts Claude calls, counted just before each call. A
   multi-party screening uses one per party.
+
+## Soft power data: licences, attribution and requests to send
+
+- **New runtime sources** (weekly, `src/lib/refresh/`): UNDP Human Development Report (CC BY 3.0 IGO: credit, link the licence, say
+  if changed; the site shows UNDP's figures unchanged, and UNDP recomputes them each year) and OpenAlex (CC0, keyless). OpenAlex says
+  keyless requests share a small daily budget per IP address; a failed run is retried the next day. A free key would remove that
+  risk but needs an email address, so none is used.
+- **Offline sources** (rerun the script and commit the generated file when a new release appears): Afrobarometer
+  (`scripts/opinion/afrobarometer.py`, now including Russia, India, EU and former colonial power, COVID-19 and the Russia-Ukraine
+  question) and CEPII GeoDist (`scripts/opinion/cepii.py`, Etalab 2.0; credit CEPII and cite Mayer and Zignago 2011). V-Dem (CC BY-SA
+  4.0) and OECD DAC bilateral aid were not added: V-Dem is share-alike (ask counsel, as for UNESCO), and the OECD data licence text could
+  not be read.
+- **Emails worth sending** (none sent): Pew (written permission, and whether chart figures on the UN, NATO, the EU and leaders may be
+  excerpted); Gallup and the Democracy Perception Index (reuse of country tables); OECD (bilateral aid data licence); UN DESA
+  (bilateral migrant stock, "all rights reserved"); GESIS (Eurobarometer); IPI (peacekeeping contributions).
+- Rejected for licence reasons and listed on the Soft Power page under "Method and gaps": Latinobarometro (non-commercial), SIPRI
+  (commercial use needs a licence), Global Peace Index, UN Comtrade and WITS (internal use only), the Lowy Institute index.

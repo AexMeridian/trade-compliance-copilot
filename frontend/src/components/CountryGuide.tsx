@@ -2,7 +2,7 @@
 // a search result) has none of Pulse's own onboarding context -- this
 // consolidates the help text already scattered across this page's panel
 // tooltips into one readable explainer, the same role PulseGuide/
-// InfluenceGuide/PowerGuide play on their own pages.
+// The Hard Power and Soft Power pages have their own guides.
 const QA: [string, string][] = [
   [
     'Is the "sample duty-stack breakdown" my shipment’s actual rate?',

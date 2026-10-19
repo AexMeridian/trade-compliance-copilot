@@ -222,7 +222,7 @@ export function getSanctionCounts() {
   return request<SanctionCounts>('/pulse/sanction-counts');
 }
 
-export type PowerUnit = 'usd' | 'usd_per_person' | 'pct' | 'count' | 'index' | 'distance' | 'per_1000';
+export type PowerUnit = 'usd' | 'usd_per_person' | 'pct' | 'count' | 'index' | 'distance' | 'per_1000' | 'points';
 export interface PowerStanding {
   value: number;
   year: number;
@@ -276,13 +276,41 @@ export interface AfroShare {
   neg: number;
   n: number;
 }
+export interface AfroCovid {
+  china: number;
+  us: number;
+  russia: number;
+  europe: number;
+  india: number;
+  au: number;
+  none: number;
+  n: number;
+}
+export interface AfroUkraine {
+  neutral: number;
+  russia: number;
+  ukraine: number;
+  n: number;
+}
+export interface AfroCountry {
+  cn: AfroShare;
+  us: AfroShare;
+  ru?: AfroShare;
+  in?: AfroShare;
+  fc?: AfroShare;
+  eu?: AfroShare;
+  covid?: AfroCovid;
+  ukraine?: AfroUkraine;
+  from: string;
+  to: string;
+}
 export interface AfroOpinion {
   name: string;
   url: string;
   question: string;
   citation: string;
   medianPositive: { cn: number; us: number };
-  countries: Record<string, { cn: AfroShare; us: AfroShare; from: string; to: string }>;
+  countries: Record<string, AfroCountry>;
 }
 export interface OpinionResponse {
   question: string;
@@ -293,6 +321,16 @@ export interface OpinionResponse {
 
 export function getOpinion() {
   return request<OpinionResponse>('/pulse/opinion');
+}
+
+export interface TiesResponse {
+  partners: string[];
+  ties: Record<string, { lang: string[]; colony: string[] }>;
+  source: { name: string; url: string; citation: string; caveat: string };
+}
+
+export function getTies() {
+  return request<TiesResponse>('/pulse/ties');
 }
 
 export interface UnAlignment {

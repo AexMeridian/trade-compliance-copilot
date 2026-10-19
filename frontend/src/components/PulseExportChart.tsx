@@ -54,7 +54,7 @@ export function PulseExportChart() {
                   <td className="py-2 pr-3">{STATUS_LABEL[c.status] ?? c.status}</td>
                   <td className="py-2 text-ink-muted">
                     {chartRows.length > 0 ? chartRows.map((r) => r.control_level).join('; ') : c.notes}
-                    <a href={c.source_url} target="_blank" rel="noreferrer" className="ml-2 text-accent hover:underline">
+                    <a href={c.source_url} target="_blank" rel="noreferrer" className="ml-2 text-accent underline underline-offset-2 hover:no-underline">
                       Source
                     </a>
                   </td>

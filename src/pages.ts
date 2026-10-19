@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import type { Env } from './types/env.js';
 import { pageMeta } from '../frontend/src/lib/pageMeta.js';
+import { legacyRedirect } from '../frontend/src/lib/powerTabs.js';
 import { TARIFF_COUNTRY_LABELS } from '../frontend/src/lib/pulseTariffCountries.js';
 
 // The site is a single-page app: every address is answered by the same index.html and the browser then works out the page.
@@ -19,6 +20,10 @@ export async function servePage(c: Context<{ Bindings: Env }>): Promise<Response
   const url = new URL(c.req.url);
   const path = url.pathname;
   if (path.startsWith('/api/')) return c.notFound();
+
+  // The old U.S. abroad, Dollar & allies and Compare addresses now live on the Hard Power and Soft Power pages (permanent redirect).
+  const moved = legacyRedirect(path, url.searchParams);
+  if (moved) return c.redirect(moved, 301);
 
   const country = /^\/country\/([A-Za-z]{2})\/?$/.exec(path);
   const countryName = country ? (TARIFF_COUNTRY_LABELS[country[1].toUpperCase()] ?? null) : null;

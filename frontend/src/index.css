@@ -65,7 +65,7 @@
   --color-hue-gray: #8a8a94;
   --color-hue-gray-ink: #47474e;
 
-  /* The hero (PulseHero/PowerHero/InfluenceHero + PulseGlobe + PulseCountryCard)
+  /* The hero (PulseHero/SoftPowerHero/HardPowerHero + PulseGlobe + PulseCountryCard)
      is its own small color system, not the page's --color-paper/--color-ink --
      because it needs a "day" look distinct from a plain white page (a wireframe
      globe redrawn in black lines on white reads as a broken inversion, not a

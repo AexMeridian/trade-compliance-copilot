@@ -4,13 +4,13 @@ A portfolio web app that walks a product and a proposed cross-border
 transaction (import or export) through four connected trade-compliance
 modules — classification, USMCA origin, denied-party screening, and final
 determination — the way a trade compliance analyst would, and produces one
-coherent compliance report. A separate live dashboard, the **Pulse** feed
-(`/pulse`), turns the same real-data-only philosophy into a
+coherent compliance report. A separate live dashboard, the **Wire** feed
+(`/`), turns the same real-data-only philosophy into a
 continuously-updated feed of actual U.S. trade-policy actions rather than a
-static essay — see [Refreshing the data](#refreshing-the-data). **Influence**
-(`/abroad`, formerly `/influence`) reframes that same real data (plus one new static reference
-file, `frontend/src/lib/pulseBlocs.ts`) as U.S. economic pressure and reach
-abroad — no new data source of its own except alliance membership, no LLM,
+static essay — see [Refreshing the data](#refreshing-the-data). **Hard Power**
+(`/hard-power`, formerly `/abroad` and `/allies`) gathers sanctions, tariffs, the dollar and
+defense by country, and **Soft Power** (`/soft-power`) adds sourced public opinion,
+exchange, governance and aid, each by country and year — no composite score, no LLM,
 nothing fabricated. Built as a resume piece for an International Business
 student heading toward trade law.
 
@@ -197,7 +197,7 @@ src/
   lib/refresh/            Cron-triggered bulk reference-table refresh jobs (HTS, SDN, CSL, ...)
   prompts/                System prompts + tool schemas, one file per module
   types/case.ts           The shared CaseFile type every module reads/writes
-frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Pulse, Influence)
+frontend/                 React + Vite + Tailwind UI (Landing, CaseWizard, Report, Wire, HardPower, SoftPower)
 tests/                    golden-cases.json + the live accuracy runner (test:golden), deterministic
                           unit tests (test:unit), a browser route smoke test (test:smoke) and an axe accessibility check (test:a11y)
 .github/workflows/ci.yml  Typecheck + unit tests + frontend build on every push and PR

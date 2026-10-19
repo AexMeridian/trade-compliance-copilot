@@ -3,7 +3,7 @@ import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { tallyCountries } from '../../lib/pulse/sanctionCounts.js';
 
-// Feeds the U.S. abroad page's "Sanctioned parties" measure. Reads every row of the four
+// Feeds the Hard Power page's "Sanctioned parties" measure. Reads every row of the four
 // sanctions tables once (about 30,000 rows), so it is cached in this isolate and at the edge
 // for six hours (src/index.ts) -- the lists are reloaded weekly, so nothing fresher exists.
 const TTL_MS = 6 * 60 * 60_000;

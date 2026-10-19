@@ -3,10 +3,10 @@ import type { ReactNode } from 'react';
 import { MeasureSwitcher } from './MeasureSwitcher';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 
-// The top of the U.S. abroad and Dollar & allies pages: a headline, a switcher between a few
+// The top of the Hard Power and Soft Power pages: a headline, a switcher between a few
 // plain-language measures, one big figure with a sentence saying what it means, and the picture
 // behind that figure (ranked bars or a chart). Everything on it is a real, sourced number;
-// each measure supplies its own figure, caption and body. The globe lives on Pulse only.
+// each measure supplies its own figure, caption and body. The Wire has its own globe hero.
 export interface HeroMeasure<T extends string> {
   id: T;
   label: string;
@@ -39,9 +39,10 @@ export function MeasureHero<T extends string>({
   onCountry: (code: string) => void;
   card: ReactNode;
   primary: { label: string; onClick: () => void };
-  onRefresh: () => void;
-  syncing: boolean;
-  updatedText: string;
+  /** Pages whose numbers refresh on a schedule (not on request) leave these out and the update button is not shown. */
+  onRefresh?: () => void;
+  syncing?: boolean;
+  updatedText?: string;
   ready: boolean;
 }) {
   const current = measures.find((m) => m.id === active) ?? measures[0];
@@ -84,10 +85,12 @@ export function MeasureHero<T extends string>({
           <button type="button" onClick={primary.onClick} className="btn-hero">
             {primary.label}
           </button>
-          <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
-            {syncing ? 'Checking…' : 'Check for updates'}
-          </button>
-          <span className="text-[13px] text-hero-ink-faint">{updatedText}</span>
+          {onRefresh && (
+            <button type="button" onClick={onRefresh} disabled={syncing} className="btn-hero-ghost">
+              {syncing ? 'Checking…' : 'Check for updates'}
+            </button>
+          )}
+          {updatedText && <span className="text-[13px] text-hero-ink-faint">{updatedText}</span>}
         </div>
 
         {activeCountry && card && <div className="mt-6 text-left">{card}</div>}

@@ -31,6 +31,8 @@ import { refreshUisStudents } from './lib/refresh/uisStudents.js';
 import { refreshUnhcr } from './lib/refresh/unhcr.js';
 import { refreshNobel } from './lib/refresh/nobel.js';
 import { refreshFts } from './lib/refresh/fts.js';
+import { refreshUndp } from './lib/refresh/undp.js';
+import { refreshOpenAlex } from './lib/refresh/openalex.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
@@ -103,12 +105,14 @@ const BULK_JOBS: SizedJob[] = [
 // waits for the next day instead of failing with "too many subrequests".
 const INDICATOR_JOBS: SizedJob[] = [
   { source: 'world_bank', run: refreshWorldBank, typicalRows: 400, fetches: 2 },
-  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 25, fetches: 22 },
+  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 35, fetches: 7 },
   { source: 'un_voting', run: refreshUnVoting, typicalRows: 1, fetches: 2 },
   { source: 'uis_students', run: refreshUisStudents, typicalRows: 2, fetches: 2 },
   { source: 'unhcr', run: refreshUnhcr, typicalRows: 1, fetches: 2 },
   { source: 'nobel', run: refreshNobel, typicalRows: 2, fetches: 4 },
   { source: 'fts', run: refreshFts, typicalRows: 1, fetches: 9 },
+  { source: 'undp_hdr', run: refreshUndp, typicalRows: 3, fetches: 2 },
+  { source: 'openalex', run: refreshOpenAlex, typicalRows: 4, fetches: 6 },
 ];
 const INDICATOR_FETCH_BUDGET = 40;
 const BULK_DUE_AFTER_MS = 7 * 86_400_000 - 3_600_000; // a day-late cron must not slip a whole extra week

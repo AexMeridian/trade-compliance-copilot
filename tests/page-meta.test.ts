@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { pageMeta } from '../frontend/src/lib/pageMeta.js';
+import { legacyRedirect } from '../frontend/src/lib/powerTabs.js';
 
 let failures = 0;
 function test(name: string, fn: () => void) {
@@ -16,7 +17,7 @@ function test(name: string, fn: () => void) {
 }
 
 test('every public page has its own title, description and canonical address', () => {
-  const paths = ['/', '/calculator', '/abroad', '/allies', '/compare', '/about', '/methodology', '/terms', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security'];
+  const paths = ['/', '/calculator', '/hard-power', '/soft-power', '/about', '/methodology', '/terms', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security'];
   const titles = new Set<string>();
   const descriptions = new Set<string>();
   for (const p of paths) {
@@ -58,6 +59,31 @@ test('the home page keeps its tab in the canonical only when the app supplies th
 
 test('old addresses that the app redirects still count as pages', () => {
   for (const p of ['/footprint', '/standing', '/vs-world', '/influence', '/power']) assert.ok(pageMeta(p, null, null, null).known, p);
+});
+
+test('old addresses map to their new homes, tabs and other parameters survive, and anything else is untouched', () => {
+  const r = (path: string, qs = '') => legacyRedirect(path, new URLSearchParams(qs));
+  assert.equal(r('/abroad'), '/hard-power');
+  assert.equal(r('/abroad', 'tab=alliances'), '/hard-power?tab=military');
+  assert.equal(r('/abroad', 'tab=pressure'), '/hard-power?tab=trade');
+  assert.equal(r('/abroad', 'tab=reach'), '/hard-power?tab=money');
+  assert.equal(r('/abroad', 'tab=sanctions&country=Russia'), '/hard-power?country=Russia&tab=sanctions');
+  assert.equal(r('/allies', 'tab=soft'), '/hard-power?tab=money');
+  assert.equal(r('/allies', 'tab=hard'), '/hard-power?tab=trade');
+  assert.equal(r('/allies', 'tab=alliances'), '/hard-power?tab=military');
+  for (const p of ['/influence', '/footprint']) assert.equal(r(p), '/hard-power');
+  for (const p of ['/power', '/standing', '/vs-world']) assert.equal(r(p), '/hard-power');
+  assert.equal(r('/compare', 'countries=CN,IN'), '/hard-power?countries=CN%2CIN&tab=compare');
+  assert.equal(r('/compare', 'view=power&countries=US,CN'), '/soft-power?countries=US%2CCN&tab=compare');
+  assert.equal(r('/', 'tab=data'), '/hard-power?tab=trade');
+  assert.equal(r('/abroad/'), '/hard-power');
+  for (const p of ['/', '/hard-power', '/soft-power', '/country/cn', '/nope']) assert.equal(r(p), null, p);
+  assert.equal(r('/', 'tab=policy'), null);
+});
+
+test('the old pages are known addresses (the app redirects them), the new pages are indexable and distinct', () => {
+  for (const p of ['/abroad', '/allies', '/compare']) assert.ok(pageMeta(p, null, null, null).known, p);
+  assert.notEqual(pageMeta('/hard-power', null, null, null).title, pageMeta('/soft-power', null, null, null).title);
 });
 
 if (failures) {

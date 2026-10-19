@@ -26,7 +26,7 @@ export function Accessibility() {
           content, for keyboard and screen-reader users.
         </li>
         <li>
-          <span className="text-ink">Keyboard-operable tab bars.</span> Every section tab bar (Pulse, U.S. abroad, Dollar & allies and country pages) is a native ARIA
+          <span className="text-ink">Keyboard-operable tab bars.</span> Every section tab bar (Wire, Hard Power, Soft Power and country pages) is a native ARIA
           tab list with arrow-key, Home and End navigation and a roving tab stop, not a row of styled links.
         </li>
         <li>
@@ -38,7 +38,7 @@ export function Accessibility() {
           risk of losing access to a case or a saved filter because of a timeout.
         </li>
         <li>
-          <span className="text-ink">Plain-language support.</span> The Guide tabs on Pulse, U.S. abroad, Dollar & allies and country pages, and the glossary in the
+          <span className="text-ink">Plain-language support.</span> The Guide and Method tabs on the Wire, Hard Power, Soft Power and country pages, and the glossary in the
           compliance calculator, explain the site's own jargon (RVC, ECCN, EAR99 and so on) in context rather than assuming it.
         </li>
       </ul>
@@ -62,7 +62,7 @@ export function Accessibility() {
           <span className="text-ink">Reflow and zoom.</span> Pages reflow to a 390-pixel-wide screen without sideways scrolling.
         </li>
         <li>
-          <span className="text-ink">Motion.</span> The animated globe on the Pulse page respects the "reduce motion" setting of your device, and every fact
+          <span className="text-ink">Motion.</span> The animated globes on the Wire, Hard Power and Soft Power pages respects the "reduce motion" setting of your device, and every fact
           it shows is also available in the lists and tables on the page.
         </li>
         <li>

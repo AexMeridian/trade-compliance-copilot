@@ -41,9 +41,9 @@ function parseCodes(raw: string | null, view: View): string[] {
 // separate country pages and holding the differences in their head. Built
 // entirely from src/routes/pulse.ts's existing /pulse/country/:code (called
 // here 2-3 times in parallel), so no backend change was needed for this page.
-export function CountryCompare() {
+export function CountryCompare({ view: fixedView, embedded = false }: { view?: View; embedded?: boolean } = {}) {
   const [params, setParams] = useSearchParams();
-  const view: View = params.get('view') === 'power' ? 'power' : 'trade';
+  const view: View = fixedView ?? (params.get('view') === 'power' ? 'power' : 'trade');
   const { labels, max: MAX_COUNTRIES, codes: SORTED_CODES } = VIEWS[view];
   const codes = parseCodes(params.get('countries'), view);
 
@@ -114,29 +114,31 @@ export function CountryCompare() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Compare countries' }]} />
-      <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
+    <div className={embedded ? '' : 'mx-auto max-w-5xl px-4 py-10'}>
+      {!embedded && <Breadcrumb trail={[{ label: 'Wire', to: '/' }, { label: 'Compare countries' }]} />}
+      {!embedded && <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>}
+      <p className={`${embedded ? '' : 'mt-3 '}max-w-2xl text-sm leading-relaxed text-ink-muted`}>
         {view === 'trade'
           ? "Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page."
           : 'Soft power and hard-power context side by side: governance, aid, ties and exchange, knowledge and weight in the world, each with its source and no score.'}{' '}
         This link is shareable as-is; the countries you pick are saved in the URL, not an account.
       </p>
 
-      <div role="group" aria-label="View" className="mt-5 inline-flex border border-hairline-strong text-sm">
-        {([['trade', 'Trade policy'], ['power', 'Power profile']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setView(id)}
-            aria-pressed={view === id}
-            className={`px-4 py-1.5 font-semibold ${view === id ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {!embedded && (
+        <div role="group" aria-label="View" className="mt-5 inline-flex border border-hairline-strong text-sm">
+          {([['trade', 'Trade policy'], ['power', 'Power profile']] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              aria-pressed={view === id}
+              className={`px-4 py-1.5 font-semibold ${view === id ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {codes.map((code, i) => (

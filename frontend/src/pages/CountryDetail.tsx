@@ -2,7 +2,7 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseMarkets, getPulseNews } from '../lib/api';
-import { COUNTRY_TABS, CountryTabs, type CountryTabId } from '../components/CountryTabs';
+import { COUNTRY_TABS, CountryTabs, HARD_SECTIONS, OLD_COUNTRY_TAB, type CountryTabId, type HardSectionId } from '../components/CountryTabs';
 import { CountryGuide } from '../components/CountryGuide';
 import { InstrumentsLedger } from '../components/InstrumentsLedger';
 import { PowerProfile } from '../components/PowerProfile';
@@ -33,9 +33,19 @@ export function CountryDetail() {
 
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
-  const tab: CountryTabId = COUNTRY_TABS.some((t) => t.id === tabParam) ? (tabParam as CountryTabId) : 'overview';
+  const old = tabParam ? OLD_COUNTRY_TAB[tabParam] : undefined;
+  const tab: CountryTabId = old ? old.tab : COUNTRY_TABS.some((t) => t.id === tabParam) ? (tabParam as CountryTabId) : 'overview';
+  const sectionParam = params.get('section');
+  const section: HardSectionId = old?.section ?? (HARD_SECTIONS.some((x) => x.id === sectionParam) ? (sectionParam as HardSectionId) : 'policy');
+  const setSection = (id: HardSectionId) => {
+    const next = new URLSearchParams(params);
+    next.set('tab', 'hard');
+    next.set('section', id);
+    setParams(next, { replace: true });
+  };
   const setTab = (id: CountryTabId) => {
     const next = new URLSearchParams(params);
+    next.delete('section');
     if (id === 'overview') next.delete('tab');
     else next.set('tab', id);
     setParams(next, { replace: true });
@@ -98,7 +108,7 @@ export function CountryDetail() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <Breadcrumb trail={[{ label: 'Pulse', to: '/' }, { label: 'Countries', to: '/abroad?tab=reach' }, { label: name }]} />
+      <Breadcrumb trail={[{ label: 'Wire', to: '/' }, { label: 'Countries', to: '/hard-power?tab=compare' }, { label: name }]} />
       <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="display text-4xl text-ink sm:text-5xl">{name}</h1>
         {blocs.length > 0 && <p className="text-sm text-ink-faint">{blocs.map((b) => BLOC_FULL_NAMES[b]).join(' · ')}</p>}
@@ -205,7 +215,23 @@ export function CountryDetail() {
           </div>
         )}
 
-        {tab === 'policy' && (
+        {tab === 'hard' && (
+          <nav aria-label="Hard power sections" className="mb-5 flex flex-wrap gap-1.5">
+            {HARD_SECTIONS.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                aria-pressed={section === x.id}
+                onClick={() => setSection(x.id)}
+                className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${section === x.id ? 'border-ink bg-ink text-paper' : 'border-hairline-strong text-ink-muted hover:text-ink'}`}
+              >
+                {x.label}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {tab === 'hard' && section === 'policy' && (
           <div className="flex flex-col gap-6">
             <PulsePanel title="Policy tempo" subtitle="Every month this country was named in a U.S. trade action, full history.">
               <PulseTempoChart months={data.tempo} trendPct={null} />
@@ -245,7 +271,7 @@ export function CountryDetail() {
           </div>
         )}
 
-        {tab === 'tariffs' && (
+        {tab === 'hard' && section === 'tariffs' && (
           <div className="flex flex-col gap-6">
             <PulsePanel
               title="Tariff programs"
@@ -331,7 +357,7 @@ export function CountryDetail() {
           </div>
         )}
 
-        {tab === 'export' && (
+        {tab === 'hard' && section === 'export' && (
           <PulsePanel title="Commerce Country Chart status">
             {exportControl.status === 'not_curated' ? (
               <p className="text-sm text-ink-muted">
@@ -370,7 +396,7 @@ export function CountryDetail() {
           </PulsePanel>
         )}
 
-        {tab === 'sanctions' && (
+        {tab === 'hard' && section === 'sanctions' && (
           <div className="flex flex-col gap-6">
             <PulsePanel title="OFAC / BIS sanctioned entities">
               {sanctions.sdnCount !== null ? (
@@ -382,7 +408,7 @@ export function CountryDetail() {
                   </p>
                   <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
                   <Link
-                    to={`/abroad?tab=sanctions&country=${encodeURIComponent(name)}`}
+                    to={`/hard-power?tab=sanctions&country=${encodeURIComponent(name)}`}
                     className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
                   >
                     Browse these entries &rarr;
@@ -427,7 +453,7 @@ export function CountryDetail() {
           </div>
         )}
 
-        {tab === 'influence' && (
+        {tab === 'soft' && (
           <div className="flex flex-col gap-8">
             <InstrumentsLedger code={code} name={name} data={data} />
             <PowerProfile codes={[code]} />
