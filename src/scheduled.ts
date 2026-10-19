@@ -38,7 +38,12 @@ import { logRefresh } from './lib/refresh/log.js';
 import { purgeExpiredCases } from './lib/caseStore.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
+// Three triggers (Workers Free allows five). A free-plan invocation may make at most 50 outbound requests and 50 database
+// queries, so the work is split rather than run in one go: the daily Pulse jobs, the weekly reference-table reloads, and the
+// weekly country indicators each get their own invocation and their own budget.
 export const DAILY_CRON = '0 5 * * *';
+export const BULK_CRON = '0 6 * * *';
+export const INDICATOR_CRON = '0 7 * * *';
 
 interface RefreshJob {
   source: RefreshResult['source'];
@@ -73,28 +78,36 @@ const DAILY_JOBS: RefreshJob[] = [
 
 // Priority order = sanctions first (a stale list is a real compliance risk).
 // `typicalRows` is the fallback size when a job has never logged a run.
-const BULK_JOBS: (RefreshJob & { typicalRows: number })[] = [
+type SizedJob = RefreshJob & { typicalRows: number; /** Outbound requests one run makes, counted conservatively. */ fetches?: number };
+const BULK_JOBS: SizedJob[] = [
   { source: 'sdn', run: refreshSdn, typicalRows: 44_000 },
   { source: 'csl', run: refreshCsl, typicalRows: 7_000 },
   { source: 'un_sanctions', run: refreshUnSanctions, typicalRows: 3_000 },
   { source: 'uk_sanctions', run: refreshUkSanctions, typicalRows: 8_000 },
   { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
   { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
-  { source: 'world_bank', run: refreshWorldBank, typicalRows: 400 },
-  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 25 },
-  { source: 'un_voting', run: refreshUnVoting, typicalRows: 1 },
-  { source: 'uis_students', run: refreshUisStudents, typicalRows: 2 },
-  { source: 'unhcr', run: refreshUnhcr, typicalRows: 1 },
-  { source: 'nobel', run: refreshNobel, typicalRows: 2 },
-  { source: 'fts', run: refreshFts, typicalRows: 1 },
   { source: 'hts', run: refreshHts, typicalRows: 32_000 },
   { source: 'schedule_b', run: refreshScheduleB, typicalRows: 15_000 },
   { source: 'xref', run: refreshXref, typicalRows: 30_000 },
 ];
+
+// Country indicators: weekly, tiny writes but many outbound requests (one per World Bank series, one per year of humanitarian
+// funding...). They run in their own invocation, at most INDICATOR_FETCH_BUDGET requests per day, so whatever does not fit
+// waits for the next day instead of failing with "too many subrequests".
+const INDICATOR_JOBS: SizedJob[] = [
+  { source: 'world_bank', run: refreshWorldBank, typicalRows: 400, fetches: 2 },
+  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 25, fetches: 22 },
+  { source: 'un_voting', run: refreshUnVoting, typicalRows: 1, fetches: 2 },
+  { source: 'uis_students', run: refreshUisStudents, typicalRows: 2, fetches: 2 },
+  { source: 'unhcr', run: refreshUnhcr, typicalRows: 1, fetches: 2 },
+  { source: 'nobel', run: refreshNobel, typicalRows: 2, fetches: 4 },
+  { source: 'fts', run: refreshFts, typicalRows: 1, fetches: 9 },
+];
+const INDICATOR_FETCH_BUDGET = 40;
 const BULK_DUE_AFTER_MS = 7 * 86_400_000 - 3_600_000; // a day-late cron must not slip a whole extra week
 const BULK_ROW_BUDGET = 30_000; // rows per day; with indexes and search tables each costs several writes
 
-export async function pickDueBulkJobs(env: Env, now = Date.now()) {
+async function pickDue(env: Env, jobs: SizedJob[], limits: { rows: number; fetches?: number }, now: number): Promise<SizedJob[]> {
   const { results } = await env.DB.prepare(
     `SELECT source, MAX(rows_affected) AS biggest,
             MAX(CASE WHEN status = 'success' THEN finished_at END) AS last_ok
@@ -102,34 +115,42 @@ export async function pickDueBulkJobs(env: Env, now = Date.now()) {
   ).all<{ source: string; biggest: number | null; last_ok: string | null }>();
   const seen = new Map(results.map((r) => [r.source, r]));
 
-  const picked: typeof BULK_JOBS = [];
+  const picked: SizedJob[] = [];
   let spent = 0;
-  for (const job of BULK_JOBS) {
+  let requests = 0;
+  for (const job of jobs) {
     const row = seen.get(job.source);
     const lastOk = row?.last_ok ? Date.parse(row.last_ok) : 0;
     if (now - lastOk < BULK_DUE_AFTER_MS) continue;
     const cost = Math.max(row?.biggest ?? 0, job.typicalRows);
-    if (picked.length > 0 && spent + cost > BULK_ROW_BUDGET) continue;
+    if (picked.length > 0 && spent + cost > limits.rows) continue;
+    if (limits.fetches !== undefined && picked.length > 0 && requests + (job.fetches ?? 1) > limits.fetches) continue;
     picked.push(job);
     spent += cost;
+    requests += job.fetches ?? 1;
   }
   return picked;
 }
 
+export const pickDueBulkJobs = (env: Env, now = Date.now()) => pickDue(env, BULK_JOBS, { rows: BULK_ROW_BUDGET }, now);
+export const pickDueIndicatorJobs = (env: Env, now = Date.now()) => pickDue(env, INDICATOR_JOBS, { rows: BULK_ROW_BUDGET, fetches: INDICATOR_FETCH_BUDGET }, now);
+
 export async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
-  if (controller.cron !== DAILY_CRON) {
-    console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc vs DAILY_CRON`);
+  let jobs: RefreshJob[];
+  try {
+    if (controller.cron === DAILY_CRON) jobs = DAILY_JOBS;
+    else if (controller.cron === BULK_CRON) jobs = await pickDueBulkJobs(env);
+    else if (controller.cron === INDICATOR_CRON) jobs = await pickDueIndicatorJobs(env);
+    else {
+      console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc against src/scheduled.ts`);
+      return;
+    }
+  } catch (err) {
+    console.error('Could not work out which reloads are due:', err instanceof Error ? err.message : String(err));
     return;
   }
 
-  let bulk: typeof BULK_JOBS = [];
-  try {
-    bulk = await pickDueBulkJobs(env);
-  } catch (err) {
-    console.error('Could not work out which bulk reloads are due:', err instanceof Error ? err.message : String(err));
-  }
-
-  for (const job of [...DAILY_JOBS, ...bulk]) {
+  for (const job of jobs) {
     const startedAt = new Date().toISOString();
     try {
       const result = await job.run(env);

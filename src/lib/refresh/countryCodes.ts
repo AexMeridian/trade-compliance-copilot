@@ -46,7 +46,21 @@ export function codeForName(codes: CountryCodes, name: string): string | undefin
   return codes.nameToIso2.get(norm(name));
 }
 
-export async function fetchCountryCodes(): Promise<CountryCodes> {
+// Six jobs need this list and run in one invocation, so it is fetched once and shared for a few minutes (an outbound request
+// saved per job; the free plan allows 50 per invocation). A failure is not kept.
+let shared: { at: number; value: Promise<CountryCodes> } | null = null;
+export function fetchCountryCodes(): Promise<CountryCodes> {
+  if (!shared || Date.now() - shared.at > 5 * 60_000) {
+    const value = loadCountryCodes();
+    shared = { at: Date.now(), value };
+    value.catch(() => {
+      if (shared?.value === value) shared = null;
+    });
+  }
+  return shared.value;
+}
+
+async function loadCountryCodes(): Promise<CountryCodes> {
   const res = await fetch('https://api.worldbank.org/v2/country?format=json&per_page=400', { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status} from the World Bank country list`);
   const codes = parseCountryCodes(await res.json());

@@ -85,21 +85,19 @@
     "enabled": true
   },
 
-  // Auto-refresh schedule (src/scheduled.ts). Exactly 5 entries -- Workers
-  // Free caps an account at 5 cron triggers total, so SDN and CSL share the
-  // "0 6 * * 1" slot (src/scheduled.ts dispatches both from one trigger)
-  // rather than this app needing a 6th slot or a plan upgrade just to add
-  // Aex Terminal's daily sync. Pulse (live Federal Register feed,
-  // src/lib/pulse/sync.ts) is the only daily job -- it's a small incremental
-  // upsert, not a full-table reload, so it doesn't carry the D1 write-quota
-  // risk below. One daily trigger runs the Pulse jobs plus whichever bulk
-  // reference reloads (HTS, Schedule B, xref, SDN, CSL, UN, UK, GTA, WRO) are due
-  // that day, a few at a time so no single day exceeds D1's free-tier cap of
-  // 100,000 rows written -- see the comment at the top of src/scheduled.ts and
-  // src/lib/refresh/changeGate.ts. Curated legal content (USMCA rules,
-  // tariff overlays, country chart, ECCN) is NOT on this schedule -- see
-  // the comment at the top of src/scheduled.ts for why.
+  // Auto-refresh schedule (src/scheduled.ts). Workers Free allows 5 cron triggers
+  // and caps each invocation at 50 outbound requests and 50 database queries, so
+  // the work is split across three triggers, each with its own budget:
+  //   05:00 UTC  the daily Pulse jobs (Federal Register, ECB rates, news, macro,
+  //              COFER, Treasury, commodities, case expiry)
+  //   06:00 UTC  the weekly reference-table reloads that are due (SDN, CSL, UN, UK,
+  //              GTA, WRO, HTS, Schedule B, xref), a few at a time so no day
+  //              exceeds D1's free cap of 100,000 rows written
+  //   07:00 UTC  the weekly country indicators that are due (World Bank, UN voting,
+  //              UNESCO, UNHCR, Nobel, OCHA), at most 40 requests a day
+  // Curated legal content (USMCA rules, tariff overlays, country chart, ECCN) is
+  // NOT on this schedule -- see the comment at the top of src/scheduled.ts.
   "triggers": {
-    "crons": ["0 5 * * *"]
+    "crons": ["0 5 * * *", "0 6 * * *", "0 7 * * *"]
   }
 }

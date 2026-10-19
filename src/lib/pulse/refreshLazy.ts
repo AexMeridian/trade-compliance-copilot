@@ -1,5 +1,5 @@
 // Refresh-on-request for the market/news sources. Cloudflare Free caps an
-// account at 5 cron triggers and all 5 are in use (see src/scheduled.ts), and
+// account at 5 cron triggers and three are in use (see src/scheduled.ts), and
 // a once-daily cron would leave ECB rates a day stale anyway -- so a request
 // that finds a source past its TTL triggers a background refresh instead.
 //

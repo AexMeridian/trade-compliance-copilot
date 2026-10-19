@@ -156,7 +156,17 @@ app.route('/api/cases', screeningRoute);
 app.route('/api/cases', determinationRoute);
 app.route('/api/pulse', pulseRoute);
 
-app.get('/api/health', (c) => c.json({ ok: true }));
+// Reaches the database (one row), so a monitor sees an outage or a used-up daily quota instead of a constant "ok".
+app.get('/api/health', async (c) => {
+  try {
+    await c.env.DB.prepare('SELECT 1').first();
+    c.header('Cache-Control', 'no-store');
+    return c.json({ ok: true });
+  } catch {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ ok: false }, 503);
+  }
+});
 
 // Without this, an uncaught exception (a D1 outage, a quota day, anything
 // unexpected) falls through to Hono's default handler: a bare "Internal

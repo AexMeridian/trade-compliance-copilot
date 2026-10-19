@@ -118,3 +118,18 @@ and each country page scanned about 51,000 sanctions rows. Changes made:
 
 Watch it: Cloudflare dashboard > Storage & Databases > D1 > the database > Metrics ("Rows read"). Set a usage notification at
 about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a month) includes 25 billion rows read.
+
+## Deploys and schedule
+
+- The site deploys from Cloudflare Workers Builds on every push to `main`. `frontend/dist` is not committed, so the Workers Builds
+  **build command must be `npm run build:frontend`** (Cloudflare dashboard, Workers and Pages, this Worker, Settings, Build).
+  If that setting is cleared the Worker deploys without its pages. `npm run deploy` does the same two steps by hand.
+- CI (`.github/workflows/ci.yml`) runs typecheck, unit tests, the frontend build and a dependency audit. The smoke and
+  accessibility suites need a seeded local database and a browser, so run `npm run test:smoke` and `npm run test:a11y` by hand
+  before a release.
+- Three cron triggers (see `wrangler.jsonc`): 05:00 UTC daily Pulse jobs, 06:00 UTC due reference-table reloads, 07:00 UTC due
+  country indicators (at most 40 outbound requests a day, because the free plan allows 50 per invocation). Check
+  `/api/pulse/data-status` the day after a deploy. Workers Free allows 5 cron triggers; 2 remain.
+- `GET /api/health` queries the database (one row) and returns 503 if it cannot, so an uptime monitor can use it.
+- The shared daily AI ceiling (`CLAUDE_DAILY_CAP`, default 300) now counts Claude calls, counted just before each call. A
+  multi-party screening uses one per party.
