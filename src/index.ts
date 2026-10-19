@@ -11,6 +11,7 @@ import { determinationRoute } from './routes/determination.js';
 import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
 import { ClaudeDailyCapError } from './lib/anthropic.js';
+import { servePage } from './pages.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { normalizeFilters } from './lib/feed.js';
@@ -180,6 +181,9 @@ app.get('/api/health', async (c) => {
 // JSON and therefore reports as a generic, unhelpful message everywhere it's
 // surfaced. This keeps every route's error contract the same ({ error }, as
 // json) and logs the real cause to the Worker's own log instead of the client.
+// Everything that is not an API route and not a static file is a page of the app (or an address that is not).
+app.get('*', servePage);
+
 app.onError((err, c) => {
   if (err instanceof ClaudeDailyCapError) {
     return c.json({ error: 'The calculator has reached its daily capacity for AI-assisted checks. Please try again tomorrow.' }, 503);

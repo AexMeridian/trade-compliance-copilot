@@ -16,7 +16,8 @@ for (const [name, w] of [['desktop', 1280], ['mobile', 390]]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
   const errs = [];
   p.on('pageerror', (e) => errs.push('pageerror: ' + e));
-  p.on('console', (m) => m.type() === 'error' && errs.push('console: ' + m.text()));
+  // An unknown address now answers with a real 404, which the browser logs; that is the expected result for that route only.
+  p.on('console', (m) => m.type() === 'error' && !/status of 404/.test(m.text()) && errs.push('console: ' + m.text()));
   p.on('requestfailed', (r) => errs.push('reqfailed: ' + r.url()));
   p.on('response', (r) => r.status() >= 400 && !r.url().includes('definitely') && errs.push(`http ${r.status()}: ${r.url()}`));
   for (const r of routes) {

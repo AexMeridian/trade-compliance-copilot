@@ -11,6 +11,7 @@ import { MarketStrip } from './components/MarketStrip';
 import { LogoMark } from './components/LogoMark';
 import { SiteFooter } from './components/SiteFooter';
 import { SITE } from './lib/site';
+import { pageMeta } from './lib/pageMeta';
 import { TARIFF_COUNTRY_LABELS } from './lib/pulseTariffCountries';
 
 // Everything except the home page loads on demand, so a first visit downloads only
@@ -35,51 +36,21 @@ const CountryCompare = lazyPage(() => import('./pages/CountryCompare'), 'Country
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
 
 
-const KNOWN_PATHS = ['/', '/methodology', '/terms', '/calculator', '/abroad', '/allies', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/about', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', '/compare'];
 
-// Keeps the browser tab title (and the search-engine-visible robots hint)
-// accurate as a single-page app moves between views.
+// Keeps the browser tab title, description, canonical address and robots hint accurate as a single-page app moves between views.
+// The same function (lib/pageMeta.ts) writes these tags into the HTML the Worker serves, so crawlers and link previews that do not
+// run scripts see them too.
 function usePageMeta(pathname: string, tab: string | null) {
   useEffect(() => {
-    let title = `${SITE.name}: U.S. tariffs, sanctions, markets and trade news in plain English`;
-    if (pathname === '/') {
-      const t = PULSE_TABS.find((x) => x.id === tab);
-      if (t && t.id !== 'overview') title = `${t.label} | ${SITE.name}`;
-    } else if (pathname === '/calculator') title = `Compliance calculator | ${SITE.name}`;
-    else if (pathname === '/abroad') title = `U.S. abroad: where U.S. policy lands | ${SITE.name}`;
-    else if (pathname === '/allies') title = `Dollar & allies: trade tools, the dollar and alliances | ${SITE.name}`;
-    else if (pathname === '/about') title = `About | ${SITE.name}`;
-    else if (pathname === '/methodology') title = `Methodology and sources | ${SITE.name}`;
-    else if (pathname === '/terms') title = `Terms of use | ${SITE.name}`;
-    else if (pathname === '/privacy') title = `Privacy | ${SITE.name}`;
-    else if (pathname === '/accessibility') title = `Accessibility | ${SITE.name}`;
-    else if (pathname === '/cookies') title = `Cookies and local storage | ${SITE.name}`;
-    else if (pathname === '/disclaimer') title = `Disclaimer | ${SITE.name}`;
-    else if (pathname === '/copyright') title = `Copyright and takedown requests | ${SITE.name}`;
-    else if (pathname === '/security') title = `Security and responsible disclosure | ${SITE.name}`;
-    else if (pathname === '/compare') title = `Compare countries | ${SITE.name}`;
-    else if (pathname.startsWith('/case/')) title = `Compliance case | ${SITE.name}`;
-    else if (pathname.startsWith('/snapshot/')) title = `Cited snapshot | ${SITE.name}`;
-    else if (pathname.startsWith('/country/')) {
-      const code = pathname.slice('/country/'.length).toUpperCase();
-      const name = TARIFF_COUNTRY_LABELS[code] ?? code;
-      title = `${name} | ${SITE.name}`;
-    } else title = `Page not found | ${SITE.name}`;
-    document.title = title;
+    const code = /^\/country\/([A-Za-z]{2})$/.exec(pathname)?.[1]?.toUpperCase();
+    const meta = pageMeta(pathname, tab, PULSE_TABS.find((x) => x.id === tab)?.label ?? null, code ? (TARIFF_COUNTRY_LABELS[code] ?? null) : null);
+    document.title = meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description);
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', meta.canonical);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', meta.canonical);
 
-    // Each address names itself as canonical (the HTML ships with the home page's), so search engines do not fold every
-    // page into the home page. Only the home page's tabs keep their query string, since each tab is its own view.
-    const canonical = `https://aexterminal.com${pathname}${pathname === '/' && tab && tab !== 'overview' ? `?tab=${encodeURIComponent(tab)}` : ''}`;
-    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical);
-    document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonical);
-
-    // Unknown URLs and private case pages should not be indexed. Country
-    // pages are real content (like /about), so they're indexable too, but
-    // their path varies per code, so it needs a prefix check rather than an
-    // exact match against the fixed KNOWN_PATHS list.
-    const indexable = KNOWN_PATHS.includes(pathname) || pathname.startsWith('/country/');
     let robots = document.querySelector('meta[name="robots"]');
-    if (!indexable) {
+    if (!meta.indexable) {
       if (!robots) {
         robots = document.createElement('meta');
         robots.setAttribute('name', 'robots');
