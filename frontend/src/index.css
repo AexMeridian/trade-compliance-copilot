@@ -2,8 +2,8 @@
 /* Self-hosted fonts (no request to Google, so nothing about a visitor is shared with a third party). */
 @import '@fontsource-variable/space-grotesk';
 @import '@fontsource-variable/instrument-sans';
-/* The wordmark only: spaced capitals in a classical serif. Self-hosted like the other fonts. */
-@import '@fontsource/cormorant-garamond/600.css';
+/* The wordmark only: spaced capitals in a classical serif, Latin letters only (it spells the site name). Self-hosted like the other fonts. */
+@import '@fontsource/cormorant-garamond/latin-600.css';
 /* Story headlines: a text serif, the editorial voice of a news front page. */
 @import '@fontsource-variable/source-serif-4';
 

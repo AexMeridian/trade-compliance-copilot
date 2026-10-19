@@ -666,6 +666,9 @@ export function PulseGlobe({
     if (!world || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let raf = 0;
     let last = performance.now();
+    // On a phone or any touch-first device the page was measured at over 3 seconds of blocked main thread (4x CPU slowdown), so
+    // the globe is drawn at most about 30 times a second there. The turn is driven by elapsed time, so its speed is unchanged.
+    const minGap = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768 ? 33 : 0;
     // Stop drawing while the globe is scrolled out of view: on a long page it would
     // otherwise burn CPU/GPU at 30 fps for as long as the visitor reads below it.
     const el = wrap.current;
@@ -701,7 +704,7 @@ export function PulseGlobe({
         draw();
         // Only a device that takes a long time per frame (over 9 ms) is throttled, in proportion; a fast one is never held back.
         const cost = performance.now() - started;
-        frameGapRef.current = cost > 9 ? Math.min(100, cost * 2) : 0;
+        frameGapRef.current = Math.max(minGap, cost > 9 ? Math.min(100, cost * 2) : 0);
       }
       last = now;
       raf = requestAnimationFrame(tick);

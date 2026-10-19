@@ -23,7 +23,7 @@ export function MarketStrip() {
   const unrate = tiles.find((t) => t.id === 'BLS:UNRATE');
   const quotes = tiles.filter((t) => t.group === 'U.S. stocks').slice(0, 3);
 
-  const item = 'flex shrink-0 items-baseline gap-1.5 whitespace-nowrap text-ink no-underline';
+  const item = 'flex shrink-0 items-baseline gap-1.5 whitespace-nowrap text-ink no-underline pointer-coarse:-my-3 pointer-coarse:py-3';
   // One pass through every figure. It is rendered more than once so the band can scroll without a gap; the
   // extra passes are hidden from assistive technology and from the tab order.
   const pass = (hidden: boolean) => {

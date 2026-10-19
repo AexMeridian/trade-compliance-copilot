@@ -65,7 +65,7 @@ function usePageMeta(pathname: string, tab: string | null) {
 
 // On the top bar (which follows the theme): quiet text, and the current page is a solid ink pill.
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-semibold no-underline ${isActive ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`;
+  `rounded-md px-3 py-1.5 pointer-coarse:py-3 text-sm font-semibold no-underline ${isActive ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`;
 
 export default function App() {
   const location = useLocation();
@@ -115,7 +115,7 @@ export default function App() {
           <Link
             to="/"
             onClick={() => window.scrollTo({ top: 0 })}
-            className="flex shrink-0 items-center gap-3 text-ink no-underline"
+            className="flex shrink-0 items-center gap-3 text-ink no-underline pointer-coarse:-m-1.5 pointer-coarse:p-1.5"
             aria-label={SITE.name}
           >
             <LogoMark className="h-8 w-8 shrink-0 text-mark" />
@@ -146,7 +146,8 @@ export default function App() {
 
       <MarketStrip />
 
-      <main id="main" tabIndex={-1} className="flex-1 outline-none">
+      {/* A minimum height keeps the footer below the fold while a page loads, so it does not jump when the page arrives. */}
+      <main id="main" tabIndex={-1} className="min-h-[85vh] flex-1 outline-none">
         {(location.pathname === '/calculator' || location.pathname.startsWith('/case/')) && <BetaBanner />}
         <Suspense fallback={<p className="mx-auto max-w-4xl px-4 py-16 text-sm text-ink-faint">Loading…</p>}>
         <Routes>

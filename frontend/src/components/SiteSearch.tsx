@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { policySearchEntry, searchSite, type SearchEntry } from '../lib/siteSearch';
+import type { SearchEntry } from '../lib/siteSearch';
+
+// The search index (every page, country, program and list) is only needed once someone opens the dialog, so it loads then and
+// stays out of the first download.
+type SearchIndex = typeof import('../lib/siteSearch');
 
 // A "jump to" search over the site's own structure -- pages, every tracked
 // country, alliances and the real programs/lists this app screens against --
@@ -21,11 +25,17 @@ export function SiteSearch() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
+  const [index, setIndex] = useState<SearchIndex | null>(null);
+  useEffect(() => {
+    if (open && !index) void import('../lib/siteSearch').then(setIndex);
+  }, [open, index]);
+
   const results = useMemo(() => {
-    const found = searchSite(query);
-    const live = policySearchEntry(query);
+    if (!index) return [] as SearchEntry[];
+    const found = index.searchSite(query);
+    const live = index.policySearchEntry(query);
     return live ? [...found, live] : found;
-  }, [query]);
+  }, [query, index]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -74,7 +84,7 @@ export function SiteSearch() {
         onClick={() => setOpen(true)}
         aria-label="Search the site"
         title="Search (Ctrl/Cmd+K)"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:text-ink"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:text-ink pointer-coarse:h-11 pointer-coarse:w-11"
       >
         <svg
           viewBox="0 0 24 24"

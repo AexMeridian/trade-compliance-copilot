@@ -43,7 +43,7 @@ export function MobileMenu() {
         aria-expanded={open}
         aria-controls="mobile-menu"
         aria-label="More pages"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:text-ink"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:text-ink pointer-coarse:h-11 pointer-coarse:w-11"
       >
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16" />
