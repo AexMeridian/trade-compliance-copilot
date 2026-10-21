@@ -4,12 +4,15 @@ import { getOpinion, getPower, type OpinionResponse, type PowerResponse } from '
 import { AfricaAtlas } from '../components/AfricaAtlas';
 import { AfricaPanel } from '../components/AfricaPanel';
 import { AttitudesPanel } from '../components/AttitudesPanel';
+import { GlossarySearch } from '../components/GlossarySearch';
 import { IndicatorExplorer } from '../components/IndicatorExplorer';
 import { LanguageTies } from '../components/LanguageTies';
 import { LeftOut } from '../components/LeftOut';
 import { ResourceGap } from '../components/ResourceGap';
 import { SectionHeader } from '../components/SectionHeader';
 import { SectionTabs } from '../components/SectionTabs';
+import { SoftOverview } from '../components/SoftOverview';
+import { CountryPicker } from '../components/CountryPicker';
 import { SoftPowerHero } from '../components/SoftPowerHero';
 import { UnAlignmentGlobe } from '../components/UnAlignmentGlobe';
 import { CountryCompare } from './CountryCompare';
@@ -20,13 +23,6 @@ import { SOFT_TABS, softTabFrom, type SoftTabId } from '../lib/powerTabs';
 const byDimension = (data: PowerResponse | null, ...dims: string[]) => (data?.indicators ?? []).filter((i) => dims.includes(i.dimension));
 // Aid a country receives is the receiving side of foreign policy, so it sits with aid given rather than with cultural exchange.
 const isAidReceived = (id: string) => id.startsWith('oda_received');
-
-const Item = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex min-w-0 flex-col border-t-4 border-ink p-4">
-    <h2 className="font-sans text-[13px] font-semibold tracking-normal text-ink">{label}</h2>
-    <div className="mt-2 flex-1">{children}</div>
-  </div>
-);
 
 // Soft power: what draws people to a country, in Joseph Nye's terms resting on its culture, its political values and its foreign
 // policy, and best tested by what people in other countries actually say. Every figure carries its value, unit, year, source and
@@ -87,53 +83,16 @@ export function SoftPower() {
         <SectionTabs tabs={SOFT_TABS} active={tab} onChange={(id) => setTab(id)} idPrefix="soft" label="Soft Power sections" />
 
         <div role="tabpanel" id="soft-tabpanel" aria-labelledby={`soft-tab-${tab}`} className="pt-6">
-          {tab === 'overview' && (
-            <div className="flex flex-col gap-6">
-              <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-                <Item label="What people say">
-                  <p className="text-[15px] leading-snug text-ink">
-                    Pew polls 24 to 37 countries a year on views of the U.S. and China; Afrobarometer asks 38 African countries whose influence is positive.
-                  </p>
-                  <button type="button" onClick={() => setTab('attitudes', true)} className="mt-3 text-[13px] text-accent hover:underline">
-                    Open Attitudes
-                  </button>
-                </Item>
-                <Item label="What draws people in">
-                  <p className="text-[15px] leading-snug text-ink">Students, tourists, migrants, researchers and Nobel laureates: the footprints of attraction, by country and year.</p>
-                  <button type="button" onClick={() => setTab('culture', true)} className="mt-3 text-[13px] text-accent hover:underline">
-                    Open Culture & exchange
-                  </button>
-                </Item>
-                <Item label="What a country gives and how it votes">
-                  <p className="text-[15px] leading-snug text-ink">Aid, humanitarian funding, refugees sheltered, and how closely each country votes with the U.S., China or Russia at the UN.</p>
-                  <button type="button" onClick={() => setTab('foreign', true)} className="mt-3 text-[13px] text-accent hover:underline">
-                    Open Foreign policy & aid
-                  </button>
-                </Item>
-              </div>
-              <div className="max-w-3xl text-sm leading-relaxed text-ink-muted">
-                <p>
-                  Soft power is the ability to get others to want what you want through attraction rather than payment or force. Scholars say it rests on three things: a country's culture where it appeals
-                  to others, its political values when it lives up to them, and its foreign policy when others see it as legitimate. Surveys of what people actually think are the best test, so they come
-                  first here, and what a country has is shown apart from what people say about it.
-                </p>
-                <p className="mt-2">
-                  There is no combined score: indices that add these up hide their weights. For the coercive side (sanctions, tariffs, the dollar, defense), see{' '}
-                  <Link to="/hard-power" className="text-accent hover:underline">
-                    Hard Power
-                  </Link>
-                  .
-                </p>
-              </div>
-            </div>
-          )}
+          {tab === 'overview' && <SoftOverview indicators={loaded ? data!.indicators : null} opinion={opinion} go={(id) => setTab(id, true)} />}
 
           {tab === 'attitudes' && (
             <div className="flex flex-col gap-5">
               <SectionHeader
+                tone="soft"
                 title="Attitudes: what people say"
                 description="The test of soft power is whether people feel drawn to a country. These are published survey results, each shown on its own, never averaged across pollsters and never extended to countries nobody asked."
               />
+              <CountryPicker codes={codes} onChange={(next) => { const n = new URLSearchParams(params); n.set('countries', next.join(',')); setParams(n, { replace: true }); }} />
               {opinion && year ? (
                 <>
                   <AttitudesPanel data={opinion} year={year} onYear={setOpinionYear} codes={codes} showTable={showTable} />
@@ -152,7 +111,7 @@ export function SoftPower() {
 
           {tab === 'culture' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Culture and exchange" description="Where people study, visit, move and publish together, and the research a country is known for. These are footprints of attraction, not proof of it." />
+              <SectionHeader tone="soft" title="Culture and exchange" description="Where people study, visit, move and publish together, and the research a country is known for. These are footprints of attraction, not proof of it." />
               {loaded ? (
                 <>
                   <IndicatorExplorer
@@ -171,7 +130,7 @@ export function SoftPower() {
 
           {tab === 'values' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Political values" description="How each country's governance is rated. Attraction rests on values that a country lives up to at home." />
+              <SectionHeader tone="soft" title="Political values" description="How each country's governance is rated. Attraction rests on values that a country lives up to at home." />
               {loaded ? (
                 <IndicatorExplorer
                   heading="Governance indicators"
@@ -186,7 +145,7 @@ export function SoftPower() {
 
           {tab === 'foreign' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Foreign policy and aid" description="What a country gives abroad and how it votes. Legitimacy comes from policies that others see as generous and fair." />
+              <SectionHeader tone="soft" title="Foreign policy and aid" description="What a country gives abroad and how it votes. Legitimacy comes from policies that others see as generous and fair." />
               {loaded ? (
                 <IndicatorExplorer
                   heading="Aid, humanitarian giving and refuge"
@@ -208,7 +167,7 @@ export function SoftPower() {
 
           {tab === 'method' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Method and gaps" description="Where each figure comes from, what it cannot tell you, and what was looked for and left out." />
+              <SectionHeader tone="soft" title="Method and gaps" description="Where each figure comes from, what it cannot tell you, and what was looked for and left out." />
               <LeftOut />
               <section>
                 <h3 className="font-display text-xl font-bold text-ink">Sources and licences</h3>
@@ -222,14 +181,9 @@ export function SoftPower() {
               </section>
               <section>
                 <h3 className="font-display text-xl font-bold text-ink">Terms used</h3>
-                <dl className="mt-2 grid max-w-3xl gap-y-2 text-[13px] text-ink-muted">
-                  {POWER_TERMS.map(([term, def]) => (
-                    <div key={term}>
-                      <dt className="font-semibold text-ink">{term}</dt>
-                      <dd>{def}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <div className="mt-2">
+                  <GlossarySearch terms={POWER_TERMS} />
+                </div>
               </section>
             </div>
           )}

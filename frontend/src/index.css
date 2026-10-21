@@ -65,6 +65,13 @@
   --color-hue-gray: #8a8a94;
   --color-hue-gray-ink: #47474e;
 
+  /* Page accents for the two power pages: soft power is teal, hard power is burnt orange. Used for tile rules, tab underlines and
+     chart fills; never for up/down meaning. -ink forms are the ones safe for text. */
+  --color-soft: #0e7490;
+  --color-soft-tint: #e6f4f7;
+  --color-hard: #b8400a;
+  --color-hard-tint: #fcefe6;
+
   /* The hero (PulseHero/SoftPowerHero/HardPowerHero + PulseGlobe + PulseCountryCard)
      is its own small color system, not the page's --color-paper/--color-ink --
      because it needs a "day" look distinct from a plain white page (a wireframe
@@ -157,6 +164,11 @@
   --color-hue-blue-ink: #60a5fa;
   --color-hue-green-ink: #34d399;
   --color-hue-gray-ink: #c4c4cc;
+
+  --color-soft: #22d3ee;
+  --color-soft-tint: #0c2a31;
+  --color-hard: #fb923c;
+  --color-hard-tint: #35200f;
 }
 
 @layer base {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { OpinionResponse, OpinionSurvey } from '../lib/api';
 import { nameFor, SERIES_COLORS } from '../lib/powerCountries';
 import { ChartFooter } from './ChartFooter';
@@ -20,7 +20,7 @@ function Dot({ pct, color, title }: { pct: number; color: string; title: string 
   return (
     <span
       title={title}
-      className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper-raised"
+      className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper-raised transition-[left] duration-700 motion-reduce:transition-none"
       style={{ left: `${pct}%`, background: color }}
     />
   );
@@ -31,6 +31,9 @@ function Dot({ pct, color, title }: { pct: number; color: string; title: string 
 // other country has no comparable reading, and the panel says so instead of filling the gap.
 export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data: OpinionResponse; year: number; onYear: (y: number) => void; codes: string[]; showTable: boolean }) {
   const [sortBy, setSortBy] = useState<'gap' | 'name'>('gap');
+  const [show, setShow] = useState<'all' | 'us' | 'cn'>('all');
+  const [hover, setHover] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
   const years = [...new Set(data.surveys.map((s) => s.year))].sort((a, b) => b - a);
   const { us, cn } = surveysFor(data, year);
   const polled = new Set([...Object.keys(us?.favorable ?? {}), ...Object.keys(cn?.favorable ?? {})]);
@@ -40,6 +43,26 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
     const gap = (r: typeof a) => (r.us !== undefined && r.cn !== undefined ? r.us - r.cn : -999);
     return gap(b) - gap(a) || label(a.cc).localeCompare(label(b.cc));
   });
+  // "Play" steps through the survey years oldest to newest so the dots slide; it stops on the newest year or on any click.
+  useEffect(() => {
+    if (!playing) return;
+    const asc = [...years].reverse();
+    const i = asc.indexOf(year);
+    if (i >= asc.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    const t = window.setTimeout(() => onYear(asc[i + 1]), 1600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, year]);
+  const gapOf = (r: { us?: number; cn?: number }) => (r.us !== undefined && r.cn !== undefined ? r.us - r.cn : undefined);
+  const visible = rows.filter((r) => {
+    const g = gapOf(r);
+    return show === 'all' || (g !== undefined && (show === 'us' ? g > 0 : g < 0));
+  });
+  const hoverRow = hover ? rows.find((r) => r.cc === hover) : undefined;
+  const hoverGap = hoverRow ? gapOf(hoverRow) : undefined;
   const surveys = [us, cn].filter((s): s is OpinionSurvey => !!s);
   const csvRows = rows.map((r) => [label(r.cc), r.us ?? '', r.cn ?? '']);
 
@@ -47,12 +70,30 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
     <div className="card min-w-0 px-4 pb-4 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-[15px] font-semibold text-ink">Favorable views of the United States and of China</h3>
+        <div className="flex items-center gap-2">
+        {years.length > 1 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!playing && year === years[0]) onYear(years[years.length - 1]);
+              setPlaying((p) => !p);
+            }}
+            aria-pressed={playing}
+            className="border border-hairline-strong px-3 py-1 text-sm font-semibold text-ink-muted hover:text-ink"
+          >
+            {playing ? 'Pause' : 'Play years'}
+          </button>
+        )}
         <div role="group" aria-label="Survey year" className="inline-flex border border-hairline-strong text-sm">
           {years.map((y) => (
-            <button key={y} type="button" onClick={() => onYear(y)} aria-pressed={y === year} className={`px-3 py-1 font-semibold ${y === year ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`}>
+            <button key={y} type="button" onClick={() => {
+                setPlaying(false);
+                onYear(y);
+              }} aria-pressed={y === year} className={`px-3 py-1 font-semibold ${y === year ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink'}`}>
               {y}
             </button>
           ))}
+        </div>
         </div>
       </div>
       <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-muted">
@@ -87,7 +128,14 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
         <span className="flex items-center gap-1.5">
           <span aria-hidden="true" className="h-3 w-3 rounded-full" style={{ background: CN_COLOR }} /> China
         </span>
-        <label className="ml-auto flex items-center gap-1.5">
+        <span role="group" aria-label="Which countries to show" className="ml-auto inline-flex gap-1">
+          {([['all', 'All'], ['us', 'U.S. ahead'], ['cn', 'China ahead']] as const).map(([k, t]) => (
+            <button key={k} type="button" aria-pressed={show === k} onClick={() => setShow(k)} className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${show === k ? 'border-ink bg-ink text-paper' : 'border-hairline-strong text-ink-muted hover:text-ink'}`}>
+              {t}
+            </button>
+          ))}
+        </span>
+        <label className="flex items-center gap-1.5">
           Sort by
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'gap' | 'name')} className="border border-hairline-strong bg-paper-raised px-1.5 py-0.5 text-xs">
             <option value="gap">Gap: U.S. ahead first</option>
@@ -96,7 +144,19 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
         </label>
       </div>
 
-      <div aria-hidden="true" className="mt-2">
+      <p className="mt-3 min-h-[1.5rem] text-[13px] text-ink-muted" aria-hidden="true">
+        {hoverRow ? (
+          <>
+            <span className="font-semibold text-ink">{label(hoverRow.cc)}:</span> U.S. {hoverRow.us ?? 'n/a'}
+            {hoverRow.us !== undefined ? '%' : ''}, China {hoverRow.cn ?? 'n/a'}
+            {hoverRow.cn !== undefined ? '%' : ''}
+            {hoverGap !== undefined && hoverGap !== 0 ? `. ${hoverGap > 0 ? 'U.S.' : 'China'} ahead by ${Math.abs(hoverGap)} points.` : hoverGap === 0 ? '. Even.' : ''}
+          </>
+        ) : (
+          'Move over a row to read its numbers.'
+        )}
+      </p>
+      <div aria-hidden="true" className="mt-1">
         <div className="relative ml-[9.5rem] h-4 text-[11px] text-ink-faint sm:ml-[11rem]">
           {[0, 25, 50, 75, 100].map((t) => (
             <span key={t} className="absolute -translate-x-1/2" style={{ left: `${t}%` }}>
@@ -104,12 +164,17 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
             </span>
           ))}
         </div>
-        {rows.map((r) => {
+        {visible.map((r) => {
           const mine = codes.includes(r.cc);
           const lo = Math.min(r.us ?? r.cn ?? 0, r.cn ?? r.us ?? 0);
           const hi = Math.max(r.us ?? r.cn ?? 0, r.cn ?? r.us ?? 0);
           return (
-            <div key={r.cc} className={`flex h-[26px] items-center ${mine ? 'bg-accent-soft font-semibold' : ''}`}>
+            <div
+              key={r.cc}
+              onMouseEnter={() => setHover(r.cc)}
+              onMouseLeave={() => setHover(null)}
+              className={`flex h-[28px] items-center ${mine ? 'bg-accent-soft font-semibold' : hover === r.cc ? 'bg-hairline/50' : ''}`}
+            >
               <span className="w-[9.5rem] shrink-0 truncate pr-3 text-right text-[13px] text-ink sm:w-[11rem]">{label(r.cc)}</span>
               <span className="relative h-full flex-1">
                 {[0, 25, 50, 75, 100].map((t) => (

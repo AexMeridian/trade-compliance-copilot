@@ -1,8 +1,12 @@
 import { SectionHeader } from '../components/SectionHeader';
+import { Sparkline } from '../components/Sparkline';
+import { StatTile } from '../components/StatTile';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type TicHolders as TicData } from '../lib/api';
 import { TicHolders } from '../components/TicHolders';
+import { NatoSpendingBars } from '../components/NatoSpendingBars';
+import { SanctionsLeaders } from '../components/SanctionsLeaders';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
 import { HardPowerGuide } from '../components/HardPowerGuide';
@@ -39,7 +43,8 @@ import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, Pulse
 // = the same static, sourced bloc file Influence uses. No new fabricated
 // score anywhere -- see routes/pulse.ts and lib/pulse/cofer.ts for sources.
 const Item = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex min-w-0 flex-col border-t-4 border-ink p-4">
+  <div className="card relative flex min-w-0 flex-col overflow-hidden px-4 pb-4 pt-5">
+    <span className="absolute inset-x-0 top-0 h-1 bg-hard" aria-hidden="true" />
     <h2 className="font-sans text-[13px] font-semibold tracking-normal text-ink">{label}</h2>
     <div className="mt-2 flex-1">{children}</div>
   </div>
@@ -63,6 +68,7 @@ export function HardPower() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sanctionsCountry, setSanctionsCountry] = useState<string>('');
   const [policyChecked, setPolicyChecked] = useState<string | null>(null);
 
   const [params, setParams] = useSearchParams();
@@ -151,6 +157,12 @@ export function HardPower() {
   );
 
   const coferLatest = coferPoints.length > 0 ? { date: coferPoints[coferPoints.length - 1][0], value: coferPoints[coferPoints.length - 1][1] } : null;
+  const natoLatest = Object.values(natoDefense)
+    .map((c) => c.points[c.points.length - 1]?.[1])
+    .filter((v): v is number => typeof v === 'number')
+    .sort((a, b) => a - b);
+  // Defense spending is stored as a share of GDP; the median is the middle country, so one outlier cannot move it.
+  const natoMedian = natoLatest.length > 0 ? (natoLatest.length % 2 ? natoLatest[(natoLatest.length - 1) / 2] : (natoLatest[natoLatest.length / 2 - 1] + natoLatest[natoLatest.length / 2]) / 2) : null;
   const coferEarliest = coferPoints.length > 0 ? { date: coferPoints[0][0], value: coferPoints[0][1] } : null;
 
   return (
@@ -184,7 +196,50 @@ export function HardPower() {
         <div role="tabpanel" id="hard-tabpanel" aria-labelledby={`hard-tab-${tab}`} className="pt-6">
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
-              <div className="card grid grid-cols-1 divide-y divide-hairline overflow-hidden sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
+              {(summary || coferLatest || tic?.countries[0] || natoMedian !== null) && (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {summary && (
+                    <StatTile
+                      tone="hard"
+                      label="Trade actions, last 30 days"
+                      figure={String(summary.last30)}
+                      note={summary.trendPct === null ? 'No earlier period to compare.' : `${summary.trendPct >= 0 ? 'Up' : 'Down'} ${Math.abs(Math.round(summary.trendPct))}% on the 30 days before.`}
+                      visual={<Sparkline points={months.map((m, i) => [i, m.count] as [number, number])} color="var(--color-hard)" width={160} height={34} fill />}
+                      onClick={() => setTab('trade', true)}
+                    />
+                  )}
+                  {coferLatest && (
+                    <StatTile
+                      tone="hard"
+                      label="Dollar share of world FX reserves"
+                      figure={`${coferLatest.value.toFixed(0)}%`}
+                      note={coferEarliest && coferEarliest.date !== coferLatest.date ? `Down from ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)}.` : 'IMF COFER.'}
+                      visual={<Sparkline points={coferPoints.map((p, i) => [i, p[1]] as [number, number])} color="var(--color-hard)" width={160} height={34} fill />}
+                      onClick={() => setTab('money', true)}
+                    />
+                  )}
+                  {tic?.countries[0] && (
+                    <StatTile
+                      tone="hard"
+                      label="Largest foreign holder of U.S. Treasuries"
+                      figure={`$${Math.round(tic.countries[0].billions).toLocaleString('en-US')}B`}
+                      note={`${tic.countries[0].label}, ${tic.countries[0].asOf}.`}
+                      visual={<Sparkline points={tic.countries[0].history.map((p, i) => [i, p[1]] as [number, number])} color="var(--color-hard)" width={160} height={34} fill />}
+                      onClick={() => setTab('money', true)}
+                    />
+                  )}
+                  {natoMedian !== null && (
+                    <StatTile
+                      tone="hard"
+                      label="NATO members: median defense spending"
+                      figure={`${natoMedian.toFixed(1)}%`}
+                      note="Share of GDP, NATO's own estimates. The alliance's target is 2%."
+                      onClick={() => setTab('military', true)}
+                    />
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Item label="Biggest trade action lately">
                   {topAction ? (
                     <>
@@ -258,7 +313,7 @@ export function HardPower() {
 
           {tab === 'trade' && (
             <div className="flex flex-col gap-4">
-              <SectionHeader title="Trade tools" description="
+              <SectionHeader tone="hard" title="Trade tools" description="
                   Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
                   Register.
                 " />
@@ -337,22 +392,29 @@ export function HardPower() {
 
           {tab === 'sanctions' && (
             <div className="flex flex-col gap-4">
-              <SectionHeader title="Sanctions" description="
+              <SectionHeader tone="hard" title="Sanctions" description="
                   Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
                   text match on each entry's address field, not a normalized code -- see the note below the search box.
                 " />
               <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
                 <RecentListings />
               </PulsePanel>
+              <PulsePanel
+                title="Countries named most often"
+                subtitle="Listed parties whose address names the country (a text match, not a legal finding)."
+                help="Counts of entries on the U.S. (OFAC, Commerce/State), UN and UK lists whose listed address names each country. A count says how many parties are listed, not how severe the measures are."
+              >
+                <SanctionsLeaders selected={sanctionsCountry} onPick={setSanctionsCountry} />
+              </PulsePanel>
               <PulsePanel title="Sanctioned entities" help="These are the same two lists the compliance calculator screens party names against. This view lets you browse them directly by country instead of one name at a time.">
-                <PulseSanctionsBrowser initialCountry={params.get('country') ?? ''} />
+                <PulseSanctionsBrowser key={sanctionsCountry} initialCountry={sanctionsCountry || (params.get('country') ?? '')} />
               </PulsePanel>
             </div>
           )}
 
           {tab === 'money' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Money and the dollar" description="
+              <SectionHeader tone="hard" title="Money and the dollar" description="
                   The dollar's pull as the world's reserve currency, who holds U.S. debt, and its reach in world markets. A measure of financial leverage, not of
                   favorability.
                 " />
@@ -428,7 +490,7 @@ export function HardPower() {
 
           {tab === 'military' && (
             <div className="flex flex-col gap-4">
-              <SectionHeader title="Military and alliances" description="
+              <SectionHeader tone="hard" title="Military and alliances" description="
                   Formal, public membership in five real groupings, cross-referenced with this month's real country breakdown, and NATO's own defense-spending
                   estimates. See the Guide tab for sources and limits.
                 " />
@@ -444,21 +506,7 @@ export function HardPower() {
                   subtitle="NATO's own published estimates, not a live feed -- re-verified by hand roughly once a year."
                   help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. The United States is shown as the comparison baseline this panel exists to provide, not because it needs to meet its own guideline. NATO's own target is 2% of GDP on core defense (raised in 2025 to a path toward 5% by 2035, split 3.5% core / 1.5% related spending)."
                 >
-                  <ul className="flex flex-col gap-2 text-sm">
-                    {Object.entries(natoDefense)
-                      .map(([code, d]) => ({ code, latest: d.points[d.points.length - 1] }))
-                      .filter((r) => r.latest)
-                      .sort((a, b) => b.latest[1] - a.latest[1])
-                      .map(({ code, latest }) => (
-                        <li key={code} className="flex items-center justify-between gap-3 border-b border-hairline pb-2 last:border-0 last:pb-0">
-                          <span className="text-ink">{COUNTRY_LABELS[code] ?? code}</span>
-                          <span className="tabular-nums">
-                            <span className={`font-semibold ${latest[1] >= 2 ? 'text-ink' : 'text-review'}`}>{latest[1].toFixed(2)}%</span>{' '}
-                            <span className="text-xs text-ink-faint">({latest[0].slice(0, 4)})</span>
-                          </span>
-                        </li>
-                      ))}
-                  </ul>
+                  <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />
                 </PulsePanel>
               )}
 

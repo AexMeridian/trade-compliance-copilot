@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ActiveMeasure } from '../types/pulse';
 
 const PROGRAM_LABEL: Record<string, string> = {
@@ -25,6 +26,13 @@ function sectionHint(program: string): string | undefined {
   return SECTION_HINT.find(([prefix]) => program.startsWith(prefix))?.[1];
 }
 
+const SECTIONS = [
+  { id: '232', label: 'Section 232', prefix: 'sec232_', chip: 'bg-hue-orange/15 text-hue-orange-ink' },
+  { id: '301', label: 'Section 301', prefix: 'sec301_', chip: 'bg-hue-violet/15 text-hue-violet-ink' },
+  { id: '338', label: 'Section 338', prefix: 'sec338_', chip: 'bg-hue-pink/15 text-hue-pink-ink' },
+] as const;
+const sectionOf = (program: string) => SECTIONS.find((s) => program.startsWith(s.prefix));
+
 function rateLabel(m: ActiveMeasure): string {
   if (m.min_rate_pct === null) return '—';
   const suffix = m.rate_type === 'ad_valorem' ? '%' : '';
@@ -50,11 +58,28 @@ function isRecent(effectiveDate: string): boolean {
 }
 
 export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] }) {
+  const [filter, setFilter] = useState<'all' | (typeof SECTIONS)[number]['id']>('all');
   if (overlays.length === 0) {
     return <p className="text-sm text-ink-faint">No measures currently in force.</p>;
   }
+  const maxRate = Math.max(1, ...overlays.map((m) => m.max_rate_pct ?? 0));
+  const shown = overlays.filter((m) => filter === 'all' || sectionOf(m.program)?.id === filter);
   return (
-    <div className="min-w-0 overflow-x-auto">
+    <div className="min-w-0">
+      <div role="group" aria-label="Filter by law" className="mb-3 flex flex-wrap gap-1.5">
+        {[{ id: 'all', label: 'All' } as const, ...SECTIONS].map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            aria-pressed={filter === s.id}
+            onClick={() => setFilter(s.id)}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === s.id ? 'border-ink bg-ink text-paper' : 'border-hairline-strong text-ink-muted hover:text-ink'}`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full min-w-[26rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-hairline-strong text-left text-ink-muted">
@@ -65,12 +90,13 @@ export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] })
           </tr>
         </thead>
         <tbody>
-          {overlays.map((m) => (
+          {shown.map((m) => (
             <tr key={`${m.program}-${m.legal_basis}`} className="border-b border-hairline">
               <td className="py-2 pr-3 align-top">
                 <a href={m.source_url} target="_blank" rel="noreferrer" className="text-ink no-underline hover:text-accent" title={sectionHint(m.program)}>
                   {PROGRAM_LABEL[m.program] ?? m.program}
                 </a>
+                {sectionOf(m.program) && <span className={`ml-2 rounded-full px-2 py-0.5 align-middle text-[10px] font-semibold ${sectionOf(m.program)!.chip}`}>{sectionOf(m.program)!.label}</span>}
                 {isRecent(m.effective_date) && (
                   <span className="ml-2 border border-accent/40 bg-accent-soft px-1 py-0.5 align-middle text-[10px] font-medium text-accent">New</span>
                 )}
@@ -78,12 +104,20 @@ export function ActiveMeasuresTable({ overlays }: { overlays: ActiveMeasure[] })
                 {m.legal_basis && <div className="mt-0.5 max-w-md text-xs text-ink-faint">Legal basis: {m.legal_basis}</div>}
               </td>
               <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{scopeLabel(m)}</td>
-              <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">{rateLabel(m)}</td>
+              <td className="py-2 pr-3 align-top tabular-nums whitespace-nowrap">
+                {rateLabel(m)}
+                {m.max_rate_pct !== null && m.max_rate_pct !== undefined && m.rate_type === 'ad_valorem' && (
+                  <span aria-hidden="true" className="mt-1 block h-1.5 w-20 rounded-full bg-hairline">
+                    <span className="block h-1.5 rounded-full bg-hard" style={{ width: `${Math.max(3, (m.max_rate_pct / maxRate) * 100)}%` }} />
+                  </span>
+                )}
+              </td>
               <td className="py-2 align-top tabular-nums whitespace-nowrap">{m.effective_date}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

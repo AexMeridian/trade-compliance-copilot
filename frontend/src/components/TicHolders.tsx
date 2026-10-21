@@ -36,7 +36,7 @@ export function TicHolders({ data }: { data: TicData }) {
                 <td className="whitespace-nowrap py-1.5 pr-3 text-ink">{r.label}</td>
                 <td className="w-full py-1.5 pr-3">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 rounded-sm bg-accent" style={{ width: `${Math.max(2, (r.billions / max) * 70)}%` }} aria-hidden="true" />
+                    <div className="h-2 rounded-sm bg-hard" style={{ width: `${Math.max(2, (r.billions / max) * 70)}%` }} aria-hidden="true" />
                     <span className="tabular-nums text-ink-muted">${r.billions.toFixed(0)}B</span>
                   </div>
                 </td>

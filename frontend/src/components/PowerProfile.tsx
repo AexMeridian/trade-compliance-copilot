@@ -7,6 +7,7 @@ import { AttitudesPanel } from './AttitudesPanel';
 import { ChartFooter } from './ChartFooter';
 import { IndicatorRow } from './IndicatorRow';
 import { LeftOut } from './LeftOut';
+import { RankLadder } from './RankLadder';
 import { ResourceGap } from './ResourceGap';
 import { SectionHeader } from './SectionHeader';
 import { UnAlignmentGlobe } from './UnAlignmentGlobe';
@@ -97,6 +98,7 @@ export function PowerProfile({ codes }: { codes: string[] }) {
             dim.id === 'hard_power' && opinion && year ? (
               <section key="attitudes">
                 <SectionHeader
+                  tone="soft"
                   title="Attitudes: what people say"
                   description="The test of soft power is whether people actually feel drawn to a country. These are published survey results, shown on their own and never folded into a score."
                 />
@@ -118,10 +120,16 @@ export function PowerProfile({ codes }: { codes: string[] }) {
             <Fragment key={dim.id}>
               {attitudes}
             <section>
-              <SectionHeader title={dim.label} description={dim.blurb} />
+              <SectionHeader tone={dim.id === 'hard_power' ? 'hard' : 'soft'} title={dim.label} description={dim.blurb} />
               {dim.id === 'alignment' && (
                 <div className="mt-4">
                   <UnAlignmentGlobe />
+                </div>
+              )}
+              {rows.some((r) => codes.some((c) => r.standings[c])) && (
+                <div className="card mt-4 min-w-0 p-4">
+                  <h3 className="mb-3 text-[15px] font-semibold text-ink">Where each country ranks</h3>
+                  <RankLadder indicators={rows.filter((r) => codes.some((c) => r.standings[c]))} codes={codes} />
                 </div>
               )}
               <div className="card mt-4 min-w-0 px-4 pb-4 pt-1">

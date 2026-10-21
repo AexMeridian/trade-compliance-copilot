@@ -2,23 +2,7 @@ import type { PowerIndicator } from '../lib/api';
 import { formatValue, ordinal } from '../lib/powerFormat';
 import { nameFor, SERIES_COLORS } from '../lib/powerCountries';
 import { DotStrip } from './DotStrip';
-
-function Spark({ points, color }: { points: [number, number][]; color: string }) {
-  if (points.length < 2) return null;
-  const ys = points.map((p) => p[1]);
-  const lo = Math.min(...ys);
-  const hi = Math.max(...ys);
-  const x0 = points[0][0];
-  const xSpan = points[points.length - 1][0] - x0 || 1;
-  const d = points
-    .map(([x, y], i) => `${i ? 'L' : 'M'}${(((x - x0) / xSpan) * 76 + 2).toFixed(1)} ${(20 - ((y - lo) / (hi - lo || 1)) * 16).toFixed(1)}`)
-    .join(' ');
-  return (
-    <svg width="80" height="24" viewBox="0 0 80 24" aria-hidden="true" className="shrink-0">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { Sparkline } from './Sparkline';
 
 // One indicator: what it is, each selected country's figure with its year and rank, where they sit among all
 // countries, and (kept one click away, never hidden from the page) what the figure does not tell you.
@@ -61,7 +45,7 @@ export function IndicatorRow({ indicator, codes, showTable }: { indicator: Power
                   <p className="font-semibold text-ink-faint">n/a</p>
                 )}
               </div>
-              <Spark points={indicator.series[code] ?? []} color={SERIES_COLORS[i]} />
+              <Sparkline points={indicator.series[code] ?? []} color={SERIES_COLORS[i]} />
             </li>
           );
         })}

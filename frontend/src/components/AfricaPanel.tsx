@@ -17,9 +17,11 @@ const month = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('
 // merged with the Pew readings.
 export function AfricaPanel({ data, codes, showTable }: { data: AfroOpinion; codes: string[]; showTable: boolean }) {
   const [sortBy, setSortBy] = useState<'gap' | 'name'>('gap');
+  const [hover, setHover] = useState<string | null>(null);
   const rows = Object.entries(data.countries).map(([cc, v]) => ({ cc, ...v }));
   if (rows.length === 0) return null;
   rows.sort((a, b) => (sortBy === 'name' ? nameFor(a.cc).localeCompare(nameFor(b.cc)) : b.us.pos - b.cn.pos - (a.us.pos - a.cn.pos) || nameFor(a.cc).localeCompare(nameFor(b.cc))));
+  const hoverRow = hover ? rows.find((r) => r.cc === hover) : undefined;
   const mine = codes.filter((c) => data.countries[c]);
   const first = rows.reduce((m, r) => (r.from < m ? r.from : m), rows[0].from);
   const last = rows.reduce((m, r) => (r.to > m ? r.to : m), rows[0].to);
@@ -73,7 +75,17 @@ export function AfricaPanel({ data, codes, showTable }: { data: AfroOpinion; cod
         </span>
       </div>
 
-      <div aria-hidden="true" className="mt-2">
+      <p className="mt-3 min-h-[1.5rem] text-[13px] text-ink-muted" aria-hidden="true">
+        {hoverRow ? (
+          <>
+            <span className="font-semibold text-ink">{nameFor(hoverRow.cc)}:</span> U.S. influence positive {hoverRow.us.pos}%, China {hoverRow.cn.pos}%.{' '}
+            {hoverRow.us.pos === hoverRow.cn.pos ? 'Even.' : `${hoverRow.us.pos > hoverRow.cn.pos ? 'U.S.' : 'China'} ahead by ${Math.abs(hoverRow.us.pos - hoverRow.cn.pos)} points.`}
+          </>
+        ) : (
+          'Move over a row to read its numbers.'
+        )}
+      </p>
+      <div aria-hidden="true" className="mt-1">
         <div className="relative ml-[9.5rem] h-4 text-[11px] text-ink-faint sm:ml-[11rem]">
           {[0, 25, 50, 75, 100].map((t) => (
             <span key={t} className="absolute -translate-x-1/2" style={{ left: `${t}%` }}>
@@ -85,7 +97,12 @@ export function AfricaPanel({ data, codes, showTable }: { data: AfroOpinion; cod
           const lo = Math.min(r.us.pos, r.cn.pos);
           const hi = Math.max(r.us.pos, r.cn.pos);
           return (
-            <div key={r.cc} className={`flex h-[26px] items-center ${codes.includes(r.cc) ? 'bg-accent-soft font-semibold' : ''}`}>
+            <div
+              key={r.cc}
+              onMouseEnter={() => setHover(r.cc)}
+              onMouseLeave={() => setHover(null)}
+              className={`flex h-[28px] items-center ${codes.includes(r.cc) ? 'bg-accent-soft font-semibold' : hover === r.cc ? 'bg-hairline/50' : ''}`}
+            >
               <span className="w-[9.5rem] shrink-0 truncate pr-3 text-right text-[13px] text-ink sm:w-[11rem]">{nameFor(r.cc)}</span>
               <span className="relative h-full flex-1">
                 {[0, 25, 50, 75, 100].map((t) => (
