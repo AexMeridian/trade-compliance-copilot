@@ -148,5 +148,16 @@ about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a 
 - **Emails worth sending** (none sent): Pew (written permission, and whether chart figures on the UN, NATO, the EU and leaders may be
   excerpted); Gallup and the Democracy Perception Index (reuse of country tables); OECD (bilateral aid data licence); UN DESA
   (bilateral migrant stock, "all rights reserved"); GESIS (Eurobarometer); IPI (peacekeeping contributions).
+- **Scoreboard (trend) data** (`src/lib/power/trends.ts`, `events.ts`, `pewDrivers.ts`, `pewTrends.generated.ts`, served by `GET /api/pulse/trends`):
+  Gallup (leadership approval, desire to migrate), the Democracy Perception Index and ISEAS headline figures are typed from the articles and
+  reports linked on each entry; the Pew per-country trends are parsed by `scripts/opinion/pew_trends.py` from Pew's topline PDFs (download the PDF,
+  extract its text with pdfplumber, run the script; the exact URLs are in the script header). `tests/trends.test.ts` cross-checks the three Pew
+  sources against each other. Email before launch: Pew (this trend table is larger than the four report excerpts above; ask whether showing the
+  favorable-view trend for one question is within "limited portions" of their data), Gallup (reuse of headline medians; copyright is "all rights
+  reserved" and its Permissions page was not read), Nira Data and the Alliance of Democracies (media@allianceofdemocracies.org), ISEAS (its terms
+  page was not read) and Brand Finance. **Brand Finance's reading is off** (`enabled: false` in `trends.ts`): its terms bar use of its data for
+  any commercial purpose without written permission. Turn it on only with that permission in writing. Also not built yet: Afrobarometer Round 9
+  versus Round 10 trend, U.S. visitor arrivals (NTTO), U.S. aid by country (foreignassistance.gov) and OECD preliminary 2025 aid; the first two
+  need their download format and licence confirmed.
 - Rejected for licence reasons and listed on the Soft Power page under "Method and gaps": Latinobarometro (non-commercial), SIPRI
   (commercial use needs a licence), Global Peace Index, UN Comtrade and WITS (internal use only), the Lowy Institute index.

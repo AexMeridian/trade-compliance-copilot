@@ -8,7 +8,7 @@ export interface TabDef<T extends string> {
 
 // The two power pages and how the old pages' tab links map onto them (used by the app's redirects and the Worker's 301s).
 export type HardTabId = 'overview' | 'trade' | 'sanctions' | 'money' | 'military' | 'compare' | 'guide';
-export type SoftTabId = 'overview' | 'attitudes' | 'culture' | 'values' | 'foreign' | 'compare' | 'method';
+export type SoftTabId = 'scoreboard' | 'overview' | 'attitudes' | 'culture' | 'values' | 'foreign' | 'compare' | 'method';
 
 export const HARD_TABS: TabDef<HardTabId>[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version', border: 'border-ink' },
@@ -21,6 +21,7 @@ export const HARD_TABS: TabDef<HardTabId>[] = [
 ];
 
 export const SOFT_TABS: TabDef<SoftTabId>[] = [
+  { id: 'scoreboard', label: 'Scoreboard', hint: 'Is U.S. soft power rising or falling, and whose is?', border: 'border-hue-cyan' },
   { id: 'overview', label: 'Overview', hint: 'The short version', border: 'border-ink' },
   { id: 'attitudes', label: 'Attitudes', hint: 'What people in other countries say about the U.S., China and others', border: 'border-hue-cyan' },
   { id: 'culture', label: 'Culture & exchange', hint: 'Students, tourism, migration, science and knowledge ties', border: 'border-hue-cyan' },
@@ -39,7 +40,7 @@ export function hardTabFrom(raw: string | null): HardTabId {
   return HARD_TABS.some((t) => t.id === raw) ? (raw as HardTabId) : 'overview';
 }
 export function softTabFrom(raw: string | null): SoftTabId {
-  return SOFT_TABS.some((t) => t.id === raw) ? (raw as SoftTabId) : 'overview';
+  return SOFT_TABS.some((t) => t.id === raw) ? (raw as SoftTabId) : 'scoreboard';
 }
 
 const ABROAD = ['/abroad', '/influence', '/footprint'];

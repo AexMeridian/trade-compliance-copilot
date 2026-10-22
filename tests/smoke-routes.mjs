@@ -11,7 +11,7 @@ const { samples } = await (await (await b.newPage()).request.get(`${B}/api/cases
 const s = samples[0];
 const routes = ['/', '/?tab=policy', '/?tab=markets', '/?tab=news', '/?tab=guide', '/calculator', '/methodology', '/terms',
   '/hard-power', '/hard-power?tab=trade', '/hard-power?tab=sanctions', '/hard-power?tab=money', '/hard-power?tab=military', '/hard-power?tab=compare', '/hard-power?tab=guide',
-  '/soft-power', '/soft-power?tab=attitudes', '/soft-power?tab=culture', '/soft-power?tab=values', '/soft-power?tab=foreign', '/soft-power?tab=compare', '/soft-power?tab=method', '/soft-power?tab=compare&countries=US,CN,IN',
+  '/soft-power', '/soft-power?tab=overview', '/soft-power?tab=attitudes', '/soft-power?tab=culture', '/soft-power?tab=values', '/soft-power?tab=foreign', '/soft-power?tab=compare', '/soft-power?tab=method', '/soft-power?tab=compare&countries=US,CN,IN',
   // Old addresses: each must land on its new page without errors.
   '/abroad', '/abroad?tab=alliances', '/abroad?tab=sanctions', '/allies', '/allies?tab=soft', '/footprint', '/standing', '/vs-world', '/influence', '/power', '/compare?countries=CN,IN', '/compare?view=power&countries=US,CN,IN', '/?tab=data',
   '/country/cn', '/country/cn?tab=influence', '/country/cn?tab=soft', '/country/ng', '/about', '/privacy', '/accessibility', '/cookies', '/disclaimer', '/copyright', '/security', `/case/${s.id}`, `/case/${s.id}/report`, '/definitely-not-a-page'];

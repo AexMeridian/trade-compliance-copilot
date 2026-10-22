@@ -7,7 +7,7 @@ import { atlasAfricaGap, atlasFromIndicator, atlasOpinionGap } from '../lib/soft
 import { MeasureAtlas, type AtlasMeasure } from './MeasureAtlas';
 import { MeasureHero, type HeroMeasure } from './MeasureHero';
 
-type MeasureId = 'opinion' | 'africa' | 'students' | 'giving' | 'refugees';
+type MeasureId = 'opinion' | 'africa' | 'aid' | 'women' | 'nobel' | 'migrants';
 
 const find = (indicators: PowerIndicator[], id: string) => indicators.find((i) => i.id === id && i.distribution.length > 0);
 
@@ -65,60 +65,78 @@ export function SoftPowerHero({
       });
     }
 
-    const students = find(inds, 'students_inbound');
-    if (students) {
-      const a = atlasFromIndicator(students);
-      const top = [...students.distribution].sort((x, y) => y[1] - x[1])[0];
+    // Four everyday measures anyone can read: who gives the most aid, how women are represented in parliament, where Nobel Prizes are won, where migrants live.
+    const aid = find(inds, 'oda_given_usd');
+    if (aid) {
+      const top = [...aid.distribution].sort((x, y) => y[1] - x[1])[0];
       list.push({
-        id: 'students',
-        label: 'Students hosted',
-        figure: formatValue(students.unit, top[1]),
+        id: 'aid',
+        label: 'Who gives the most aid',
+        figure: formatValue(aid.unit, top[1]),
         caption: (
           <>
-            international students study in <span className="text-hero-ink">{nameFor(top[0])}</span>, the most of any country ({students.latestYear}). UNESCO Institute for Statistics.
+            in official development aid from <span className="text-hero-ink">{nameFor(top[0])}</span>, the most of any country ({aid.latestYear}). Aid reported by {aid.distribution.length} donor countries, in
+            dollars; the World Bank.
           </>
         ),
-        atlas: a,
+        atlas: atlasFromIndicator(aid),
         body: null,
       });
     }
-
-    const giving = find(inds, 'humanitarian_per_person');
-    if (giving) {
-      const a = atlasFromIndicator(giving);
-      const sorted = [...giving.distribution].sort((x, y) => y[1] - x[1]);
+    const women = find(inds, 'women_parliament');
+    if (women) {
+      const sorted = [...women.distribution].sort((x, y) => y[1] - x[1]);
       const usRank = sorted.findIndex(([cc]) => cc === 'US') + 1;
       list.push({
-        id: 'giving',
-        label: 'Humanitarian giving',
-        figure: usRank ? ordinal(usRank) : formatValue(giving.unit, sorted[0][1]),
-        caption: usRank ? (
+        id: 'women',
+        label: 'Women in parliament',
+        figure: formatValue(women.unit, sorted[0][1]),
+        caption: (
           <>
-            among {sorted.length} donor governments for humanitarian funding reported to the UN per resident ({giving.latestYear}). The U.S. ranks higher in total dollars.{' '}
-            <span className="text-hero-ink">{nameFor(sorted[0][0])}</span> gives the most per resident.
+            of parliamentary seats are held by women in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the highest share ({women.latestYear}).
+            {usRank ? <> The United States ranks {ordinal(usRank)} of {sorted.length}.</> : null} Inter-Parliamentary Union, via the World Bank.
           </>
-        ) : (
-          <>per resident, the most of any donor is {nameFor(sorted[0][0])}.</>
         ),
-        atlas: a,
+        atlas: atlasFromIndicator(women),
         body: null,
       });
     }
-
-    const refugees = find(inds, 'refugees_per_1000');
-    if (refugees) {
-      const a = atlasFromIndicator(refugees);
-      const top = [...refugees.distribution].sort((x, y) => y[1] - x[1])[0];
+    const nobel = find(inds, 'nobel_affiliated');
+    if (nobel) {
+      const top = [...nobel.distribution].sort((x, y) => y[1] - x[1])[0];
       list.push({
-        id: 'refugees',
-        label: 'Refugees sheltered',
-        figure: formatValue(refugees.unit, top[1]),
+        id: 'nobel',
+        label: 'Where Nobel Prizes are won',
+        figure: formatValue(nobel.unit, top[1]),
         caption: (
           <>
-            is the highest burden of hosted refugees: <span className="text-hero-ink">{nameFor(top[0])}</span> ({refugees.latestYear}). UNHCR counts people under its mandate by country of asylum.
+            Nobel Prizes won by people working at institutions in <span className="text-hero-ink">{nameFor(top[0])}</span>, the most of any country. Counted by the laureate's institution when the prize
+            was awarded; the Nobel Foundation.
           </>
         ),
-        atlas: a,
+        atlas: atlasFromIndicator(nobel),
+        body: null,
+      });
+    }
+    const migrants = find(inds, 'migrant_share');
+    if (migrants) {
+      const sorted = [...migrants.distribution].sort((x, y) => y[1] - x[1]);
+      const us = sorted.find(([cc]) => cc === 'US');
+      list.push({
+        id: 'migrants',
+        label: 'Where people move to',
+        figure: us ? formatValue(migrants.unit, us[1]) : formatValue(migrants.unit, sorted[0][1]),
+        caption: us ? (
+          <>
+            of people living in the United States were born abroad ({migrants.latestYear}). The highest share is <span className="text-hero-ink">{nameFor(sorted[0][0])}</span> at{' '}
+            {formatValue(migrants.unit, sorted[0][1])}. United Nations estimates, via the World Bank.
+          </>
+        ) : (
+          <>
+            of residents of <span className="text-hero-ink">{nameFor(sorted[0][0])}</span> were born abroad, the highest share ({migrants.latestYear}).
+          </>
+        ),
+        atlas: atlasFromIndicator(migrants),
         body: null,
       });
     }
@@ -161,7 +179,7 @@ export function SoftPowerHero({
   return (
     <MeasureHero
       title="What draws people to a country"
-      sub="Opinion, students, aid and refuge, one sourced map at a time. Nothing here is added into a score; a blank is a country nobody asked or counted."
+      sub="What people say, who gives aid, who wins Nobel Prizes and where people move: one sourced map at a time. Nothing here is added into a score; a blank is a country nobody asked or counted."
       measures={measures}
       active={current?.id ?? 'opinion'}
       onMeasure={(id) => {

@@ -11,6 +11,7 @@ import { LeftOut } from '../components/LeftOut';
 import { ResourceGap } from '../components/ResourceGap';
 import { SectionHeader } from '../components/SectionHeader';
 import { SectionTabs } from '../components/SectionTabs';
+import { ScoreboardTab } from '../components/ScoreboardTab';
 import { SoftOverview } from '../components/SoftOverview';
 import { CountryPicker } from '../components/CountryPicker';
 import { SoftPowerHero } from '../components/SoftPowerHero';
@@ -38,7 +39,7 @@ export function SoftPower() {
   const tab = softTabFrom(params.get('tab'));
   const setTab = (id: SoftTabId, reveal = false) => {
     const next = new URLSearchParams(params);
-    if (id === 'overview') next.delete('tab');
+    if (id === 'scoreboard') next.delete('tab');
     else next.set('tab', id);
     setParams(next, { replace: true });
     if (reveal) requestAnimationFrame(() => document.getElementById('soft-tabs')?.scrollIntoView({ block: 'start' }));
@@ -83,6 +84,8 @@ export function SoftPower() {
         <SectionTabs tabs={SOFT_TABS} active={tab} onChange={(id) => setTab(id)} idPrefix="soft" label="Soft Power sections" />
 
         <div role="tabpanel" id="soft-tabpanel" aria-labelledby={`soft-tab-${tab}`} className="pt-6">
+          {tab === 'scoreboard' && <ScoreboardTab onOpen={(id) => setTab(id, true)} />}
+
           {tab === 'overview' && <SoftOverview indicators={loaded ? data!.indicators : null} opinion={opinion} go={(id) => setTab(id, true)} />}
 
           {tab === 'attitudes' && (

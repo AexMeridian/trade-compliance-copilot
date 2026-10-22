@@ -47,6 +47,16 @@ const LEFT_OUT: { measure: string; why: Why; reason: string }[] = [
     reason: 'Published in Pew’s reports as charts. They need careful, checked entry before they can be shown, so they are not here yet.',
   },
   {
+    measure: 'Brand Finance Global Soft Power Index',
+    why: 'Licence',
+    reason: 'The best-known composite ranking of nations (U.S. 74.9 and China 73.5 in 2026). Its terms say the data may not be used in part or in full for commercial purposes without written permission, so it stays off the page until Brand Finance agrees. The index is also a composite built from weights this site does not control.',
+  },
+  {
+    measure: 'Years Gallup and other pollsters state only in charts',
+    why: 'No open data',
+    reason: 'Gallup’s leadership-approval and migration trends are published as chart images with only some years in the text. We show the years stated in text and leave the rest blank rather than read values off an image.',
+  },
+  {
     measure: 'Embassies, scholarships, film, music, sport and brands',
     why: 'No open data',
     reason: 'No open, comparable dataset covers all countries. Indices that claim to are built from paid surveys or undisclosed weights.',

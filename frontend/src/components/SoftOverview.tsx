@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { OpinionResponse, PowerIndicator } from '../lib/api';
 import { formatValue, ordinal } from '../lib/powerFormat';
-import { nameFor, SERIES_COLORS } from '../lib/powerCountries';
+import { nameFor } from '../lib/powerCountries';
 import type { SoftTabId } from '../lib/powerTabs';
 import { surveysFor } from './AttitudesPanel';
 import { RankLadder } from './RankLadder';
@@ -70,47 +70,42 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
     );
   }
 
-  const spark = (ind: PowerIndicator, cc: string) => <Sparkline points={ind.series[cc] ?? []} color={SERIES_COLORS[0]} width={140} height={34} fill />;
-  const students = byId(inds, 'students_inbound');
-  if (students?.standings.US) {
-    const s = students.standings.US;
+  const spark = (ind: PowerIndicator, cc: string) => <Sparkline points={ind.series[cc] ?? []} color="var(--color-soft)" width={140} height={34} fill />;
+  const aid = byId(inds, 'oda_given_usd');
+  if (aid?.standings.US) {
+    const s = aid.standings.US;
     tiles.push(
-      <StatTile key="stu" tone="soft" label="International students hosted" figure={formatValue(students.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} (${s.year}).`} visual={spark(students, 'US')} onClick={() => go('culture')} />,
+      <StatTile key="aid" tone="soft" label="Foreign aid given" figure={formatValue(aid.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} donors (${s.year}).`} visual={spark(aid, 'US')} onClick={() => go('foreign')} />,
     );
   }
-  const hdi = byId(inds, 'hdi');
-  if (hdi?.standings.US && hdi.standings.CN) {
+  const women = byId(inds, 'women_parliament');
+  if (women?.standings.US) {
+    const s = women.standings.US;
+    const top = [...women.distribution].sort((a, b) => b[1] - a[1])[0];
     tiles.push(
       <StatTile
-        key="hdi"
+        key="women"
         tone="soft"
-        label="Human Development Index"
-        figure={formatValue(hdi.unit, hdi.standings.US.value)}
-        note={`United States, ${ordinal(hdi.standings.US.rank)} of ${hdi.standings.US.of}. China ${formatValue(hdi.unit, hdi.standings.CN.value)}.`}
-        visual={spark(hdi, 'US')}
+        label="Women in parliament"
+        figure={formatValue(women.unit, s.value)}
+        note={`United States, ${ordinal(s.rank)} of ${s.of}. Highest: ${nameFor(top[0])}, ${formatValue(women.unit, top[1])}.`}
+        visual={spark(women, 'US')}
         onClick={() => go('values')}
       />,
     );
   }
-  const giving = byId(inds, 'humanitarian_per_person');
-  if (giving?.standings.US) {
-    const s = giving.standings.US;
+  const nobel = byId(inds, 'nobel_affiliated');
+  if (nobel?.standings.US) {
+    const s = nobel.standings.US;
     tiles.push(
-      <StatTile key="giv" tone="soft" label="Humanitarian funding per resident" figure={formatValue(giving.unit, s.value).replace(' per person', '')} note={`United States, ${ordinal(s.rank)} of ${s.of} donors (${s.year}).`} visual={spark(giving, 'US')} onClick={() => go('foreign')} />,
+      <StatTile key="nobel" tone="soft" label="Nobel Prizes won at its institutions" figure={formatValue(nobel.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} countries.`} onClick={() => go('culture')} />,
     );
   }
-  const ref = byId(inds, 'refugees_per_1000');
-  if (ref?.standings.US && ref.standings.CN) {
+  const migrants = byId(inds, 'migrant_share');
+  if (migrants?.standings.US) {
+    const s = migrants.standings.US;
     tiles.push(
-      <StatTile
-        key="ref"
-        tone="soft"
-        label="Refugees sheltered, per 1,000 residents"
-        figure={formatValue(ref.unit, ref.standings.US.value).replace(' per 1,000', '')}
-        note={`United States. China ${formatValue(ref.unit, ref.standings.CN.value).replace(' per 1,000', '')}.`}
-        visual={spark(ref, 'US')}
-        onClick={() => go('foreign')}
-      />,
+      <StatTile key="mig" tone="soft" label="Residents born abroad" figure={formatValue(migrants.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} (${s.year}).`} visual={spark(migrants, 'US')} onClick={() => go('culture')} />,
     );
   }
 

@@ -446,3 +446,59 @@ export interface RecentListings {
 export function getRecentListings(days = 30) {
   return request<RecentListings>(`/pulse/recent-listings?days=${days}`);
 }
+
+// --- Soft Power scoreboard: published trend readings (see src/lib/power/trends.ts) ---
+export type TrendSubject = 'US' | 'CN' | 'RU' | 'DE' | 'CA' | 'GB';
+export interface TrendLine {
+  subject: TrendSubject;
+  label: string;
+  points: [number, number][];
+}
+export interface TrendReading {
+  id: string;
+  title: string;
+  measure: string;
+  unit: 'percent' | 'net' | 'score';
+  population: 'public' | 'experts';
+  publisher: string;
+  url: string;
+  release: string;
+  coverage: string;
+  caveat: string;
+  periodNote?: string;
+  /** Year -> how to print it, for a period plotted at its middle year (2008 -> "2007 to 2009"). */
+  periodLabels?: Record<string, string>;
+  lines: TrendLine[];
+  headline: string;
+}
+export interface TrendEvent {
+  date: string;
+  label: string;
+  sourceName: string;
+  url: string;
+}
+export interface PewSeriesSource {
+  name: string;
+  url: string;
+  release: string;
+}
+export interface TrendsResponse {
+  readings: TrendReading[];
+  events: TrendEvent[];
+  pew: {
+    disclaimer: string;
+    usFavorable: Record<string, [number, number][]>;
+    cnFavorable: Record<string, [number, number][]>;
+    us: PewSeriesSource;
+    cn: PewSeriesSource;
+    drivers: {
+      source: { name: string; url: string; citation: string; question: string };
+      /** Country -> [2024, 2025, 2026]. */
+      countries: Record<string, { favorable: [number, number, number]; confidence: [number, number, number] }>;
+    };
+  };
+}
+
+export function getTrends() {
+  return request<TrendsResponse>('/pulse/trends');
+}

@@ -211,6 +211,22 @@ const SOURCES: SourceRow[] = [
     keys: [],
   },
   {
+    name: 'Trend in views of the U.S. and China, by country (Scoreboard)',
+    publisher: 'Pew Research Center, Spring 2026 Global Attitudes Survey toplines',
+    url: 'https://www.pewresearch.org/wp-content/uploads/sites/20/2026/06/pg_2026.06.23_us-image-2026_topline.pdf',
+    terms: 'The favorable share for each country and year from 2002, parsed from the published topline tables (the U.S. image topline and the China report) and cross-checked against the figures entered from the report charts and from Pew’s chart page on confidence in the U.S. president. Fixed-panel medians are this site’s calculation. Used as an excerpt with attribution; Pew bears no responsibility for the analyses or interpretations of the data presented here.',
+    cadence: 'Annual, manual (rerun scripts/opinion/pew_trends.py)',
+    keys: [],
+  },
+  {
+    name: 'Published trend readings (Scoreboard)',
+    publisher: 'Gallup World Poll; Democracy Perception Index (Nira Data and the Alliance of Democracies); ISEAS–Yusof Ishak Institute',
+    url: 'https://news.gallup.com/poll/707945/china-edges-past-global-approval-ratings.aspx',
+    terms: 'Each publisher’s own headline figures, entered by hand from the article or report linked on its card, credited and linked, and shown on their own: they are never averaged with other sources. Years a publisher states only in a chart image are left out. These publishers keep their copyright; permission has been requested (see the operations notes). Brand Finance’s Global Soft Power Index is not shown because its terms require written permission.',
+    cadence: 'Annual, manual',
+    keys: [],
+  },
+  {
     name: 'Views of the U.S., China and other powers in Africa',
     publisher: 'Afrobarometer, Round 10 (38 countries, 2024-2025)',
     url: 'https://www.afrobarometer.org/data/merged-data/',
