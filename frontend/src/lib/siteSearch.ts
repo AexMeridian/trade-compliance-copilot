@@ -134,7 +134,7 @@ const PAGES: SearchEntry[] = [
   {
     id: 'pulse-policy',
     title: 'U.S. policy feed',
-    description: 'Every tariff, sanctions and export-control action, newest first -- filter by topic or country.',
+    description: 'Every tariff, sanctions and export-control action, newest first. Filter by topic or country.',
     type: 'Page',
     url: '/?tab=policy',
     keywords: ['federal register', 'feed'],
@@ -168,7 +168,7 @@ const PAGES: SearchEntry[] = [
     type: 'Page',
     url: '/hard-power?tab=military',
   },
-  { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader -- no account needed.', type: 'Page', url: '/rss.xml' },
+  { id: 'rss', title: 'RSS feed', description: 'Follow new U.S. trade actions in any feed reader: no account needed.', type: 'Page', url: '/rss.xml' },
 ];
 
 // Real, public alliance facts (lib/pulseBlocs.ts) -- one search entry per
@@ -214,7 +214,7 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-de-minimis',
     title: 'De minimis (Section 321)',
-    description: 'A shipment valued under $800 is often, but not always, exempt from duty -- the calculator discloses the real caveats for your case.',
+    description: 'A shipment valued under $800 is often, but not always, exempt from duty. The calculator discloses the real caveats for your case.',
     type: 'Topic',
     url: '/calculator',
     keywords: ['section 321', '$800', 'duty-free'],
@@ -254,7 +254,7 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-meu',
     title: 'Military End User (MEU) List',
-    description: 'An end-use/end-user export control, distinct from a denied-party hard stop -- it can mean extra license requirements apply.',
+    description: 'An end-use/end-user export control, distinct from a denied-party hard stop. It can mean extra license requirements apply.',
     type: 'Topic',
     url: '/calculator',
     keywords: ['bis', 'export control'],
@@ -262,7 +262,7 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-export-control',
     title: 'Export-control status (Commerce Country Chart)',
-    description: "A destination country's license-requirement status -- hand-verified for a limited set of destinations so far.",
+    description: "A destination country's license-requirement status. Hand-verified for a limited set of destinations so far.",
     type: 'Topic',
     url: '/compare',
     keywords: ['bis', 'commerce country chart', 'license'],
@@ -270,7 +270,7 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-uflpa',
     title: 'Forced-labor enforcement (CBP Withhold Release Orders)',
-    description: "CBP's Section 307 forced-labor enforcement actions by country -- distinct from DHS's own, separately-published UFLPA Entity List.",
+    description: "CBP's Section 307 forced-labor enforcement actions by country. Distinct from DHS's own, separately-published UFLPA Entity List.",
     type: 'Topic',
     url: '/compare',
     keywords: ['uflpa', 'wro', 'cbp', 'forced labor'],
@@ -278,7 +278,7 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-gta',
     title: "A country's own measures against the U.S.",
-    description: "Independent research data (Global Trade Alert), not a U.S. government source -- a foreign government's own retaliatory trade measures.",
+    description: "Independent research data (Global Trade Alert), not a U.S. government source: a foreign government's own retaliatory trade measures.",
     type: 'Topic',
     url: '/compare',
     keywords: ['global trade alert', 'retaliation', 'retaliatory'],

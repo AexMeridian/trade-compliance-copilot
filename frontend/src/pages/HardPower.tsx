@@ -166,7 +166,7 @@ export function HardPower() {
   const coferEarliest = coferPoints.length > 0 ? { date: coferPoints[0][0], value: coferPoints[0][1] } : null;
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <HardPowerHero
         summary={summary}
         markets={markets}
@@ -184,7 +184,7 @@ export function HardPower() {
         natoDefense={natoDefense}
       />
 
-      <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
+      <div className="page-glow page-glow-hard mx-auto mt-0 max-w-7xl px-4 pb-8">
         {error && (
           <p className="mb-4 border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">
             We couldn't check for updates just now, so you're seeing the most recent saved information. ({error})
@@ -193,7 +193,7 @@ export function HardPower() {
 
         <SectionTabs tabs={HARD_TABS} active={tab} onChange={(id) => setTab(id)} idPrefix="hard" label="Hard Power sections" />
 
-        <div role="tabpanel" id="hard-tabpanel" aria-labelledby={`hard-tab-${tab}`} className="pt-6">
+        <div role="tabpanel" id="hard-tabpanel" aria-labelledby={`hard-tab-${tab}`} className="pt-5">
           {tab === 'overview' && (
             <div className="flex flex-col gap-6">
               {(summary || coferLatest || tic?.countries[0] || natoMedian !== null) && (
@@ -239,7 +239,7 @@ export function HardPower() {
                   )}
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
                 <Item label="Biggest trade action lately">
                   {topAction ? (
                     <>
@@ -297,12 +297,11 @@ export function HardPower() {
               </div>
 
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
-                Every figure above and on the tabs below is a real, sourced number -- most of it the same data behind{' '}
+                Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. Most of these figures come from the same feeds as the{' '}
                 <Link to="/" className="text-accent hover:underline">
-                  {SITE.name}
-                </Link>{' '}
-                . Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. Nothing here is combined into a score.
-                For attraction rather than coercion, see{' '}
+                  {SITE.name} front page
+                </Link>
+                . For attraction rather than coercion, see{' '}
                 <Link to="/soft-power" className="text-accent hover:underline">
                   Soft Power
                 </Link>
@@ -337,7 +336,7 @@ export function HardPower() {
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
                     title="Which countries face the most measures"
-                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news."
+                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination, not how often a country is mentioned in the news."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
                     {loading || !summary ? (
@@ -350,7 +349,7 @@ export function HardPower() {
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel
                     title="Active measures"
-                    help="Extra taxes on imports the U.S. currently charges under specific laws -- an ongoing measure, not a one-time announcement."
+                    help="Extra taxes on imports the U.S. currently charges under specific laws: an ongoing measure, not a one-time announcement."
                     subtitle="Section 232, 301 and 338 measures in force."
                   >
                     {loading ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}
@@ -394,7 +393,7 @@ export function HardPower() {
             <div className="flex flex-col gap-4">
               <SectionHeader tone="hard" title="Sanctions" description="
                   Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
-                  text match on each entry's address field, not a normalized code -- see the note below the search box.
+                  text match on each entry's address field, not a normalized code. See the note below the search box.
                 " />
               <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
                 <RecentListings />
@@ -423,7 +422,7 @@ export function HardPower() {
                 <h3 className="font-display text-xl font-bold text-ink">The dollar's reserve-currency share</h3>
                 <PulsePanel
                   title="Percent of world FX reserves held in U.S. dollars"
-                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings -- not a prediction about what replaces it."
+                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings, not a prediction about what replaces it."
                   subtitle="Quarterly since 1999."
                 >
                   {coferPoints.length === 0 ? (
@@ -503,7 +502,7 @@ export function HardPower() {
               {Object.keys(natoDefense).length > 0 && (
                 <PulsePanel
                   title="NATO defense spending, % of GDP"
-                  subtitle="NATO's own published estimates, not a live feed -- re-verified by hand roughly once a year."
+                  subtitle="NATO's own published estimates, not a live feed, re-verified by hand roughly once a year."
                   help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. The United States is shown as the comparison baseline this panel exists to provide, not because it needs to meet its own guideline. NATO's own target is 2% of GDP on core defense (raised in 2025 to a path toward 5% by 2035, split 3.5% core / 1.5% related spending)."
                 >
                   <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />

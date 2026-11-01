@@ -27,7 +27,7 @@ const MARKET_TERMS: [string, string][] = [
   ['CPI', "The Consumer Price Index: the government's main measure of inflation, based on what households actually pay."],
   [
     'Import price index',
-    'What the U.S. actually pays for goods bought from abroad -- the most direct government-published read on whether tariffs are showing up in prices.',
+    'What the U.S. actually pays for goods bought from abroad: the most direct government-published read on whether tariffs are showing up in prices.',
   ],
 ];
 

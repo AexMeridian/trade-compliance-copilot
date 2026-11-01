@@ -10,11 +10,11 @@ const QA: [string, string][] = [
   ],
   [
     'Why does "export controls" sometimes say nothing is curated?',
-    'This app has hand-verified Commerce Country Chart status for only 12 destinations. For every other country, it says so plainly rather than guessing -- an export case involving an uncurated country should be flagged for manual review.',
+    'This app has hand-verified Commerce Country Chart status for only 12 destinations. For every other country, it says so plainly rather than guessing. An export case involving an uncurated country should be flagged for manual review.',
   ],
   [
     'What does the sanctions count actually measure?',
-    'A text match on the free-text address field in OFAC’s and BIS’s own data, not a normalized country code. It’s a reasonable signal, not an exact count -- see the full browsable list for exact hits.',
+    'A text match on the free-text address field in OFAC’s and BIS’s own data, not a normalized country code. It’s a reasonable signal, not an exact count. See the full browsable list for exact hits.',
   ],
   [
     'Why is the currency rate sometimes "Eurozone-wide," not country-specific?',
@@ -28,7 +28,7 @@ export function CountryGuide() {
       <div>
         <h2 className="display text-2xl text-ink">A short guide to this page</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-          Every number on this page cites its own source and as-of date -- click a panel's "What's this?" link for the specific caveat, or read the common
+          Every number on this page cites its own source and as-of date. Click a panel's "What's this?" link for the specific caveat, or read the common
           questions below. For the site-wide guide (how topic labels work, what counts as a market mover, and so on), see the main Pulse page's Guide tab.
         </p>
       </div>

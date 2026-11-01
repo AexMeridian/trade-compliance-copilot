@@ -77,13 +77,13 @@ export function SoftPower() {
   );
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <SoftPowerHero indicators={loaded ? data!.indicators : null} opinion={opinion} onExplore={() => setTab('attitudes', true)} />
 
-      <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
+      <div className="page-glow page-glow-soft mx-auto mt-0 max-w-7xl px-4 pb-8">
         <SectionTabs tabs={SOFT_TABS} active={tab} onChange={(id) => setTab(id)} idPrefix="soft" label="Soft Power sections" />
 
-        <div role="tabpanel" id="soft-tabpanel" aria-labelledby={`soft-tab-${tab}`} className="pt-6">
+        <div role="tabpanel" id="soft-tabpanel" aria-labelledby={`soft-tab-${tab}`} className="pt-5">
           {tab === 'scoreboard' && <ScoreboardTab onOpen={(id) => setTab(id, true)} />}
 
           {tab === 'overview' && <SoftOverview indicators={loaded ? data!.indicators : null} opinion={opinion} go={(id) => setTab(id, true)} />}
@@ -93,7 +93,7 @@ export function SoftPower() {
               <SectionHeader
                 tone="soft"
                 title="Attitudes: what people say"
-                description="The test of soft power is whether people feel drawn to a country. These are published survey results, each shown on its own, never averaged across pollsters and never extended to countries nobody asked."
+                description="Soft power works when people feel drawn to a country. These are published survey results, one pollster at a time, for the countries each survey covered."
               />
               <CountryPicker codes={codes} onChange={(next) => { const n = new URLSearchParams(params); n.set('countries', next.join(',')); setParams(n, { replace: true }); }} />
               {opinion && year ? (

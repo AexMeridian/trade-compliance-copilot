@@ -22,7 +22,7 @@ export function ScreeningRedFlags() {
       <summary className="cursor-pointer font-semibold text-ink">BIS red-flag indicators to check by hand</summary>
       <p className="mt-2 text-ink-muted">
         A clean automated match above isn't the end of due diligence. These are the Bureau of Industry and Security's own published "Know Your Customer"
-        indicators (15 CFR Part 732, Supplement No. 3) -- if any apply, treat it as a reason to ask more questions before relying on a clean screening result.
+        indicators (15 CFR Part 732, Supplement No. 3): if any apply, treat it as a reason to ask more questions before relying on a clean screening result.
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-muted">
         {RED_FLAGS.map((flag) => (

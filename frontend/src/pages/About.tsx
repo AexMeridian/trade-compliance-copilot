@@ -47,7 +47,7 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
   {
     name: 'Global Trade Alert (globaltradealert.org)',
     used: "On each country's page: that country's own trade measures evaluated as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years.",
-    terms: "This is the one source on this page that is not a government or official statistics body -- it's an independent research database (University of St. Gallen-affiliated), free for non-commercial use under a CC BY-NC 4.0 license. Requires a free API key; limited here to a recent window, not its full archive back to 2009.",
+    terms: "This is the one source on this page that is not a government or official statistics body. It's an independent research database (University of St. Gallen-affiliated), free for non-commercial use under a CC BY-NC 4.0 license. Requires a free API key; limited here to a recent window, not its full archive back to 2009.",
   },
   {
     name: 'Country comparison (Power profile): World Bank, UN General Assembly voting (Harvard Dataverse), UNESCO, UNHCR, Nobel Prize API, UN OCHA FTS, Pew Research Center, Afrobarometer',
@@ -167,7 +167,7 @@ export function About() {
 
       <H>Follow along</H>
       <p className="mt-3">
-        New U.S. trade actions are available as a feed you can add to any feed reader -- no account needed:{' '}
+        New U.S. trade actions are available as a feed you can add to any feed reader, no account needed:{' '}
         <a href="/rss.xml" className="text-accent">
           RSS
         </a>

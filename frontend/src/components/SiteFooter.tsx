@@ -14,7 +14,8 @@ export function SiteFooter() {
     ? `mailto:${SITE.contactEmail}?subject=${encodeURIComponent('Correction or question')}&body=${encodeURIComponent(`Page: ${window.location.href}\nDate: ${new Date().toISOString().slice(0, 10)}\n\nWhat I saw, and what the source says:\n`)}`
     : null;
   return (
-    <footer className="no-print mt-16 border-t border-hairline bg-paper-raised text-ink-muted">
+    <footer className="no-print relative mt-16 bg-paper-raised text-ink-muted">
+      <div aria-hidden="true" className="edge-glow absolute inset-x-0 top-0 h-px" />
       <div className="mx-auto max-w-7xl px-4 py-12 text-sm">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="max-w-sm">

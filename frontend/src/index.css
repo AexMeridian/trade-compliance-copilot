@@ -1,11 +1,15 @@
 @import 'tailwindcss';
 /* Self-hosted fonts (no request to Google, so nothing about a visitor is shared with a third party). */
-@import '@fontsource-variable/space-grotesk';
-@import '@fontsource-variable/instrument-sans';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-sans/latin-700.css';
+/* Headings, big numbers and story headlines: IBM Plex Serif, paired with Plex Sans for the interface. */
+@import '@fontsource/ibm-plex-serif/latin-500.css';
+@import '@fontsource/ibm-plex-serif/latin-600.css';
+@import '@fontsource/ibm-plex-serif/latin-700.css';
 /* The wordmark only: spaced capitals in a classical serif, Latin letters only (it spells the site name). Self-hosted like the other fonts. */
 @import '@fontsource/cormorant-garamond/latin-600.css';
-/* Story headlines: a text serif, the editorial voice of a news front page. */
-@import '@fontsource-variable/source-serif-4';
 
 /*
   Black and white, with color that means something. The page is white (or, in
@@ -23,10 +27,10 @@
   lines, dots) and an -ink form dark enough for text on white.
 */
 @theme {
-  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
   --font-wordmark: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --font-display: 'Space Grotesk Variable', 'Instrument Sans Variable', ui-sans-serif, sans-serif;
+  --font-display: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
 
   --color-bar: #0a0a0b;
   --color-paper: #f5f5f6;
@@ -305,19 +309,62 @@
     }
   }
 
-  /* The one container style: a white sheet with a hairline edge. */
+  /* The one container style: a white sheet with a hairline edge, a soft shadow for depth, and a border that warms toward the page's
+     accent on hover. The shadow is two low layers so cards sit on the page without looking like floating buttons. */
   .card {
     background: var(--color-paper-raised);
     border: 1px solid var(--color-hairline);
     border-radius: 12px;
+    box-shadow:
+      0 1px 2px color-mix(in srgb, var(--color-ink) 5%, transparent),
+      0 10px 24px -16px color-mix(in srgb, var(--color-ink) 16%, transparent);
+    transition: border-color 0.15s ease;
+  }
+  .card:hover {
+    border-color: color-mix(in srgb, var(--glow, var(--color-accent)) 38%, var(--color-hairline));
+  }
+
+  /* Page atmosphere: a faint wash of the page's accent at the top that fades out downward, behind everything below the hero.
+     Full-bleed (the page root clips horizontal overflow), decorative only, and low enough in strength that no text loses contrast.
+     Pick the page's accent with .page-glow-hard or .page-glow-soft; the default is the site accent (Wire). */
+  .page-glow {
+    --glow: var(--color-accent);
+    position: relative;
+    isolation: isolate;
+  }
+  .page-glow-hard {
+    --glow: var(--color-hard);
+  }
+  .page-glow-soft {
+    --glow: var(--color-soft);
+  }
+  .page-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    height: 640px;
+    transform: translateX(-50%);
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--glow) 9%, transparent), transparent 72%);
+  }
+  :root[data-theme='dark'] .page-glow::before {
+    background-image: radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--glow) 13%, transparent), transparent 72%);
+  }
+
+  /* The footer's edge: a hairline that fades in from the sides, in place of a plain rule. */
+  .edge-glow {
+    background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 45%, var(--color-hairline)), transparent);
   }
 
   /* Big numerals and section titles. */
   .display {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 0.92;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
   }
 
   .btn {

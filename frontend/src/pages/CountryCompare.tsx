@@ -119,7 +119,7 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
       {!embedded && <h1 className="display mt-3 text-4xl text-ink sm:text-5xl">Compare countries</h1>}
       <p className={`${embedded ? '' : 'mt-3 '}max-w-2xl text-sm leading-relaxed text-ink-muted`}>
         {view === 'trade'
-          ? "Tariff-program exposure, export-control status and a typical shipping lane, side by side -- the same real, sourced data as each country's own page."
+          ? "Tariff-program exposure, export-control status and a typical shipping lane, side by side, from the same data as each country's own page."
           : 'Soft power and hard-power context side by side: governance, aid, ties and exchange, knowledge and weight in the world, each with its source and no score.'}{' '}
         This link is shareable as-is; the countries you pick are saved in the URL, not an account.
       </p>

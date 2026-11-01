@@ -414,7 +414,7 @@ export function Pulse() {
     );
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PulseHero
         summary={summary}
         markets={markets}
@@ -432,7 +432,7 @@ export function Pulse() {
         onRefresh={handleRefresh}
       />
 
-      <div className="relative mx-auto mt-0 max-w-7xl px-4 pb-8">
+      <div className="page-glow mx-auto mt-0 max-w-7xl px-4 pb-8">
         {!welcomed && !custom && (
           <PulseWelcome
             onPick={(p) => {
@@ -649,7 +649,7 @@ export function Pulse() {
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
                     title="Tariff exposure by country"
-                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination -- not how often a country is mentioned in the news. Click a country to filter the activity list."
+                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination, not how often a country is mentioned in the news. Click a country to filter the activity list."
                     subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
                   >
                     {loadingPanels || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}

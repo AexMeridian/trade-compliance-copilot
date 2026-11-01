@@ -51,6 +51,9 @@ async function shell(c: Context<{ Bindings: Env }>, url: URL, meta: ReturnType<t
     })
     .on('meta[name="description"]', setAttr('content', meta.description))
     .on('link[rel="canonical"]', setAttr('href', meta.canonical));
+  if (meta.image) {
+    rewriter = rewriter.on('meta[property="og:image"]', setAttr('content', meta.image)).on('meta[name="twitter:image"]', setAttr('content', meta.image));
+  }
   if (!isHome) {
     rewriter = rewriter
       .on('meta[property="og:title"]', setAttr('content', meta.title))

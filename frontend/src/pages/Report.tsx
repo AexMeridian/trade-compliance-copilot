@@ -148,9 +148,9 @@ export function Report() {
           and as-of date part of the document itself, not just the chrome
           around it (which a reader may trim when saving to PDF). */}
       <div className="mb-4 hidden border-b border-hairline pb-3 print:block">
-        <p className="font-display text-lg font-bold text-ink">{SITE.name} -- compliance case</p>
+        <p className="font-display text-lg font-bold text-ink">{SITE.name} compliance case</p>
         <p className="text-xs text-ink-faint">
-          Case {cf.id}, printed {new Date().toLocaleString()}. Not legal, customs, tax or financial advice -- see the disclaimer at the end of this document.
+          Case {cf.id}, printed {new Date().toLocaleString()}. Not legal, customs, tax or financial advice. See the disclaimer at the end of this document.
         </p>
       </div>
       <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} issues={issues} lead={lead} />

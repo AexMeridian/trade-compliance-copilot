@@ -20,7 +20,7 @@ export function SectionTabs<T extends string>({
   children?: ReactNode;
 }) {
   return (
-    <div id={`${idPrefix}-tabs`} className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 flex-col gap-3 bg-paper sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
+    <div id={`${idPrefix}-tabs`} className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 flex-col gap-3 bg-paper/80 backdrop-blur-md sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label={label}

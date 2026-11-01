@@ -43,17 +43,17 @@ originRoute.post('/:id/origin', async (c) => {
       rvc_threshold_pct: null,
       qualifies: null,
       reasoning: {
-        summary: `No curated USMCA rule found for heading ${code} in this app's reference data. This is a real, disclosed coverage gap -- not a "does not qualify" determination.`,
+        summary: `No curated USMCA rule found for heading ${code} in this app's reference data. This is a real, disclosed coverage gap, not a "does not qualify" determination.`,
         steps: [
           `Checked usmca_rules for chapter ${code.slice(0, 2)} and heading prefixes of ${code}; no match.`,
-          'Per General Note 11, HTSUS, every heading has an applicable origin rule -- this app simply has not curated it yet.',
+          'Per General Note 11, HTSUS, every heading has an applicable origin rule. This app simply has not curated it yet.',
         ],
         cited_sources: [],
         confidence: 'low',
       },
     };
     caseFile.open_issues.push(
-      `Origin: heading ${code} has no curated USMCA rule in this app -- qualification is indeterminate, consult General Note 11 (HTSUS) directly.`
+      `Origin: heading ${code} has no curated USMCA rule in this app. Qualification is indeterminate. Consult General Note 11 (HTSUS) directly.`
     );
     await saveCaseFile(c.env, caseFile);
     return c.json({ origin: caseFile.origin });

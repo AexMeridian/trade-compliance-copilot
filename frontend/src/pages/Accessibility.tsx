@@ -75,7 +75,7 @@ export function Accessibility() {
       <p className="mt-3">
         This is a small, independently built site without a dedicated accessibility audit. Some charts convey information visually (trends, comparative
         bars) that is not fully restated in text everywhere, and the interactive globe is not fully operable by keyboard (its data is repeated in tables).
-        Linked third-party pages, such as official sources and news articles, are outside our control. If any of this -- or anything else -- blocks you,
+        Linked third-party pages, such as official sources and news articles, are outside our control. If any of this, or anything else, blocks you,
         please report it.
       </p>
 

@@ -49,7 +49,7 @@ homeRoute.post('/sync', async (c) => {
     .run();
 
   if (claim.meta.changes === 0) {
-    return c.json({ ok: false, error: 'Sync already ran recently -- try again shortly.' }, 429);
+    return c.json({ ok: false, error: 'Sync already ran recently. Try again shortly.' }, 429);
   }
 
   const startedAt = now.toISOString();
@@ -60,14 +60,14 @@ homeRoute.post('/sync', async (c) => {
     // into data_refresh_log instead of only living in a console.warn, so
     // it's visible after the fact, not just at the moment it happened.
     const note = result.truncatedTerms?.length
-      ? `Pagination cap reached for: ${result.truncatedTerms.join(', ')} -- some historical documents may be missing.`
+      ? `Pagination cap reached for: ${result.truncatedTerms.join(', ')}. Some historical documents may be missing.`
       : null;
     await logRefresh(c.env, 'pulse', 'success', result.rows, note, startedAt);
     return c.json({ ok: true, rows: result.rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await logRefresh(c.env, 'pulse', 'error', null, message, startedAt);
-    return c.json({ ok: false, error: "Couldn't refresh from the Federal Register API -- showing last-synced data." }, 502);
+    return c.json({ ok: false, error: "Couldn't refresh from the Federal Register API. Showing last-synced data." }, 502);
   }
 });
 

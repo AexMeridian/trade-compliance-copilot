@@ -53,7 +53,7 @@ export function PulseCountryTariffs({
       </ul>
       <p className="text-[11px] leading-relaxed text-ink-faint">
         Section 301 forced-labor determination: {forcedLabor.length} economies, applied across almost every product category. Not the same as being
-        mentioned in the news -- this is a real, currently-collected extra duty.
+        mentioned in the news: this is a real, currently-collected extra duty.
         {extra.length > 0 && (
           <>
             {' '}

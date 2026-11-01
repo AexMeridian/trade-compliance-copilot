@@ -59,7 +59,7 @@ export function CiteThisButton({
         {state === 'loading' ? 'Capturing…' : permalink ? 'Copy citable link' : 'Cite this chart'}
       </button>
       {copied && <span className="text-clear">Link copied</span>}
-      {state === 'error' && <span className="text-stop">Couldn't capture a snapshot -- try again.</span>}
+      {state === 'error' && <span className="text-stop">Couldn't capture a snapshot. Try again.</span>}
       {permalink && !copied && (
         <a href={permalink} className="text-ink-faint underline hover:text-ink">
           View snapshot

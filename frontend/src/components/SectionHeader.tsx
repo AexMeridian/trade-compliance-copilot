@@ -3,7 +3,7 @@ import { TONE, type Tone } from './StatTile';
 
 // The one heading used to open every section on every page: the title, a one-line description and, on the right, an optional action such
 // as "All markets". Consistent section heads are most of what makes a front page read as organised. With a `tone` (the two power pages) it
-// sits on a faint tinted band with a colored edge, so a tab reads as part of its page; without one it keeps the plain heavy rule.
+// sits on a faint tinted band with a colored edge, so a tab reads as part of its page; without one it gets a rule that fades to the right with a short accent tick.
 export function SectionHeader({
   title,
   description,
@@ -31,5 +31,9 @@ export function SectionHeader({
     const t = TONE[tone];
     return <header className={`relative rounded-lg ${t.tint} py-4 pl-5 pr-4 before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:rounded-l-lg ${t.edge}`}>{inner}</header>;
   }
-  return <header className="border-t-2 border-ink pt-3">{inner}</header>;
+  return (
+    <header className="relative pt-3 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-linear-to-r before:from-ink before:via-hairline-strong before:to-transparent after:absolute after:left-0 after:top-0 after:h-[3px] after:w-12 after:bg-accent">
+      {inner}
+    </header>
+  );
 }

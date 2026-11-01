@@ -255,7 +255,7 @@ export function PulseCountryCard({
               )}
               {isNatoPartner && (
                 <span
-                  title="A named NATO 'partner across the globe' relationship -- not membership, and not the Article 5 mutual-defense commitment NATO members have."
+                  title="A named NATO 'partner across the globe' relationship, not membership, and not the Article 5 mutual-defense commitment NATO members have."
                   className="rounded-full border border-dashed border-hero-border px-2 py-0.5 font-semibold text-hero-ink"
                 >
                   NATO partner
@@ -384,7 +384,7 @@ export function PulseCountryCard({
 
       {!isHome && detail && detail.tempo.length > 1 && (
         <div className="mt-3 border-t border-hero-divider pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-hero-ink-faint">
+          <p className="mb-2 text-xs font-semibold text-hero-ink-faint">
             Policy tempo, last {Math.min(12, detail.tempo.length)} months
           </p>
           <PulseTempoChart months={detail.tempo.slice(-12)} trendPct={null} />
@@ -393,7 +393,7 @@ export function PulseCountryCard({
 
       {latestActions.length > 0 && (
         <div className="mt-3 border-t border-hero-divider pt-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-hero-ink-faint">Latest U.S. actions</p>
+          <p className="mb-1 text-xs font-semibold text-hero-ink-faint">Latest U.S. actions</p>
           <ul className="divide-y divide-hero-divider">
             {latestActions.map((a) => (
               <li key={a.document_number} className="py-2">
@@ -417,7 +417,7 @@ export function PulseCountryCard({
 
       {newsSections.map((section) => (
         <div key={section.category} className="mt-3 border-t border-hero-divider pt-3">
-          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-hero-ink-faint">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-hero-ink-faint">
             <span className={`h-1.5 w-1.5 rounded-full ${(NEWS_HUE[section.category] ?? NEWS_HUE.Official).bg}`} aria-hidden="true" />
             {section.category}
           </p>

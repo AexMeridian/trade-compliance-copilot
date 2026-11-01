@@ -130,7 +130,7 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
         </section>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-[1.5fr_1fr_1fr]">
         <EntryCard title="Culture & exchange" text="Students, tourists, migrants, researchers and Nobel laureates: the footprints of attraction." ind={culture} onOpen={() => go('culture')} />
         <EntryCard title="Political values" text="How each country's governance is rated, and how women are represented in its parliament." ind={values} onOpen={() => go('values')} />
         <EntryCard title="Foreign policy & aid" text="Aid, humanitarian funding, refugees sheltered, and how closely each country votes with the U.S., China or Russia." ind={foreign} onOpen={() => go('foreign')} />

@@ -123,7 +123,7 @@ export function InfluenceBlocs({
       <div className="card p-4">
         <h3 className="font-display text-base font-bold text-ink">NATO partners</h3>
         <p className="mt-0.5 text-xs text-ink-faint">
-          A real, named NATO relationship ("partners across the globe") -- but not membership, and not the Article 5 mutual-defense commitment NATO members
+          A real, named NATO relationship ("partners across the globe"), but not membership, and not the Article 5 mutual-defense commitment NATO members
           have. Shown separately from the NATO card above on purpose.
         </p>
         <ul className="mt-3 flex flex-wrap gap-1.5">

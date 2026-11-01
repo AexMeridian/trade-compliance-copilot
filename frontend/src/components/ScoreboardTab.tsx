@@ -124,7 +124,7 @@ export function ScoreboardTab({ onOpen }: { onOpen: (tab: 'attitudes' | 'method'
       <SectionHeader
         tone="soft"
         title="Scoreboard: is U.S. soft power rising or falling?"
-        description="Independent surveys, each shown on its own. Different pollsters ask different people different questions, so they are never averaged. Where they agree, it is worth noticing; where they differ, the table says why."
+        description="Independent surveys, one pollster at a time, since each asks different people different questions. Where they agree, that is worth noticing. Where they differ, the table shows by how much."
       />
 
       <section aria-labelledby="direction-h" className="min-w-0">

@@ -33,7 +33,7 @@ export function PulseExportChart() {
     <div>
       <p className="mb-4 border border-hairline-strong bg-paper px-3 py-2 text-sm text-ink-muted">
         {coverage.length} destinations hand-verified out of roughly 195 the full Commerce Country Chart covers. Every other destination is intentionally left
-        blank rather than guessed -- see each country's page for what "not curated" means there.
+        blank rather than guessed: see each country's page for what "not curated" means there.
       </p>
 
       <div className="overflow-x-auto">

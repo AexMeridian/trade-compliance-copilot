@@ -117,7 +117,7 @@ export function buildDutyStack(
       legal_basis: '19 U.S.C. 1202, HTSUS Column 1 General',
       effective_date: hts.revision,
       applies: false,
-      reason_if_not_applied: 'Superseded by USMCA preferential rate (Column 1 Special) -- see next line.',
+      reason_if_not_applied: 'Superseded by USMCA preferential rate (Column 1 Special). See next line.',
       caveat: null,
       source: htsProvenance,
     });
@@ -130,7 +130,7 @@ export function buildDutyStack(
       applies: true,
       reason_if_not_applied: null,
       caveat: hasDifferentialSymbol
-        ? 'This line carries the "S+" indicator, meaning Canada and Mexico can receive different rates (e.g. agricultural TRQ/staging, textile TPL) -- the parsed rate may not be accurate for both countries; verify against General Note 3(c)(i) for the specific country.'
+        ? 'This line carries the "S+" indicator, meaning Canada and Mexico can receive different rates (e.g. agricultural TRQ/staging, textile TPL). The parsed rate may not be accurate for both countries; verify against General Note 3(c)(i) for the specific country.'
         : null,
       source: htsProvenance,
     });
@@ -158,7 +158,7 @@ export function buildDutyStack(
         legal_basis: `19 U.S.C. 1202, HTSUS Column 1 Special`,
         effective_date: hts.revision,
         applies: false,
-        reason_if_not_applied: `Module 2 found USMCA qualification, but this HTS line's Special rate column does not list program symbol "${programSymbol}" -- verify manually.`,
+        reason_if_not_applied: `Module 2 found USMCA qualification, but this HTS line's Special rate column does not list program symbol "${programSymbol}". Verify manually.`,
         caveat: null,
         source: htsProvenance,
       });
@@ -197,7 +197,7 @@ export function buildDutyStack(
   // poisoned -- determination.ts separately forces review for this case.
   if (country === 'CN' && !overlays.some((o) => o.program === 'sec301_china')) {
     lines.push({
-      layer: 'Section 301 (China tariff actions) -- NOT EVALUATED',
+      layer: 'Section 301 (China tariff actions): NOT EVALUATED',
       rate_pct: null,
       rate_type: 'ad_valorem',
       legal_basis: 'Section 301 of the Trade Act of 1974; USTR China action Lists 1-4A and later modifications',
@@ -220,7 +220,7 @@ export function buildDutyStack(
         : metalsBaseline.rate_pct;
     const wasCapped = metalsCap && cappedPct !== metalsBaseline.rate_pct;
     lines.push({
-      layer: `Section 232 (${metalsBaseline.program.replace('sec232_', '')})${wasCapped ? ' -- country cap applied' : ''}`,
+      layer: `Section 232 (${metalsBaseline.program.replace('sec232_', '')})${wasCapped ? ': country cap applied' : ''}`,
       rate_pct: cappedPct,
       rate_type: metalsBaseline.rate_type,
       legal_basis: wasCapped ? `${metalsBaseline.legal_basis}; capped per ${metalsCap!.legal_basis}` : metalsBaseline.legal_basis,
@@ -283,7 +283,7 @@ export function buildDutyStack(
         legal_basis: sec338.legal_basis,
         effective_date: sec338.effective_date,
         applies: false,
-        reason_if_not_applied: 'Good is already dutiable under Section 232 -- Section 338 excludes goods already covered by Section 232 (anti-stacking rule).',
+        reason_if_not_applied: 'Good is already dutiable under Section 232. Section 338 excludes goods already covered by Section 232 (anti-stacking rule).',
         caveat: overlayCaveat(sec338),
         source: { source_url: sec338.source_url, source_tier: sec338.source_tier as 1 | 2 | 3, last_updated: sec338.last_updated, data_as_of: sec338.data_as_of },
       });

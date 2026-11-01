@@ -275,7 +275,7 @@ screeningRoute.post('/:id/screening', async (c) => {
 
   if (sdnHit) {
     caseFile.open_issues.push(
-      'Screening: HARD STOP -- true match against OFAC\'s Specially Designated Nationals (SDN) list. An SDN is a blocked person: U.S. persons are generally prohibited from dealing with them in either direction. Do not proceed without OFAC counsel or a specific OFAC license.'
+      'Screening: HARD STOP. True match against OFAC\'s Specially Designated Nationals (SDN) list. An SDN is a blocked person: U.S. persons are generally prohibited from dealing with them in either direction. Do not proceed without OFAC counsel or a specific OFAC license.'
     );
   }
   if (hardStopHit && caseFile.direction === 'import') {
@@ -284,7 +284,7 @@ screeningRoute.post('/:id/screening', async (c) => {
     );
   }
   if (hardStopHit && isHardStop) {
-    caseFile.open_issues.push('Screening: HARD STOP -- true match against BIS Entity List/Denied Persons List on an export transaction. License-determinative; see Module 4.');
+    caseFile.open_issues.push('Screening: HARD STOP. True match against BIS Entity List/Denied Persons List on an export transaction. License-determinative; see Module 4.');
   }
   if (unHit && caseFile.direction === 'import') {
     caseFile.open_issues.push(
@@ -293,27 +293,27 @@ screeningRoute.post('/:id/screening', async (c) => {
   }
   if (unHit && isHardStop) {
     caseFile.open_issues.push(
-      'Screening: HARD STOP -- true match against the UN Security Council Consolidated Sanctions List on an export transaction. A UN Security Council designation (asset freeze, travel ban, or arms embargo) is treated with the same severity as a BIS Entity List/Denied Persons List hit; see Module 4.'
+      'Screening: HARD STOP. True match against the UN Security Council Consolidated Sanctions List on an export transaction. A UN Security Council designation (asset freeze, travel ban, or arms embargo) is treated with the same severity as a BIS Entity List/Denied Persons List hit; see Module 4.'
     );
   }
   if (ukHit) {
     caseFile.open_issues.push(
-      'Screening: a true match against the UK Sanctions List (OFSI) was found. The UK list spans several distinct sanctions regimes with different legal effects, so this is flagged as a caution rather than an automatic hard stop -- confirm which regime applies and whether it affects this specific transaction before proceeding.'
+      'Screening: a true match against the UK Sanctions List (OFSI) was found. The UK list spans several distinct sanctions regimes with different legal effects, so this is flagged as a caution rather than an automatic hard stop. Confirm which regime applies and whether it affects this specific transaction before proceeding.'
     );
   }
   if (meuHit) {
     caseFile.open_issues.push(
-      'Screening: a true match against the BIS Military End User (MEU) List was found. This is an end-use/end-user control, not a denied-party hard stop -- it means additional license requirements can apply to this party for certain items, distinct from any Entity List/Denied Persons List finding above.'
+      'Screening: a true match against the BIS Military End User (MEU) List was found. This is an end-use/end-user control, not a denied-party hard stop. It means additional license requirements can apply to this party for certain items, distinct from any Entity List/Denied Persons List finding above.'
     );
   }
   if (anyInconclusive && !hardStopHit && !unHit && !ukHit && !meuHit) {
     caseFile.open_issues.push(
-      'Screening: at least one party has a fuzzy-match candidate scored too close to call (see the match-score breakdown above). Next step: confirm the party\'s full legal name, address and any other identifiers, then re-screen -- do not treat an inconclusive match as cleared.'
+      'Screening: at least one party has a fuzzy-match candidate scored too close to call (see the match-score breakdown above). Next step: confirm the party\'s full legal name, address and any other identifiers, then re-screen. Do not treat an inconclusive match as cleared.'
     );
   }
   if (body.deemed_export_flag === true) {
     caseFile.open_issues.push(
-      'Screening: this transaction may involve sharing controlled technology or source code with a foreign national employee or contractor -- that counts as an export under the EAR/ITAR ("deemed export") even if nothing physically crosses a border. Confirm the foreign national’s country of nationality is checked against the same license-requirement logic as the physical destination before relying on this determination.'
+      'Screening: this transaction may involve sharing controlled technology or source code with a foreign national employee or contractor. That counts as an export under the EAR/ITAR ("deemed export") even if nothing physically crosses a border. Confirm the foreign national’s country of nationality is checked against the same license-requirement logic as the physical destination before relying on this determination.'
     );
   }
 

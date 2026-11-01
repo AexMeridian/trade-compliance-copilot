@@ -107,7 +107,7 @@ referenceRoute.get('/sanctions', async (c) => {
     offset,
     note: countryName
       ? 'Text match on the OFAC/BIS address field, not a normalized country code.'
-      : 'No country filter applied -- showing entries in name order.',
+      : 'No country filter applied. Showing entries in name order.',
   });
 });
 
@@ -230,6 +230,6 @@ referenceRoute.get('/wro', async (c) => {
     total: total?.n ?? 0,
     limit,
     offset,
-    note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) -- a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk (see dhs.gov/uflpa-entity-list for that specific list).',
+    note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307): a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk (see dhs.gov/uflpa-entity-list for that specific list).',
   });
 });

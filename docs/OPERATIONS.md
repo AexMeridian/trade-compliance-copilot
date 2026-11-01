@@ -161,3 +161,14 @@ about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a 
   need their download format and licence confirmed.
 - Rejected for licence reasons and listed on the Soft Power page under "Method and gaps": Latinobarometro (non-commercial), SIPRI
   (commercial use needs a licence), Global Peace Index, UN Comtrade and WITS (internal use only), the Lowy Institute index.
+
+## Design review: signs a page was machine-made
+
+Check these before a release and when a page is added. `tests/copy-lint.test.ts` covers the first two automatically.
+
+- A double hyphen or stock marketing phrase ("Unlock", "Seamless", "Empower") in visible copy.
+- The same reassurance repeated in every section header ("real, sourced", "never averaged"). Say it once, on the Method page.
+- A default font pairing or gradient text; glowing blobs, dot grids or an indigo-to-purple gradient behind sections.
+- Rows of identical cards with no lead item; tracked all-caps labels above every heading.
+- Invented numbers, quotes, logos or "trusted by" claims. Every figure needs a source and date.
+- A page that shares the home preview image. The main pages have their own in `frontend/public/og/` (1200 x 630; the map is `OG_IMAGE` in `frontend/src/lib/pageMeta.ts`, and the Worker serves the right one).

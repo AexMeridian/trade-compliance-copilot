@@ -14,10 +14,19 @@ export interface PageMeta {
   indexable: boolean;
   /** False when the address is not a page of this site (the Worker answers 404). */
   known: boolean;
+  /** Share-preview image for pages that have their own; the others use the home page's. */
+  image?: string;
 }
 
 const HOME_DESCRIPTION =
   "What's changing in world trade, in plain English. New U.S. tariff, sanctions and export-control actions from the Federal Register, with currencies, economic data and trade news, and a sourced Beta compliance calculator. Free, no sign-up.";
+
+// Pages with their own share-preview image (frontend/public/og/<slug>.png, 1200 x 630).
+const OG_IMAGE: Record<string, string> = {
+  '/calculator': `${SITE_ORIGIN}/og/calculator.png`,
+  '/hard-power': `${SITE_ORIGIN}/og/hard-power.png`,
+  '/soft-power': `${SITE_ORIGIN}/og/soft-power.png`,
+};
 
 const PAGES: Record<string, { title: string; description: string }> = {
   '/calculator': {
@@ -71,7 +80,7 @@ export function pageMeta(pathname: string, tab: string | null, tabLabel: string 
     };
   }
   const page = PAGES[clean];
-  if (page) return base(page.title, page.description);
+  if (page) return { ...base(page.title, page.description), image: OG_IMAGE[clean] };
   if (LEGACY.includes(clean)) return base('Redirecting', HOME_DESCRIPTION, clean);
 
   if (/^\/case\/[^/]+(\/report)?$/.test(clean)) {

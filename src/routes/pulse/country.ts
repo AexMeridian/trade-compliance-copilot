@@ -170,7 +170,7 @@ countryRoute.get('/country/:code', async (c) => {
           return {
             sdnCount: counts?.sdn ?? null,
             cslCount: counts?.csl ?? null,
-            note: 'Text match on the OFAC/BIS address field, not a normalized country code -- see the full sanctions list for exact hits.',
+            note: 'Text match on the OFAC/BIS address field, not a normalized country code. See the full sanctions list for exact hits.',
           };
         })()
       : Promise.resolve({ sdnCount: null, cslCount: null, note: 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.' }),
@@ -265,12 +265,12 @@ countryRoute.get('/country/:code', async (c) => {
     retaliatoryMeasures: {
       ...retaliatoryMeasures,
       note: countryName
-        ? 'Independent research data from Global Trade Alert (globaltradealert.org), not a U.S. government source -- measures this country has taken that GTA evaluates as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years. Matched on GTA\'s own jurisdiction name, which can differ slightly from this country\'s display name.'
+        ? 'Independent research data from Global Trade Alert (globaltradealert.org), not a U.S. government source: measures this country has taken that GTA evaluates as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years. Matched on GTA\'s own jurisdiction name, which can differ slightly from this country\'s display name.'
         : 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.',
     },
     forcedLaborEnforcement: {
       ...wroFindings,
-      note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) naming this country -- a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk. Includes historical as well as active orders; check the status on each.',
+      note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) naming this country: a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk. Includes historical as well as active orders; check the status on each.',
     },
     snapshot: snapshot
       ? {

@@ -139,7 +139,7 @@ export function CountryDetail() {
               <PulsePanel
                 title="Country snapshot"
                 subtitle={`${data.snapshot.region}, ${data.snapshot.incomeLevel.toLowerCase()}`}
-                help="Region, income classification, capital, population and GDP from the World Bank's own country data -- the baseline this app can show for every country, independent of whether the U.S. has taken any trade action naming it."
+                help="Region, income classification, capital, population and GDP from the World Bank's own country data, the baseline this app can show for every country, independent of whether the U.S. has taken any trade action naming it."
               >
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                   {data.snapshot.capitalCity && (
@@ -275,7 +275,7 @@ export function CountryDetail() {
           <div className="flex flex-col gap-6">
             <PulsePanel
               title="Tariff programs"
-              help="Section 301's forced-labor determination is the one program here that's both country-specific and broad -- it applies across nearly the whole tariff schedule, not one product category. Section 338 (Canada) and the Section 232 metals country caps are real but narrower or a reduction, so they're shown as separate facts rather than folded into one misleadingly-precise total."
+              help="Section 301's forced-labor determination is the one program here that's both country-specific and broad: it applies across nearly the whole tariff schedule, not one product category. Section 338 (Canada) and the Section 232 metals country caps are real but narrower or a reduction, so they're shown as separate facts rather than folded into one misleadingly-precise total."
             >
               <ul className="flex flex-col gap-3 text-sm">
                 {tariffs.forcedLabor && (
@@ -315,8 +315,8 @@ export function CountryDetail() {
                 title={freightNote.fromRegion ? 'Typical shipping lane for this region' : 'Typical shipping lane'}
                 help={
                   freightNote.fromRegion
-                    ? "A general industry rule of thumb for a standard commercial routing to major U.S. ports, generalized across this country's whole World Bank region rather than measured for this specific country -- this app doesn't have a country-specific lane for it. Wider range than a country-specific entry on purpose; use it to gauge whether this is fundamentally a short hop or a multi-week ocean crossing, not to plan an actual ship date."
-                    : "A general industry rule of thumb for a standard commercial routing to major U.S. ports -- not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
+                    ? "A general industry rule of thumb for a standard commercial routing to major U.S. ports, generalized across this country's whole World Bank region rather than measured for this specific country, this app doesn't have a country-specific lane for it. Wider range than a country-specific entry on purpose; use it to gauge whether this is fundamentally a short hop or a multi-week ocean crossing, not to plan an actual ship date."
+                    : "A general industry rule of thumb for a standard commercial routing to major U.S. ports: not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
                 }
               >
                 <p className="text-sm text-ink">
@@ -340,7 +340,7 @@ export function CountryDetail() {
                       {h.label}{' '}
                       <span className="font-normal text-ink-faint">
                         HTS {h.htsno}
-                        {h.description ? ` -- ${stripHtsMarkup(h.description)}` : ''}
+                        {h.description ? `: ${stripHtsMarkup(h.description)}` : ''}
                       </span>
                     </h3>
                     {h.error ? (
@@ -362,7 +362,7 @@ export function CountryDetail() {
             {exportControl.status === 'not_curated' ? (
               <p className="text-sm text-ink-muted">
                 This app has hand-verified export-control chart status for only 12 destinations so far. {name} isn't one of them yet, so no status is shown here
-                rather than a guessed one -- an export case involving {name} should be flagged for manual review.
+                rather than a guessed one: an export case involving {name} should be flagged for manual review.
               </p>
             ) : (
               <>
@@ -446,7 +446,7 @@ export function CountryDetail() {
                 <a href="https://www.dhs.gov/uflpa-entity-list" target="_blank" rel="noreferrer" className="text-accent">
                   UFLPA Entity List
                 </a>{' '}
-                of specific named importers/suppliers presumed to use forced labor -- a narrower, newer list than the one above, published only as a web page
+                of specific named importers/suppliers presumed to use forced labor, a narrower, newer list than the one above, published only as a web page
                 with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
               </p>
             </PulsePanel>

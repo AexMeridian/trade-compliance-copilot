@@ -93,9 +93,9 @@ export function Snapshot() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="card border-l-4 border-l-hue-violet p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-hue-violet-ink">Frozen snapshot -- will not update</p>
+        <p className="text-sm font-semibold text-hue-violet-ink">Frozen snapshot: will not update</p>
         <p className="mt-1 text-sm text-ink-muted">
-          Captured {friendlyTimestamp(snapshot.created_at)}. This is an exact, saved copy of the chart below as it looked at that moment -- unlike every
+          Captured {friendlyTimestamp(snapshot.created_at)}. This is an exact, saved copy of the chart below as it looked at that moment, unlike every
           other chart on this site, it will never change, even as new data comes in. <a href="/" className="text-accent hover:underline">View the live, up-to-date version</a>.
         </p>
       </div>

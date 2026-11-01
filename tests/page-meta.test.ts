@@ -86,6 +86,11 @@ test('the old pages are known addresses (the app redirects them), the new pages 
   assert.notEqual(pageMeta('/hard-power', null, null, null).title, pageMeta('/soft-power', null, null, null).title);
 });
 
+test('the main pages carry their own share image, the others fall back to the home one', () => {
+  for (const p of ['/calculator', '/hard-power', '/soft-power']) assert.match(pageMeta(p, null, null, null).image ?? '', /^https:\/\/aexterminal\.com\/og\/[a-z-]+\.png$/, p);
+  assert.equal(pageMeta('/about', null, null, null).image, undefined);
+});
+
 if (failures) {
   console.error(`\n${failures} test(s) failed`);
   process.exit(1);

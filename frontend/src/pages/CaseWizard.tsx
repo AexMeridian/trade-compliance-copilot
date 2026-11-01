@@ -17,12 +17,12 @@ const STEPS = ['Classification', 'Origin', 'Screening', 'Determination'] as cons
 // no equivalent gentle landing.
 const JARGON: [string, string][] = [
   ['HTS / Schedule B', 'The numeric codes that classify a product for import (HTS) or export (Schedule B) duty and statistics purposes.'],
-  ['RVC', 'Regional Value Content -- the percent of a good’s value that must originate in the USMCA region for it to qualify for preferential tariff treatment under certain rules.'],
+  ['RVC', 'Regional Value Content: the percent of a good’s value that must originate in the USMCA region for it to qualify for preferential tariff treatment under certain rules.'],
   ['Tariff shift', 'A USMCA origin rule met when a non-originating component’s HTS classification changes enough (e.g. a different chapter or heading) during production in the region.'],
-  ['ECCN', 'Export Control Classification Number -- the code that says which export controls (if any) apply to an item under the Commerce Control List.'],
-  ['EAR99', 'The default classification for items subject to the Export Administration Regulations but not listed under a specific ECCN -- usually no license is required.'],
-  ['NLR', 'No License Required -- the export can proceed without a BIS export license for the stated destination and end use.'],
-  ['De minimis (Section 321)', 'A shipment valued under $800 is often, but not always, exempt from duty -- see the determination step for this case’s own disclosed caveats.'],
+  ['ECCN', 'Export Control Classification Number: the code that says which export controls (if any) apply to an item under the Commerce Control List.'],
+  ['EAR99', 'The default classification for items subject to the Export Administration Regulations but not listed under a specific ECCN. Usually no license is required.'],
+  ['NLR', 'No License Required: the export can proceed without a BIS export license for the stated destination and end use.'],
+  ['De minimis (Section 321)', 'A shipment valued under $800 is often, but not always, exempt from duty. See the determination step for this case’s own disclosed caveats.'],
 ];
 
 function JargonGuide() {
@@ -399,7 +399,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
       <label className="mt-4 flex items-start gap-2 text-sm text-ink-muted">
         <input type="checkbox" checked={deemedExport} onChange={(e) => setDeemedExport(e.target.checked)} className="mt-0.5" />
         <span>
-          This transaction may involve sharing controlled technology, source code or technical data with a foreign national employee or contractor -- a{' '}
+          This transaction may involve sharing controlled technology, source code or technical data with a foreign national employee or contractor, a{' '}
           <span className="text-ink">"deemed export"</span> under the EAR/ITAR, license-relevant even if nothing physically crosses a border.
         </span>
       </label>
@@ -436,7 +436,7 @@ function ScreeningStep({ caseFile, onDone, onError }: { caseFile: CaseFile; onDo
                   </div>
                   {m.token_sort_score !== undefined && m.jaro_winkler_score !== undefined && (
                     <div className="text-xs text-ink-faint">
-                      Matched on {m.matched_via === 'alias' ? 'an alias' : 'the primary name'} -- token-sort {m.token_sort_score.toFixed(2)}, Jaro-Winkler{' '}
+                      Matched on {m.matched_via === 'alias' ? 'an alias' : 'the primary name'}. Token-sort {m.token_sort_score.toFixed(2)}, Jaro-Winkler{' '}
                       {m.jaro_winkler_score.toFixed(2)}.
                     </div>
                   )}

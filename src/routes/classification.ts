@@ -54,7 +54,7 @@ classificationRoute.post('/:id/classification', async (c) => {
         confidence: 'low',
       },
     };
-    caseFile.open_issues.push('Classification: no database-grounded candidates found -- needs manual analyst review.');
+    caseFile.open_issues.push('Classification: no database-grounded candidates found. Needs manual analyst review.');
     await saveCaseFile(c.env, caseFile);
     return c.json({ classification: caseFile.classification });
   }
@@ -81,7 +81,7 @@ classificationRoute.post('/:id/classification', async (c) => {
   // schema's enum should make this structurally impossible.
   if (!candidateCodes.includes(output.selected_code)) {
     caseFile.open_issues.push(
-      `Classification: model returned a code (${output.selected_code}) outside the retrieved candidate set -- discarded, flagged for manual review.`
+      `Classification: model returned a code (${output.selected_code}) outside the retrieved candidate set. Discarded and flagged for manual review.`
     );
     caseFile.classification = {
       status: 'blocked',
@@ -152,7 +152,7 @@ classificationRoute.post('/:id/classification', async (c) => {
   };
   if (output.ambiguous) {
     caseFile.open_issues.push(
-      `Classification is ambiguous between ${output.selected_code} and ${ambiguousAlternatives.join(', ')} -- confirm with analyst before relying on this for duty/license determination.`
+      `Classification is ambiguous between ${output.selected_code} and ${ambiguousAlternatives.join(', ')}. Confirm with analyst before relying on this for duty/license determination.`
     );
   }
 
