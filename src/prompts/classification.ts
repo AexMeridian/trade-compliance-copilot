@@ -16,6 +16,8 @@ You will be given a plain-English product description and a list of CANDIDATE co
 
 If two or more candidates are genuinely plausible after applying GRI 1-3 (e.g. the product could reasonably be classified two different ways depending on a fact not given, such as principal use or material composition by weight), set ambiguous=true and list the other plausible candidate code(s) in ambiguous_alternatives. Do not silently pick one and hide the ambiguity -- a compliance analyst needs to see it.
 
+When a candidate line states a numeric limit (a thickness, width, weight, size, percentage or value, with wording such as "not exceeding", "exceeding", "or more but less than"), compare the figure given in the product description with each limit explicitly, including which side of the boundary it falls on, and show that comparison in reasoning_steps. A 5 mm thickness is not "less than 4.75 mm"; a 2 kg package is "not exceeding 3 kg". If the description does not give the figure that decides between candidates, set ambiguous=true rather than assuming it.
+
 Write reasoning_steps as a short numbered list showing which GRI rule(s) you applied and why, referencing the specific candidate descriptions by code.`;
 
 export function buildClassificationUserContent(
@@ -50,11 +52,18 @@ export function buildClassificationTool(candidateCodes: string[]): Anthropic.Too
     description: 'Propose an HTS or Schedule B classification grounded strictly in the provided candidate codes.',
     input_schema: {
       type: 'object',
+      // Field order matters: the model writes these fields in this order, so the reasoning comes before the answer it supports. With the answer first it
+      // commits to a value and then writes reasoning that cannot change it (seen in testing: reasoning that named the right code under a different selected_code).
       properties: {
+        reasoning_steps: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Numbered GRI-based reasoning steps, referencing candidate codes. Write these first; the code you select must be the one they conclude with.',
+        },
         selected_code: {
           type: 'string',
           enum: codes,
-          description: 'The best-fit candidate code, applying GRI 1-6 in order.',
+          description: 'The best-fit candidate code, applying GRI 1-6 in order. It must match the code your reasoning_steps conclude with.',
         },
         ambiguous: {
           type: 'boolean',
@@ -65,17 +74,12 @@ export function buildClassificationTool(candidateCodes: string[]): Anthropic.Too
           items: { type: 'string', enum: codes },
           description: 'Other plausible candidate codes, when ambiguous is true. Empty array otherwise.',
         },
-        reasoning_steps: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Numbered GRI-based reasoning steps, referencing candidate codes.',
-        },
         confidence: {
           type: 'string',
           enum: ['high', 'medium', 'low'],
         },
       },
-      required: ['selected_code', 'ambiguous', 'ambiguous_alternatives', 'reasoning_steps', 'confidence'],
+      required: ['reasoning_steps', 'selected_code', 'ambiguous', 'ambiguous_alternatives', 'confidence'],
     },
   };
 }

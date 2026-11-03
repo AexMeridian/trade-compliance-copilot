@@ -45,7 +45,14 @@ export function buildOriginTool(): Anthropic.Tool {
     description: 'Assess USMCA origin qualification strictly from the provided rule and component facts.',
     input_schema: {
       type: 'object',
+      // Field order matters: the model writes these fields in this order, so the reasoning comes before the answer it supports. With the answer first it
+      // commits to a value and then writes reasoning that cannot change it (seen in testing: reasoning that named the right code under a different selected_code).
       properties: {
+        reasoning_steps: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Work through the rule against the given facts first; the fields below must follow from these steps.',
+        },
         tariff_shift_met: {
           type: ['boolean', 'null'],
           description: 'Whether the tariff-shift requirement appears met, or null if not applicable to this rule.',
@@ -62,10 +69,6 @@ export function buildOriginTool(): Anthropic.Tool {
           type: 'boolean',
           description: 'True if qualifies=false specifically because the given facts are insufficient (not because the rule is clearly failed).',
         },
-        reasoning_steps: {
-          type: 'array',
-          items: { type: 'string' },
-        },
         open_issues: {
           type: 'array',
           items: { type: 'string' },
@@ -73,7 +76,7 @@ export function buildOriginTool(): Anthropic.Tool {
         },
         confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
       },
-      required: ['tariff_shift_met', 'rvc_calculated_pct', 'qualifies', 'insufficient_facts', 'reasoning_steps', 'open_issues', 'confidence'],
+      required: ['reasoning_steps', 'tariff_shift_met', 'rvc_calculated_pct', 'qualifies', 'insufficient_facts', 'open_issues', 'confidence'],
     },
   };
 }

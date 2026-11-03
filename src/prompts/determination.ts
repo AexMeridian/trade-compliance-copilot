@@ -83,12 +83,12 @@ export function buildExportEccnTool(eccnCodes: string[]): Anthropic.Tool {
     input_schema: {
       type: 'object',
       properties: {
+        reasoning_steps: { type: 'array', items: { type: 'string' }, description: 'Write these first; the ECCN you select must be the one they conclude with.' },
         selected_eccn: { type: 'string', enum: codes },
         no_match: { type: 'boolean', description: 'True if none of the candidates plausibly fit and EAR99 was not among them.' },
-        reasoning_steps: { type: 'array', items: { type: 'string' } },
         confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
       },
-      required: ['selected_eccn', 'no_match', 'reasoning_steps', 'confidence'],
+      required: ['reasoning_steps', 'selected_eccn', 'no_match', 'confidence'],
     },
   };
 }

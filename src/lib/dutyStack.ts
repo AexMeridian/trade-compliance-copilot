@@ -5,7 +5,7 @@
 // computes a number that flows into the final landed-cost estimate, so it is
 // kept small, synchronous, and easy to audit.
 
-import type { HtsCandidateRow, TariffOverlayRow } from './db.js';
+import { EU_MEMBER_CODES, type HtsCandidateRow, type TariffOverlayRow } from './db.js';
 import type { DutyStackLine } from '../types/case.js';
 
 /** The two USMCA member countries besides the U.S. itself. Shared so this
@@ -20,7 +20,10 @@ export function parseAdValoremRate(raw: string): { pct: number | null; isFree: b
   const trimmed = raw.trim();
   if (trimmed === '' ) return { pct: null, isFree: false, raw: trimmed };
   if (/^free$/i.test(trimmed)) return { pct: 0, isFree: true, raw: trimmed };
-  const m = trimmed.match(/^(\d+(?:\.\d+)?)\s*%/);
+  // The whole string must be one percentage (the HTS sometimes leaves an empty <u></u> tag after it). A leading percentage followed by
+  // more text is a compound or part-specific rate ("3.9% on the movement and case + 5.3% on the battery"); reading only the first
+  // number would state a wrong rate with confidence, so those are flagged for manual review instead.
+  const m = trimmed.replace(/<[^>]*>/g, '').trim().match(/^(\d+(?:\.\d+)?)\s*%$/);
   if (m) return { pct: parseFloat(m[1]), isFree: false, raw: trimmed };
   return { pct: null, isFree: false, raw: trimmed }; // specific/compound rate (e.g. cents/kg) -- not ad valorem, flag it
 }
@@ -214,10 +217,18 @@ export function buildDutyStack(
   const metalsBaseline = overlays.find((o) => metalsPrograms.includes(o.program));
   const metalsCap = overlays.find((o) => o.program === 'sec232_metals_country_cap');
   if (metalsBaseline) {
+    // Proclamation 11032, clause (2)(b): for the listed jurisdictions the Column 1 rate plus the Section 232 rate add up to 15 percent, and the
+    // Section 232 rate is zero where Column 1 is already 15 percent or more. The cap is a target for the combined duty, not an extra amount, so
+    // the additional rate is the cap minus the rate already payable, never more than the baseline. An unreadable base rate leaves it unknown.
+    const baseSoFar = unparseable ? null : total;
     const cappedPct =
-      metalsCap && metalsBaseline.rate_pct !== null && metalsCap.rate_pct !== null
-        ? Math.min(metalsBaseline.rate_pct, metalsCap.rate_pct)
-        : metalsBaseline.rate_pct;
+      metalsBaseline.rate_pct === null
+        ? null
+        : metalsCap && metalsCap.rate_pct !== null
+          ? baseSoFar === null
+            ? null
+            : Math.min(metalsBaseline.rate_pct, Math.max(0, Math.round((metalsCap.rate_pct - baseSoFar) * 100) / 100))
+          : metalsBaseline.rate_pct;
     const wasCapped = metalsCap && cappedPct !== metalsBaseline.rate_pct;
     lines.push({
       layer: `Section 232 (${metalsBaseline.program.replace('sec232_', '')})${wasCapped ? ': country cap applied' : ''}`,
@@ -255,7 +266,42 @@ export function buildDutyStack(
 
   // Section 301 forced labor
   const sec301 = overlays.find((o) => o.program === 'sec301_forced_labor');
-  if (sec301) {
+  const under232 = Boolean(metalsBaseline) || overlays.some((o) => o.program === 'sec232_autos' || o.program === 'sec232_autos_parts');
+  const sec301Line = (applies: boolean, ratePct: number | null, reason: string | null, caveatExtra?: string) => ({
+    layer: 'Section 301 (forced-labor determination)',
+    rate_pct: ratePct,
+    rate_type: sec301!.rate_type,
+    legal_basis: sec301!.legal_basis,
+    effective_date: sec301!.effective_date,
+    applies,
+    reason_if_not_applied: reason,
+    caveat: [overlayCaveat(sec301!), caveatExtra].filter(Boolean).join(' ') || null,
+    source: { source_url: sec301!.source_url, source_tier: sec301!.source_tier as 1 | 2 | 3, last_updated: sec301!.last_updated, data_as_of: sec301!.data_as_of },
+  });
+  // Per the USTR notice of July 28, 2026 (91 FR, Annex I clauses (f), (g), (h) and Section 1(a)): goods subject to Section 232 are exempt; Canadian
+  // and Mexican goods entered duty-free under USMCA are exempt; for the EU, Taiwan, Japan, Korea and Switzerland the rate is a target for the
+  // combined duty (the Column 1 rate plus this duty equals 10 percent, or 12.5 for Japan, Korea and Switzerland, and this duty is zero when the
+  // Column 1 rate is already at or above it); for every other listed economy it is added to the Column 1 rate. The product exemption lists in
+  // Annexes I and II are images in the notice and are not loaded, so the caveat says so.
+  const SUM_TARGET: Record<string, number> = { TW: 10, JP: 12.5, KR: 12.5, CH: 12.5 };
+  const sumTarget = EU_MEMBER_CODES.has(country) ? 10 : SUM_TARGET[country];
+  if (sec301 && under232) {
+    lines.push(sec301Line(false, null, 'Exempt: the notice excludes articles subject to Section 232 duties (Annex I, clause (f)).'));
+  } else if (sec301 && USMCA_COUNTRIES.has(country) && usmcaQualifies === true) {
+    lines.push(sec301Line(false, null, 'Exempt: the notice excludes Canadian and Mexican goods entered duty-free under USMCA (Annex I, clauses (g) and (h)).'));
+  } else if (sec301 && USMCA_COUNTRIES.has(country) && usmcaQualifies === null) {
+    lines.push(sec301Line(false, sec301.rate_pct, 'Undetermined: goods that qualify for duty-free USMCA entry are exempt, and USMCA qualification has not been determined for this case. The total is not shown.'));
+    unparseable = true;
+  } else if (sec301 && sumTarget !== undefined) {
+    if (generalRate.pct === null) {
+      lines.push(sec301Line(false, null, 'Undetermined: for this economy the duty is the amount that brings the Column 1 rate up to ' + sumTarget + ' percent, and this line has no ad valorem Column 1 rate to work from. The total is not shown.'));
+      unparseable = true;
+    } else {
+      const extra = Math.max(0, Math.round((sumTarget - generalRate.pct) * 100) / 100);
+      lines.push(sec301Line(true, extra, null, `For this economy the Column 1 rate plus this duty equals ${sumTarget} percent, so this duty is ${extra} percent on a ${generalRate.pct}% Column 1 rate.`));
+      total += extra;
+    }
+  } else if (sec301) {
     lines.push({
       layer: 'Section 301 (forced-labor determination)',
       rate_pct: sec301.rate_pct,
@@ -288,21 +334,23 @@ export function buildDutyStack(
         source: { source_url: sec338.source_url, source_tier: sec338.source_tier as 1 | 2 | 3, last_updated: sec338.last_updated, data_as_of: sec338.data_as_of },
       });
     } else {
+      // The overlay row matches a whole chapter, but the proclamation covers only the specific 8-digit lines in its annex (the row's own
+      // note says how many). This app has not loaded those line lists, so it cannot tell whether this line is one of them. Stating the
+      // full rate as applying would overstate the duty on most goods in the chapter; leaving it out would understate it on the rest.
+      // So the line is shown as undetermined and the total is withheld, which sends the case to manual review.
       lines.push({
         layer: 'Section 338 (Canada)',
         rate_pct: sec338.rate_pct,
         rate_type: sec338.rate_type,
         legal_basis: sec338.legal_basis,
         effective_date: sec338.effective_date,
-        applies: true,
-        reason_if_not_applied: null,
+        applies: false,
+        reason_if_not_applied:
+          `Undetermined: the proclamation adds ${sec338.rate_pct ?? 'an additional'}% only on the specific tariff lines in its annex, and this app has not loaded that line list. Check this HTS code against the annex before relying on any total. The total is not shown.`,
         caveat: overlayCaveat(sec338),
         source: { source_url: sec338.source_url, source_tier: sec338.source_tier as 1 | 2 | 3, last_updated: sec338.last_updated, data_as_of: sec338.data_as_of },
       });
-      if (sec338.rate_pct === null) unparseable = true;
-      else total += sec338.rate_pct;
-      // Applies regardless of USMCA qualification -- no special-casing needed here,
-      // since we only branch on 232 exclusion above, exactly per the sourced rule.
+      unparseable = true;
     }
   }
 

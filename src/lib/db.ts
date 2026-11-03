@@ -1,4 +1,6 @@
 import type { Env } from '../types/env.js';
+import { normalizeName } from './normalize.js';
+import { expandTradeTerms } from './htsSynonyms.js';
 
 // Common low-signal words in plain-English product descriptions. Left in,
 // they win bm25 ties against the one or two genuinely distinctive terms
@@ -123,7 +125,8 @@ async function mergedFtsCandidateIds(
   return orderedIds.slice(0, 80);
 }
 
-export async function searchHts(env: Env, query: string, limit = 25): Promise<HtsCandidateRow[]> {
+export async function searchHts(env: Env, rawQuery: string, limit = 25): Promise<HtsCandidateRow[]> {
+  const query = expandTradeTerms(rawQuery);
   const [ownIds, pathIds] = await Promise.all([
     mergedFtsCandidateIds(env, 'hts_search', `JOIN hts_lines h ON h.id = hts_search.rowid AND h.htsno != ''`, query, limit),
     // Ancestor-heading matches (migration 0023): reaches branches whose defining
@@ -146,7 +149,44 @@ export async function searchHts(env: Env, query: string, limit = 25): Promise<Ht
   const ordered = ids.map((id) => byId.get(id)).filter((r): r is HtsCandidateRow => !!r);
   // Real headroom beyond what's already matched, so children actually get pulled in
   // (a cap equal to the current count would make expandWithChildren's gate a no-op).
-  return expandWithChildren(env, ordered, ordered.length + 40);
+  const expanded = await expandWithChildren(env, ordered, ordered.length + 40);
+  return addHeadingSubheadings(env, expanded);
+}
+
+/**
+ * When the search lands on a 4-digit heading ("8704 Motor vehicles for the transport of goods"), the correct answer is usually one of its
+ * subheadings (8704.22), which often share none of the query's words and so are not found on their own. The one-level child expansion
+ * above does not reach them because a heading's subheadings sit several levels down. This pulls the subheading-level rows (up to
+ * 8 digits, so not the long statistical suffixes) beneath the first three matched headings, so the right subheading is in the list the
+ * model chooses from. Still only real schedule rows.
+ */
+async function addHeadingSubheadings(env: Env, rows: HtsCandidateRow[]): Promise<HtsCandidateRow[]> {
+  const headings = rows.filter((r) => /^\d{4}$/.test(r.htsno)).slice(0, 3);
+  if (headings.length === 0) return rows;
+  const have = new Set(rows.map((r) => r.id));
+  const out = [...rows];
+  for (const h of headings) {
+    const { results } = await env.DB.prepare(
+      `WITH RECURSIVE d(id, depth) AS (
+         SELECT id, 0 FROM hts_lines WHERE id = ?1
+         UNION ALL
+         SELECT h.id, d.depth + 1 FROM hts_lines h JOIN d ON h.superior_id = d.id WHERE d.depth < 4
+       )
+       SELECT id, htsno, description, indent, superior_id, units, general_rate, special_rate,
+              other_rate, footnotes, chapter, revision, source_url, source_tier, last_updated, 0 as score
+       FROM hts_lines WHERE id IN (SELECT id FROM d) AND htsno != '' AND length(replace(htsno, '.', '')) BETWEEN 6 AND 10
+       ORDER BY length(replace(htsno, '.', '')), htsno LIMIT 40`
+    )
+      .bind(h.id)
+      .all<HtsCandidateRow>();
+    for (const r of results) {
+      if (!have.has(r.id)) {
+        have.add(r.id);
+        out.push(r);
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -553,12 +593,33 @@ export interface PartyCandidateRow {
  * aliases) for one input name, already normalized. This is the pre-filter
  * that keeps src/lib/fuzzyMatch.ts's scoring pass bounded -- see the build
  * plan's Workers CPU budget discussion. */
+/**
+ * The full-text query for a party name. Unlike the product search it keeps one-character words (the listed name "S 7 ENGINEERING" has two),
+ * and for the longest words it adds the spellings one transposed pair of letters or one missing letter away, because full-text search only
+ * matches whole words and a single typo in the distinctive word would otherwise return nothing at all. The scoring pass in fuzzyMatch.ts
+ * still decides what is a match; this only widens who gets scored.
+ */
+export function partyFtsQuery(name: string): string {
+  const tokens = [...new Set(normalizeName(name).tokens.map((t) => t.toLowerCase().replace(/[^a-z0-9]/g, '')).filter(Boolean))].slice(0, 8);
+  if (tokens.length === 0) return '""';
+  const terms = new Set(tokens.map((t) => `"${t}"`));
+  const longest = [...tokens].filter((t) => t.length >= 5).sort((a, b) => b.length - a.length).slice(0, 3);
+  for (const t of longest) {
+    if (t.length >= 6) terms.add(`"${t.slice(0, 4)}"*`); // a typo further in still leaves the start of the word intact
+    for (let i = 0; i < t.length; i++) {
+      terms.add(`"${t.slice(0, i) + t.slice(i + 1)}"`); // one letter missing
+      if (i < t.length - 1) terms.add(`"${t.slice(0, i) + t[i + 1] + t[i] + t.slice(i + 2)}"`); // two letters swapped
+    }
+  }
+  return [...terms].join(' OR ');
+}
+
 export async function searchPartyCandidates(
   env: Env,
   normalizedName: string,
   limit = 50
 ): Promise<PartyCandidateRow[]> {
-  const fts = toFtsQuery(normalizedName);
+  const fts = partyFtsQuery(normalizedName);
   const out: PartyCandidateRow[] = [];
 
   // Eight independent FTS lookups (SDN/CSL/UN/UK x primary-name/alias) --

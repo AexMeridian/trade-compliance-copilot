@@ -1,0 +1,694 @@
+[
+ {
+  "direction": "import",
+  "product_description": "Fresh boneless beef, chilled, not minced",
+  "expected_hs6": "0201.30",
+  "hts_example": "0201.30",
+  "heading": "Meat of bovine animals, fresh or chilled:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Frozen shrimp, headless, shell-on",
+  "expected_hs6": "0306.17",
+  "hts_example": "0306.17.00",
+  "heading": "Crustaceans, whether in shell or not, live, fresh, chilled, "
+ },
+ {
+  "direction": "import",
+  "product_description": "Fresh whole Atlantic salmon, not filleted",
+  "expected_hs6": "0302.14",
+  "hts_example": "0302.14.00",
+  "heading": "Fish, fresh or chilled, excluding fish fillets and other fis"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cheddar cheese in blocks",
+  "expected_hs6": "0406.90",
+  "hts_example": "0406.90",
+  "heading": "Cheese and curd:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Fresh cut roses",
+  "expected_hs6": "0603.11",
+  "hts_example": "0603.11.00",
+  "heading": "Cut flowers and flower buds of a kind suitable for bouquets "
+ },
+ {
+  "direction": "import",
+  "product_description": "Fresh bananas",
+  "expected_hs6": "0803.90",
+  "hts_example": "0803.90.00",
+  "heading": "Bananas and plantains, fresh or dried:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Roasted coffee beans, not decaffeinated",
+  "expected_hs6": "0901.21",
+  "hts_example": "0901.21.00",
+  "heading": "Coffee, whether or not roasted or decaffeinated; coffee husk"
+ },
+ {
+  "direction": "import",
+  "product_description": "Black tea fermented, in packages of 2 kg",
+  "expected_hs6": "0902.30",
+  "hts_example": "0902.30.00",
+  "heading": "Tea, whether or not flavored:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Milled long grain white rice",
+  "expected_hs6": "1006.30",
+  "hts_example": "1006.30",
+  "heading": "Rice:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Wheat flour",
+  "expected_hs6": "1101.00",
+  "hts_example": "1101.00.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Extra virgin olive oil in 5 liter containers",
+  "expected_hs6": "1509.20",
+  "hts_example": "1509.20",
+  "heading": "Olive oil and its fractions, whether or not refined, but not"
+ },
+ {
+  "direction": "import",
+  "product_description": "Refined white cane sugar",
+  "expected_hs6": "1701.99",
+  "hts_example": "1701.99",
+  "heading": "Cane or beet sugar and chemically pure sucrose, in solid for"
+ },
+ {
+  "direction": "import",
+  "product_description": "Chocolate bars not filled, in 100 g bars",
+  "expected_hs6": "1806.32",
+  "hts_example": "1806.32",
+  "heading": "Chocolate and other food preparations containing cocoa:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Uncooked dried pasta, not stuffed",
+  "expected_hs6": "1902.19",
+  "hts_example": "1902.19",
+  "heading": "Pasta, whether or not cooked or stuffed (with meat or other "
+ },
+ {
+  "direction": "import",
+  "product_description": "Frozen concentrated orange juice, unfermented",
+  "expected_hs6": "2009.11",
+  "hts_example": "2009.11.00",
+  "heading": "Fruit or nut juices (including grape must and coconut water)"
+ },
+ {
+  "direction": "import",
+  "product_description": "Red wine in 750 ml bottles",
+  "expected_hs6": "2204.21",
+  "hts_example": "2204.21",
+  "heading": "Wine of fresh grapes, including fortified wines; grape must "
+ },
+ {
+  "direction": "import",
+  "product_description": "Vodka in bottles",
+  "expected_hs6": "2208.60",
+  "hts_example": "2208.60",
+  "heading": "Undenatured ethyl alcohol of an alcoholic strength by volume"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cigarettes containing tobacco",
+  "expected_hs6": "2402.20",
+  "hts_example": "2402.20",
+  "heading": "Cigars, cheroots, cigarillos and cigarettes, of tobacco or o"
+ },
+ {
+  "direction": "import",
+  "product_description": "Ibuprofen tablets in measured doses for retail sale",
+  "expected_hs6": "3004.90",
+  "hts_example": "3004.90",
+  "heading": "Medicaments (excluding goods of heading 3002, 3005 or 3006) "
+ },
+ {
+  "direction": "import",
+  "product_description": "Disposable polyethylene shopping bags",
+  "expected_hs6": "3923.21",
+  "hts_example": "3923.21.00",
+  "heading": "Articles for the conveyance or packing of goods, of plastics"
+ },
+ {
+  "direction": "import",
+  "product_description": "Empty plastic water bottles made of PET",
+  "expected_hs6": "3923.30",
+  "hts_example": "3923.30.00",
+  "heading": "Articles for the conveyance or packing of goods, of plastics"
+ },
+ {
+  "direction": "import",
+  "product_description": "New pneumatic rubber tires for passenger cars",
+  "expected_hs6": "4011.10",
+  "hts_example": "4011.10",
+  "heading": "New pneumatic tires, of rubber:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Sawn spruce lumber, 2x4, thickness over 6 mm",
+  "expected_hs6": "4407.12",
+  "hts_example": "4407.12.00",
+  "heading": "Wood sawn or chipped lengthwise, sliced or peeled, whether o"
+ },
+ {
+  "direction": "import",
+  "product_description": "Corrugated cardboard shipping boxes",
+  "expected_hs6": "4819.10",
+  "hts_example": "4819.10.00",
+  "heading": "Cartons, boxes, cases, bags and other packing containers, of"
+ },
+ {
+  "direction": "import",
+  "product_description": "Printed hardcover books",
+  "expected_hs6": "4901.99",
+  "hts_example": "4901.99.00",
+  "heading": "Printed books, brochures, leaflets and similar printed matte"
+ },
+ {
+  "direction": "import",
+  "product_description": "Uncoated A4 copy paper in cut sheets",
+  "expected_hs6": "4802.56",
+  "hts_example": "4802.56",
+  "heading": "Uncoated paper and paperboard, of a kind used for writing, p"
+ },
+ {
+  "direction": "import",
+  "product_description": "Women's wool knitted sweaters",
+  "expected_hs6": "6110.11",
+  "hts_example": "6110.11.00",
+  "heading": "Sweaters, pullovers, sweatshirts, waistcoats (vests) and sim"
+ },
+ {
+  "direction": "import",
+  "product_description": "Men's cotton denim jeans, woven",
+  "expected_hs6": "6203.42",
+  "hts_example": "6203.42",
+  "heading": "Men's or boys' suits, ensembles, suit-type jackets, blazers,"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cotton bed sheets, not knitted",
+  "expected_hs6": "6302.31",
+  "hts_example": "6302.31",
+  "heading": "Bed linen, table linen, toilet linen and kitchen linen:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cotton knit socks",
+  "expected_hs6": "6115.95",
+  "hts_example": "6115.95",
+  "heading": "Panty hose, tights, stockings, socks and other hosiery, incl"
+ },
+ {
+  "direction": "import",
+  "product_description": "Silk scarves, woven",
+  "expected_hs6": "6214.10",
+  "hts_example": "6214.10",
+  "heading": "Shawls, scarves, mufflers, mantillas, veils and the like:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Athletic sneakers with rubber soles and textile uppers",
+  "expected_hs6": "6404.11",
+  "hts_example": "6404.11",
+  "heading": "Footwear with outer soles of rubber, plastics, leather or co"
+ },
+ {
+  "direction": "import",
+  "product_description": "Women's handbags with outer surface of leather",
+  "expected_hs6": "4202.21",
+  "hts_example": "4202.21",
+  "heading": "Trunks, suitcases, vanity cases, attache cases, briefcases, "
+ },
+ {
+  "direction": "import",
+  "product_description": "Porcelain dinner plates, household",
+  "expected_hs6": "6911.10",
+  "hts_example": "6911.10",
+  "heading": "Tableware, kitchenware, other household articles and toilet "
+ },
+ {
+  "direction": "import",
+  "product_description": "Glass drinking tumblers, not lead crystal",
+  "expected_hs6": "7013.37",
+  "hts_example": "7013.37",
+  "heading": "Glassware of a kind used for table, kitchen, toilet, office,"
+ },
+ {
+  "direction": "import",
+  "product_description": "Stainless steel kitchen sinks",
+  "expected_hs6": "7324.10",
+  "hts_example": "7324.10.00",
+  "heading": "Sanitary ware and parts thereof, of iron or steel:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Threaded steel bolts, not stainless",
+  "expected_hs6": "7318.15",
+  "hts_example": "7318.15",
+  "heading": "Screws, bolts, nuts, coach screws, screw hooks, rivets, cott"
+ },
+ {
+  "direction": "import",
+  "product_description": "Aluminum foil, 0.02 mm thick, not backed",
+  "expected_hs6": "7607.11",
+  "hts_example": "7607.11",
+  "heading": "Aluminum foil (whether or not printed, or backed with paper,"
+ },
+ {
+  "direction": "import",
+  "product_description": "Refined copper wire, 2 mm diameter",
+  "expected_hs6": "7408.19",
+  "hts_example": "7408.11",
+  "heading": "Copper wire:",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Copper tubes, refined copper",
+  "expected_hs6": "7411.10",
+  "hts_example": "7411.10",
+  "heading": "Copper tubes and pipes:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Smartphones, cellular telephones",
+  "expected_hs6": "8517.13",
+  "hts_example": "8517.13.00.00",
+  "heading": "Telephone sets, including smartphones and other telephones f"
+ },
+ {
+  "direction": "import",
+  "product_description": "55 inch LED television with a video display",
+  "expected_hs6": "8528.72",
+  "hts_example": "8528.72",
+  "heading": "Monitors and projectors, not incorporating television recept"
+ },
+ {
+  "direction": "import",
+  "product_description": "Lithium-ion battery cells, cylindrical",
+  "expected_hs6": "8507.60",
+  "hts_example": "8507.60.00",
+  "heading": "Electric storage batteries, including separators therefor, w"
+ },
+ {
+  "direction": "import",
+  "product_description": "Household electric vacuum cleaner with self-contained motor",
+  "expected_hs6": "8508.11",
+  "hts_example": "8508.11.00.00",
+  "heading": "Vacuum cleaners; parts thereof:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Household refrigerator-freezer combination with separate external doors",
+  "expected_hs6": "8418.10",
+  "hts_example": "8418.10.00",
+  "heading": "Refrigerators, freezers and other refrigerating or freezing "
+ },
+ {
+  "direction": "import",
+  "product_description": "Household front-loading washing machine, 7 kg",
+  "expected_hs6": "8450.11",
+  "hts_example": "8450.11.00",
+  "heading": "Household- or laundry-type washing machines, including machi"
+ },
+ {
+  "direction": "import",
+  "product_description": "Microwave oven for household use",
+  "expected_hs6": "8516.50",
+  "hts_example": "8516.50.00",
+  "heading": "Electric instantaneous or storage water heaters and immersio"
+ },
+ {
+  "direction": "import",
+  "product_description": "Handheld electric power drill",
+  "expected_hs6": "8467.21",
+  "hts_example": "8467.21.00",
+  "heading": "Tools for working in the hand, pneumatic, hydraulic or with "
+ },
+ {
+  "direction": "import",
+  "product_description": "Centrifugal water pump",
+  "expected_hs6": "8413.70",
+  "hts_example": "8413.70",
+  "heading": "Pumps for liquids, whether or not fitted with a measuring de"
+ },
+ {
+  "direction": "import",
+  "product_description": "Split-system air conditioner",
+  "expected_hs6": "8415.10",
+  "hts_example": "8415.10",
+  "heading": "Air conditioning machines, comprising a motor-driven fan and"
+ },
+ {
+  "direction": "import",
+  "product_description": "USB flash memory drives, solid-state storage",
+  "expected_hs6": "8523.51",
+  "hts_example": "8523.51.00.00",
+  "heading": "Discs, tapes, solid-state non-volatile storage devices, \"sma"
+ },
+ {
+  "direction": "import",
+  "product_description": "Wireless Bluetooth headphones",
+  "expected_hs6": "8518.30",
+  "hts_example": "8518.30",
+  "heading": "Microphones and stands therefor; loudspeakers, whether or no"
+ },
+ {
+  "direction": "import",
+  "product_description": "Electric toothbrushes",
+  "expected_hs6": "8509.80",
+  "hts_example": "8509.80",
+  "heading": "Electromechanical domestic appliances, with self-contained e"
+ },
+ {
+  "direction": "import",
+  "product_description": "Bicycles without motor",
+  "expected_hs6": "8712.00",
+  "hts_example": "8712.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Automotive brake pads for motor vehicles",
+  "expected_hs6": "8708.30",
+  "hts_example": "8708.30",
+  "heading": "Parts and accessories of the motor vehicles of headings 8701"
+ },
+ {
+  "direction": "import",
+  "product_description": "Lead-acid starter batteries for cars",
+  "expected_hs6": "8507.10",
+  "hts_example": "8507.10.00",
+  "heading": "Electric storage batteries, including separators therefor, w"
+ },
+ {
+  "direction": "import",
+  "product_description": "Disposable hypodermic syringes",
+  "expected_hs6": "9018.31",
+  "hts_example": "9018.31.00",
+  "heading": "Instruments and appliances used in medical, surgical, dental"
+ },
+ {
+  "direction": "import",
+  "product_description": "Eyeglass frames",
+  "expected_hs6": "9003.19",
+  "hts_example": "9003.19.00.00",
+  "heading": "Frames and mountings for spectacles, goggles or the like, an"
+ },
+ {
+  "direction": "import",
+  "product_description": "Innerspring mattresses",
+  "expected_hs6": "9404.29",
+  "hts_example": "9404.21.00",
+  "heading": "Mattress supports; articles of bedding and similar furnishin",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Plastic toy dolls",
+  "expected_hs6": "9503.00",
+  "hts_example": "9503.00.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Video game consoles",
+  "expected_hs6": "9504.50",
+  "hts_example": "9504.50.00.00",
+  "heading": "Video game consoles and machines, table or parlor games, inc"
+ },
+ {
+  "direction": "import",
+  "product_description": "Inflated soccer balls",
+  "expected_hs6": "9506.62",
+  "hts_example": "9506.62",
+  "heading": "Articles and equipment for general physical exercise, gymnas"
+ },
+ {
+  "direction": "import",
+  "product_description": "Wooden dining chairs, not upholstered",
+  "expected_hs6": "9401.69",
+  "hts_example": "9401.69",
+  "heading": "Seats (other than those of heading 9402), whether or not con"
+ },
+ {
+  "direction": "import",
+  "product_description": "Laptop computers",
+  "expected_hs6": "8471.30",
+  "hts_example": "8471.30.01.00",
+  "heading": "Automatic data processing machines and units thereof; magnet"
+ },
+ {
+  "direction": "import",
+  "product_description": "Gasoline passenger car with 2.0 liter engine",
+  "expected_hs6": "8703.23",
+  "hts_example": "8703.23.01",
+  "heading": "Motor cars and other motor vehicles principally designed for"
+ },
+ {
+  "direction": "import",
+  "product_description": "Diesel truck for goods transport, gross weight 5 to 20 tonnes",
+  "expected_hs6": "8704.22",
+  "hts_example": "8704.22",
+  "heading": "Motor vehicles for the transport of goods:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Hot-rolled flat steel in coils, 1200 mm wide, not alloyed, 5 mm thick",
+  "expected_hs6": "7208.37",
+  "hts_example": "7208.37.00",
+  "heading": "Flat-rolled products of iron or nonalloy steel, of a width o"
+ },
+ {
+  "direction": "import",
+  "product_description": "Electric guitar",
+  "expected_hs6": "9207.90",
+  "hts_example": "9207.10.00",
+  "heading": "Musical instruments, the sound of which is produced, or must",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Fresh apples",
+  "expected_hs6": "0808.10",
+  "hts_example": "0808.10.00",
+  "heading": "Apples, pears and quinces, fresh:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Frozen French fries, potatoes",
+  "expected_hs6": "2004.10",
+  "hts_example": "2004.10",
+  "heading": "Other vegetables prepared or preserved otherwise than by vin"
+ },
+ {
+  "direction": "import",
+  "product_description": "Peanut butter",
+  "expected_hs6": "2008.11",
+  "hts_example": "2008.11",
+  "heading": "Fruit, nuts and other edible parts of plants, otherwise prep"
+ },
+ {
+  "direction": "import",
+  "product_description": "Natural honey",
+  "expected_hs6": "0409.00",
+  "hts_example": "0409.00.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Soy sauce",
+  "expected_hs6": "2103.10",
+  "hts_example": "2103.10.00.00",
+  "heading": "Sauces and preparations therefore; mixed condiments and mixe"
+ },
+ {
+  "direction": "import",
+  "product_description": "Beer made from malt in bottles",
+  "expected_hs6": "2203.00",
+  "hts_example": "2203.00.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Soap bars for washing the body",
+  "expected_hs6": "3401.11",
+  "hts_example": "3401.11",
+  "heading": "Soap; organic surface-active products and preparations for u"
+ },
+ {
+  "direction": "import",
+  "product_description": "Shampoo for hair",
+  "expected_hs6": "3305.10",
+  "hts_example": "3305.10.00.00",
+  "heading": "Preparations for use on the hair:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Lipstick",
+  "expected_hs6": "3304.10",
+  "hts_example": "3304.10.00.00",
+  "heading": "Beauty or make-up preparations and preparations for the care"
+ },
+ {
+  "direction": "import",
+  "product_description": "Perfume, eau de toilette",
+  "expected_hs6": "3303.00",
+  "hts_example": "3303.00",
+  "heading": ""
+ },
+ {
+  "direction": "import",
+  "product_description": "Acrylic paint in tubes for artists",
+  "expected_hs6": "3213.90",
+  "hts_example": "3213.10.00.00",
+  "heading": "Artists', students' or signboard painters' colors, modifying",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Photocopying toner cartridges, laser printer",
+  "expected_hs6": "8443.99",
+  "hts_example": "8443.99",
+  "heading": "Printing machinery used for printing by means of plates, cyl"
+ },
+ {
+  "direction": "import",
+  "product_description": "Laser printers",
+  "expected_hs6": "8443.32",
+  "hts_example": "8443.32",
+  "heading": "Printing machinery used for printing by means of plates, cyl"
+ },
+ {
+  "direction": "import",
+  "product_description": "Computer monitors, color flat panel",
+  "expected_hs6": "8528.52",
+  "hts_example": "8528.52.00.00",
+  "heading": "Monitors and projectors, not incorporating television recept"
+ },
+ {
+  "direction": "import",
+  "product_description": "Optical fiber cables",
+  "expected_hs6": "8544.70",
+  "hts_example": "8544.70.00.00",
+  "heading": "Insulated (including enameled or anodized) wire, cable (incl"
+ },
+ {
+  "direction": "import",
+  "product_description": "Insulated electric wire for 600 volts",
+  "expected_hs6": "8544.49",
+  "hts_example": "8544.49",
+  "heading": "Insulated (including enameled or anodized) wire, cable (incl"
+ },
+ {
+  "direction": "import",
+  "product_description": "Solar photovoltaic panels, modules",
+  "expected_hs6": "8541.43",
+  "hts_example": "8541.43.00",
+  "heading": "Semiconductor devices (for example, diodes, transistors, sem"
+ },
+ {
+  "direction": "import",
+  "product_description": "Semiconductor integrated circuits, processors",
+  "expected_hs6": "8542.31",
+  "hts_example": "8542.31.00",
+  "heading": "Electronic integrated circuits; parts thereof:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cotton fabric woven, unbleached plain weave",
+  "expected_hs6": "5208.11",
+  "hts_example": "5208.11",
+  "heading": "Woven fabrics of cotton, containing 85 percent or more by we"
+ },
+ {
+  "direction": "import",
+  "product_description": "Polyester knitted fabric",
+  "expected_hs6": "6006.32",
+  "hts_example": "6006.32.00",
+  "heading": "Other knitted or crocheted fabrics:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Men's knit cotton t-shirts, short-sleeved, crew neck",
+  "expected_hs6": "6109.10",
+  "hts_example": "6109.10.00",
+  "heading": "T-shirts, singlets, tank tops and similar garments, knitted "
+ },
+ {
+  "direction": "import",
+  "product_description": "Women's cotton knit blouses",
+  "expected_hs6": "6106.10",
+  "hts_example": "6106.10.00",
+  "heading": "Women's or girls' blouses and shirts, knitted or crocheted:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Baby's cotton knitted garments",
+  "expected_hs6": "6111.20",
+  "hts_example": "6111.20",
+  "heading": "Babies' garments and clothing accessories, knitted or croche"
+ },
+ {
+  "direction": "import",
+  "product_description": "Cotton towels, terry",
+  "expected_hs6": "6302.60",
+  "hts_example": "6302.60.00",
+  "heading": "Bed linen, table linen, toilet linen and kitchen linen:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Pearl necklaces, cultured",
+  "expected_hs6": "7116.10",
+  "hts_example": "7101.22",
+  "heading": "Pearls, natural or cultured, whether or not worked or graded",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Costume jewelry of base metal with gold plating",
+  "expected_hs6": "7117.19",
+  "hts_example": "7117.19",
+  "heading": "Imitation jewelry:"
+ },
+ {
+  "direction": "import",
+  "product_description": "Wristwatch with quartz movement, battery-operated, case of base metal",
+  "expected_hs6": "9102.11",
+  "hts_example": "9102.11",
+  "heading": "Wrist watches, pocket watches and other watches, including s"
+ },
+ {
+  "direction": "import",
+  "product_description": "Hand tools: adjustable wrenches",
+  "expected_hs6": "8204.12",
+  "hts_example": "8204.11.00",
+  "heading": "Hand-operated spanners and wrenches (including torque meter ",
+  "label_note": "corrected 2026-11-03 after the model run: the schedule text shows the original label was wrong"
+ },
+ {
+  "direction": "import",
+  "product_description": "Kitchen knives with fixed blades, stainless",
+  "expected_hs6": "8211.91",
+  "hts_example": "8211.91",
+  "heading": "Knives with cutting blades, serrated or not (including pruni"
+ },
+ {
+  "direction": "import",
+  "product_description": "Sewing machines household",
+  "expected_hs6": "8452.10",
+  "hts_example": "8452.10.00",
+  "heading": "Sewing machines, other than book-sewing machines of heading "
+ }
+]

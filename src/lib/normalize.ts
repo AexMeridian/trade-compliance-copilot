@@ -40,7 +40,8 @@ export function normalizeName(raw: string): { normalized: string; tokens: string
 
   let tokens = s.split(' ').filter(Boolean);
   let hadSuffix = false;
-  if (tokens.length > 1 && SUFFIX_SET.has(tokens[tokens.length - 1])) {
+  // Every trailing legal word goes ("HARA COMPANY LLC" and "HARA COMPANY" are the same name), keeping at least one word.
+  while (tokens.length > 1 && SUFFIX_SET.has(tokens[tokens.length - 1])) {
     tokens = tokens.slice(0, -1);
     hadSuffix = true;
   }

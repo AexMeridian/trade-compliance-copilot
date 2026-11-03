@@ -155,8 +155,8 @@ npm run test:golden          # needs `wrangler dev` already running
 This pushes 10 real products (5 import, 5 export) through Module 1 against
 the live Claude-backed endpoint and reports pass/fail against expected
 HTS/Schedule B prefixes drawn from HTSUS subheading text and well-known
-commodity classifications. **Current result: 10/10 (100%)**, stable across
-repeated runs — a real, unmodified accuracy signal, not a number chosen to
+commodity classifications. **Last recorded result: 10/10 (100%)** on the original 10 cases, stable across
+repeated runs (the set has 11 cases now and has not been rerun since the retrieval and rate-parsing changes in [docs/ACCURACY.md](docs/ACCURACY.md)) — a real, unmodified accuracy signal, not a number chosen to
 look good. It started at 6/10 (60%); the two retrieval-side failures (see
 [Known limitations](#known-limitations)) were root-caused and fixed by
 widening how candidates are retrieved from D1, not by tuning prompts against

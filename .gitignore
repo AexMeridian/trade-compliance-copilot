@@ -9,3 +9,6 @@ scripts/seed-sql/
 
 # TypeScript incremental build cache (rewritten on every typecheck)
 *.tsbuildinfo
+
+# Local accuracy-run output
+tests/accuracy/last-classification-run.json

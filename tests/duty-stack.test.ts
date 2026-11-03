@@ -26,6 +26,18 @@ function hts(general: string, special: string): HtsCandidateRow {
   };
 }
 
+// --- compound rates are never read as one percentage ---------------------------
+test('a compound or part-specific rate string is flagged, not read as its first percentage', () => {
+  for (const raw of ['3.9% on the movement and case + 5.3% on the battery', '4.7% on the value of the rifle + 20% on the value of the telescopic sight, if any', '6.5% on the entire set', '4.3% + 1.7c/jewel + 0.2c for each other piece or part']) {
+    assert.equal(parseAdValoremRate(raw).pct, null, raw);
+  }
+});
+
+test('a plain percentage with an empty markup tag still parses', () => {
+  assert.equal(parseAdValoremRate('2.5% <u></u>').pct, 2.5);
+  assert.equal(parseAdValoremRate('10%<u></u>').pct, 10);
+});
+
 // --- special-rate parsing ---------------------------------------------------
 test('"Free (...S...)" resolves to 0% for S (was null before the fix)', () => {
   assert.equal(specialRateForSymbol('Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)', 'S')?.pct, 0);
@@ -120,6 +132,89 @@ for (const [name, fn] of asyncTests) {
     console.log(`FAIL  ${name}\n      ${(e as Error).message}`);
   }
 }
+
+// --- additional duties (Section 232, 338, 301 forced labor): the arithmetic, by hand ------------------
+// Totals below are worked out by hand from the rates the overlay rows carry (Federal Register 2026-11314 for the metals, 2026-14992 for
+// Canada's dairy lines, 2026-15181 for the forced-labor action): general rate + each additional duty that applies.
+function overlay(program: string, rate: number | null, extra: Partial<import('../src/lib/db.js').TariffOverlayRow> = {}) {
+  return {
+    id: 1, program, hts_pattern: '%', country_scope: null, rate_pct: rate, rate_type: 'ad_valorem', legal_basis: 'test basis', effective_date: '2026-01-01',
+    expiration_date: null, exclusions: null, stacking_rule: null, source_url: 'https://example.test', source_tier: 1, last_updated: '2026-01-01', data_as_of: '2026-01-01',
+    ...extra,
+  } as import('../src/lib/db.js').TariffOverlayRow;
+}
+
+test('steel from a country with no cap: general rate + 50% (hand total 52.5)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', ''), 'VN', null, [overlay('sec232_steel', 50)]).totalPct, 52.5);
+});
+test('steel from a capped country: the Column 1 rate and the 232 duty add up to the 15% cap, not 15% on top (2.5 + 12.5 = 15)', () => {
+  // Proclamation 11032 clause (2)(b): "the sum of the Column 1 Duty Rate and the additional section 232 ad valorem rate ... shall be 15 percent".
+  const r = buildDutyStack(hts('2.5%', ''), 'JP', null, [overlay('sec232_steel', 50), overlay('sec232_metals_country_cap', 15)]);
+  assert.equal(r.totalPct, 15);
+  assert.equal(r.lines.find((l) => l.layer.startsWith('Section 232'))?.rate_pct, 12.5);
+});
+test('capped country, Column 1 rate already 15% or more: the 232 duty is zero (clause (2)(b))', () => {
+  const r = buildDutyStack(hts('16%', ''), 'KR', null, [overlay('sec232_steel', 50), overlay('sec232_metals_country_cap', 15)]);
+  assert.equal(r.totalPct, 16);
+});
+test('capped country with a specific-rate Column 1: the total is withheld, not guessed', () => {
+  assert.equal(buildDutyStack(hts('9.1c/kg', ''), 'JP', null, [overlay('sec232_steel', 50), overlay('sec232_metals_country_cap', 15)]).totalPct, null);
+});
+test('a cap higher than the baseline never raises the duty (steel 50, cap 60: 52.5)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', ''), 'JP', null, [overlay('sec232_steel', 50), overlay('sec232_metals_country_cap', 60)]).totalPct, 52.5);
+});
+test('autos: general + 25% (hand total 27.5 for a 2.5% line)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', ''), 'JP', null, [overlay('sec232_autos', 25)]).totalPct, 27.5);
+});
+test('autos from Canada: Section 338 is excluded by anti-stacking, so 232 alone counts (2.5 + 25)', () => {
+  const r = buildDutyStack(hts('2.5%', ''), 'CA', false, [overlay('sec232_autos', 25), overlay('sec338_canada', 50)]);
+  assert.equal(r.totalPct, 27.5);
+  assert.equal(r.lines.find((l) => l.layer === 'Section 338 (Canada)')?.applies, false);
+});
+test('Section 338 alone: the line is undetermined and the total is withheld, never a full 50% asserted', () => {
+  const r = buildDutyStack(hts('10%', ''), 'CA', false, [overlay('sec338_canada', 50)]);
+  assert.equal(r.totalPct, null);
+  const line = r.lines.find((l) => l.layer === 'Section 338 (Canada)');
+  assert.equal(line?.applies, false);
+  assert.match(line?.reason_if_not_applied ?? '', /Undetermined/);
+});
+test('forced-labor Section 301 adds to the general rate (5 + 10 = 15)', () => {
+  assert.equal(buildDutyStack(hts('5%', ''), 'VN', null, [overlay('sec301_forced_labor', 10)]).totalPct, 15);
+});
+test('a qualifying USMCA good keeps its additional duties (Free special + 25% autos = 25)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', 'Free (S)'), 'MX', true, [overlay('sec232_autos', 25)]).totalPct, 25);
+});
+test('a specific-rate line gives no total even with additional duties', () => {
+  assert.equal(buildDutyStack(hts('9.1c/kg', ''), 'VN', null, [overlay('sec232_steel', 50)]).totalPct, null);
+});
+
+// --- Section 301 forced-labor action (USTR notice, 91 FR, July 28, 2026): exemptions and the combined-duty target ---
+test('301 forced labor: goods already under Section 232 are exempt, so Vietnam steel is general + 50 only (52.5)', () => {
+  const r = buildDutyStack(hts('2.5%', ''), 'VN', null, [overlay('sec232_steel', 50), overlay('sec301_forced_labor', 12.5)]);
+  assert.equal(r.totalPct, 52.5);
+  assert.equal(r.lines.find((l) => l.layer.includes('forced-labor'))?.applies, false);
+});
+test('301 forced labor, EU: the Column 1 rate plus this duty equals 10 (Column 1 2.5 gives 7.5, total 10)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', ''), 'DE', null, [overlay('sec301_forced_labor', 10)]).totalPct, 10);
+});
+test('301 forced labor, EU, Column 1 rate at or above 10: this duty is zero', () => {
+  assert.equal(buildDutyStack(hts('12%', ''), 'FR', null, [overlay('sec301_forced_labor', 10)]).totalPct, 12);
+});
+test('301 forced labor, Japan: the combined target is 12.5 (Column 1 5 gives total 12.5)', () => {
+  assert.equal(buildDutyStack(hts('5%', ''), 'JP', null, [overlay('sec301_forced_labor', 12.5)]).totalPct, 12.5);
+});
+test('301 forced labor, a specific-rate EU line: the total is withheld', () => {
+  assert.equal(buildDutyStack(hts('9.1c/kg', ''), 'DE', null, [overlay('sec301_forced_labor', 10)]).totalPct, null);
+});
+test('301 forced labor, qualifying USMCA goods from Mexico are exempt (Free special, total 0)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', 'Free (S)'), 'MX', true, [overlay('sec301_forced_labor', 10)]).totalPct, 0);
+});
+test('301 forced labor, Mexico with USMCA not determined: the total is withheld', () => {
+  assert.equal(buildDutyStack(hts('2.5%', 'Free (S)'), 'MX', null, [overlay('sec301_forced_labor', 10)]).totalPct, null);
+});
+test('301 forced labor, Mexican goods that do not qualify pay the added 10 (2.5 + 10 = 12.5)', () => {
+  assert.equal(buildDutyStack(hts('2.5%', 'Free (S)'), 'MX', false, [overlay('sec301_forced_labor', 10)]).totalPct, 12.5);
+});
 
 if (failures > 0) {
   console.log(`\n${failures} test(s) failed`);

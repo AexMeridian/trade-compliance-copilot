@@ -82,6 +82,8 @@ export interface MatchScoreResult {
   jaroWinklerScore: number;
   inputHadSuffix: boolean;
   candidateHadSuffix: boolean;
+  /** True when every word of the input is in the candidate and the candidate has more (a name with a middle word or a legal word left out). */
+  contained?: boolean;
 }
 
 const STAGE_A_THRESHOLD = 0.55;
@@ -97,20 +99,31 @@ export function scoreNameMatch(inputRaw: string, candidateRaw: string): MatchSco
   const input = normalizeName(inputRaw);
   const candidate = normalizeName(candidateRaw);
 
+  // A person's middle name, or a word like "Investment", is often left out of the name a user types. When every typed word appears in the
+  // listed name, and one of them is distinctive (5 or more letters), the pair is worth a reviewer's look even though the letter overlap is
+  // low. Scored between 0.6 and 0.8 so it ranks below a close match and never reads as a certain one.
+  const contained =
+    input.tokens.length > 0 &&
+    candidate.tokens.length > input.tokens.length &&
+    input.tokens.every((t) => candidate.tokens.includes(t)) &&
+    input.tokens.some((t) => t.length >= 5);
+  const containedScore = contained ? 0.6 + 0.2 * (input.tokens.length / candidate.tokens.length) : 0;
+
   const tokenSortScore = tokenSortRatio(input.normalized, candidate.normalized);
   if (tokenSortScore < STAGE_A_THRESHOLD) {
     return {
-      score: tokenSortScore * TOKEN_SORT_WEIGHT,
+      score: Math.max(tokenSortScore * TOKEN_SORT_WEIGHT, containedScore),
       tokenSortScore,
       jaroWinklerScore: 0,
       inputHadSuffix: input.hadSuffix,
       candidateHadSuffix: candidate.hadSuffix,
+      ...(contained ? { contained } : {}),
     };
   }
 
   const jaroWinklerScore = jaroWinkler(input.normalized, candidate.normalized);
-  const score = TOKEN_SORT_WEIGHT * tokenSortScore + JARO_WINKLER_WEIGHT * jaroWinklerScore;
-  return { score, tokenSortScore, jaroWinklerScore, inputHadSuffix: input.hadSuffix, candidateHadSuffix: candidate.hadSuffix };
+  const score = Math.max(TOKEN_SORT_WEIGHT * tokenSortScore + JARO_WINKLER_WEIGHT * jaroWinklerScore, containedScore);
+  return { score, tokenSortScore, jaroWinklerScore, inputHadSuffix: input.hadSuffix, candidateHadSuffix: candidate.hadSuffix, ...(contained ? { contained } : {}) };
 }
 
 export interface RankedCandidate<T> {

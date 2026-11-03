@@ -52,11 +52,12 @@ export function buildScreeningTool(candidateRefs: string[]): Anthropic.Tool {
             type: 'object',
             properties: {
               candidate_ref: { type: 'string', enum: candidateRefs },
-              verdict: { type: 'string', enum: ['true_match', 'false_positive', 'inconclusive'] },
+              // The memo and matched fields come before the verdict, so the verdict follows from the evidence written down (see classification.ts).
               matched_fields: { type: 'array', items: { type: 'string' } },
               risk_memo: { type: 'string' },
+              verdict: { type: 'string', enum: ['true_match', 'false_positive', 'inconclusive'] },
             },
-            required: ['candidate_ref', 'verdict', 'matched_fields', 'risk_memo'],
+            required: ['candidate_ref', 'matched_fields', 'risk_memo', 'verdict'],
           },
         },
       },
