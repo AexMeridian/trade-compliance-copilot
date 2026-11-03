@@ -20,6 +20,8 @@ const flag = (name: string, fallback: number) => {
 };
 const limit = flag('--limit', Infinity);
 const runs = flag('--runs', 1);
+// --skip N resumes after a stop: the first N products keep the results already saved in the output file and only the rest are sent to the model.
+const skip = flag('--skip', 0);
 
 interface Item {
   product_description: string;
@@ -30,7 +32,8 @@ const vague: Item[] = ['Stuff for the warehouse', 'Machine parts', 'Samples for 
   product_description: d,
   expected_hs6: null,
 }));
-const items = [...labelled, ...vague].slice(0, limit);
+const allItems = [...labelled, ...vague].slice(0, limit);
+const items = allItems.slice(skip);
 
 async function classify(description: string) {
   const created = (await (await fetch(`${BASE}/api/cases`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ direction: 'import' }) })).json()) as { id: string };
@@ -45,9 +48,10 @@ if (!health?.ok) {
   console.error(`Cannot reach ${BASE}. Start wrangler dev first.`);
   process.exit(1);
 }
-console.log(`${items.length} products x ${runs} run(s) = ${items.length * runs} model calls`);
+console.log(`${items.length} products x ${runs} run(s) = ${items.length * runs} model calls${skip ? ` (resuming after ${skip} saved)` : ''}`);
 
-const rows: { description: string; expected: string | null; runs: { code: string | null; ambiguous: boolean; outcome: string }[] }[] = [];
+type Row = { description: string; expected: string | null; runs: { code: string | null; ambiguous: boolean; outcome: string }[] };
+const rows: Row[] = skip ? (JSON.parse(readFileSync('tests/accuracy/last-classification-run.json', 'utf8')) as Row[]).slice(0, skip) : [];
 let apiErrors = 0;
 for (const it of items) {
   const row = { description: it.product_description, expected: it.expected_hs6, runs: [] as { code: string | null; ambiguous: boolean; outcome: string }[] };

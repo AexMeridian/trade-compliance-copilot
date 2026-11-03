@@ -121,6 +121,25 @@ in all four model tools (classification, origin, export ECCN, screening verdicts
 `tests/tool-order.test.ts` guards the order. Re-tested with 2 more calls: black tea now 0902.30 and the 5 mm coil 7208.37, both correct.
 The other three tools were reordered the same way and have not been run with the model.
 
+### Second full run (2026-11-03, after the numeric-limit rule and the reasoning-first reorder)
+
+106 calls (98 labelled products with the corrected labels, 8 vague descriptions), no errors after one resume: the first attempt stopped
+after 21 products on three connection errors between this machine and the Anthropic API (not billing, not the key), and the runner was
+resumed from the first failed product (`--skip 18`).
+
+| | Run 1 (corrected labels) | Run 2 |
+|---|---|---|
+| Correct | about 99 of 107 | 100 of 106 |
+| Flagged for review (appropriate) | 4 | 5 |
+| Confident wrong | 2 | 1 |
+
+Run to run, 101 of 106 products got the same 6-digit subheading (95.3%). Of the 5 that differed, 2 were the tea and steel-coil fixes
+working, 2 (eyeglass frames, "Machine parts") were flagged ambiguous both times, and 1 is a real instability: uncoated A4 copy paper was
+flagged ambiguous in run 1 and answered with 4802.57 (not flagged) in run 2. The description gives no weight, and the correct line
+(4802.56) depends on sheet size and the other on weight, so the right answer is to flag it. The one remaining confident-wrong result is this
+product. Still open: stronger flagging when the deciding fact is missing. Run 2 used the reordered tools, so it also confirms the
+reasoning-first change did not hurt overall accuracy.
+
 ## 4. Duty rules checked against the Federal Register notices
 
 The three notices behind the additional-duty data were read from the Government Publishing Office's copies of the Federal Register
