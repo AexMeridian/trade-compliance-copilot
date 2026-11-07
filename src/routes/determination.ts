@@ -1,15 +1,16 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
-import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows } from '../lib/db.js';
-import { buildDutyStack, USMCA_COUNTRIES } from '../lib/dutyStack.js';
+import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows, getAllEccn } from '../lib/db.js';
+import { buildDutyStack, splitOverlaysByDate, USMCA_COUNTRIES } from '../lib/dutyStack.js';
+import { computeEntryFees } from '../lib/customsFees.js';
+import { describeAlerts, programsForOverlays, staleness } from '../lib/curatedWatch.js';
+import { curatedBaselines, getPendingAlerts } from '../lib/refresh/curatedWatch.js';
+import { narrateDutyStack } from '../lib/dutyNarration.js';
+import { decideExportLicense } from '../lib/exportLicense.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import { readObject } from '../lib/requestBody.js';
 import {
-  IMPORT_NARRATION_SYSTEM_PROMPT,
-  buildImportNarrationUserContent,
-  buildImportNarrationTool,
-  type ImportNarrationOutput,
   EXPORT_ECCN_SYSTEM_PROMPT,
   buildExportEccnUserContent,
   buildExportEccnTool,
@@ -64,7 +65,8 @@ determinationRoute.post('/:id/determination', async (c) => {
     if (!hts) {
       return c.json({ error: `HTS line ${code} not found in reference data. Cannot compute duty stack.` }, 422);
     }
-    const overlays = await getApplicableOverlays(c.env, code, country || null);
+    const today = new Date().toISOString().slice(0, 10);
+    const { active: overlays, inactive: inactiveOverlays } = splitOverlaysByDate(await getApplicableOverlays(c.env, code, country || null), today);
     await logCaseEvent(c.env, caseId, 'determination', 'candidate_set', { code, country, overlays });
 
     const { lines, totalPct } = buildDutyStack(hts, country, caseFile.origin.qualifies, overlays);
@@ -91,17 +93,16 @@ determinationRoute.post('/:id/determination', async (c) => {
           ? `Declared value of $${declaredValueUsd.toFixed(2)} is at or under the $${DE_MINIMIS_THRESHOLD_USD} Section 321 de minimis threshold (19 CFR 10.151), but this checks only the dollar threshold. Antidumping/countervailing-duty orders, quota merchandise, certain FDA- or other-agency-regulated goods, and recent country-specific executive actions suspending de minimis treatment can still disqualify a shipment under that threshold, and this app does not check any of those. Confirm with a licensed customs broker before relying on duty-free entry.`
           : `Declared value of $${declaredValueUsd.toFixed(2)} exceeds the $${DE_MINIMIS_THRESHOLD_USD} Section 321 de minimis threshold (19 CFR 10.151). Not eligible for de minimis treatment regardless of other factors.`;
 
-    let narration: ImportNarrationOutput;
-    try {
-      narration = await callClaudeTool<ImportNarrationOutput>(c.env, {
-        system: IMPORT_NARRATION_SYSTEM_PROMPT,
-        userContent: buildImportNarrationUserContent(code, country, lines, totalPct),
-        tool: buildImportNarrationTool(),
-      });
-    } catch (err) {
-      if (err instanceof ClaudeGroundingError) return c.json({ error: `Determination narration error: ${err.message}` }, 502);
-      throw err;
-    }
+    const narration = narrateDutyStack(code, country, lines, totalPct);
+
+    const entryFees = computeEntryFees({ valueUsd: declaredValueUsd, date: today, country, usmcaQualifies: caseFile.origin.qualifies });
+
+    // Notices newer than the curated data, and how old that data is: either one stops this case being called clear.
+    const touched = programsForOverlays(overlays.map((o) => o.program), country);
+    const pendingAlerts = await getPendingAlerts(c.env, touched).catch(() => []);
+    const usedAsOf = overlays.map((o) => o.data_as_of).sort()[0];
+    const freshness = usedAsOf ? staleness('tariff overlays', usedAsOf, today) : null;
+    const dataNeedsReview = pendingAlerts.length > 0 || freshness?.level === 'stale';
 
     const hardStop = caseFile.screening.hard_stop_triggered;
     // An indeterminate USMCA qualification only blocks a "clear" verdict when
@@ -119,6 +120,7 @@ determinationRoute.post('/:id/determination', async (c) => {
           china301Unevaluated ||
           (usmcaRelevant && caseFile.origin.qualifies === null) ||
           totalPct === null ||
+          dataNeedsReview ||
           caseFile.screening.highest_severity === 'caution'
         ? 'review_required'
         : 'clear';
@@ -126,6 +128,7 @@ determinationRoute.post('/:id/determination', async (c) => {
     caseFile.determination = {
       status: 'complete',
       direction: 'import',
+      entry_fees: entryFees,
       duty_stack: lines,
       landed_cost_estimate_pct: totalPct,
       declared_value_usd: declaredValueUsd,
@@ -140,7 +143,7 @@ determinationRoute.post('/:id/determination', async (c) => {
       denied_party_override: hardStop,
       reasoning: {
         summary: narration.summary,
-        steps: narration.reasoning_steps,
+        steps: narration.steps,
         cited_sources: lines.filter((l) => l.source).map((l) => l.source!),
         confidence: narration.confidence,
       },
@@ -152,12 +155,23 @@ determinationRoute.post('/:id/determination', async (c) => {
         'Determination: goods of China may be subject to an additional Section 301 duty that this app has no verified data for. The estimated total excludes it. Check the HTS code against the current USTR Section 301 lists (HTSUS Chapter 99) before relying on this figure.'
       );
     }
+    for (const issue of describeAlerts(pendingAlerts)) caseFile.open_issues.push(issue);
+    if (freshness && freshness.level !== 'ok') {
+      caseFile.open_issues.push(
+        `Determination: the Section 232/301/338 figures were last verified on ${freshness.dataAsOf} (${freshness.ageDays} days ago).${freshness.level === 'stale' ? ' That is too old to call this estimate clear.' : ' Confirm they are still current.'}`
+      );
+    }
+    for (const { row, reason } of inactiveOverlays) {
+      caseFile.open_issues.push(`Determination: the ${row.program.replace(/_/g, ' ')} rule for HTS ${row.hts_pattern} ${reason}, so it was not charged. Confirm whether a replacement applies.`);
+    }
+    caseFile.open_issues.push(
+      'Determination: the total covers the HTS rate and the Section 232, 301 and 338 layers loaded in this app. It does not model antidumping or countervailing duty orders, Section 201 safeguards, or any IEEPA- or Section 122-based surcharges. Check current CBP guidance for those before relying on the total.'
+    );
     if (totalPct === null) {
       caseFile.open_issues.push('Determination: one or more duty-stack lines have a non-ad-valorem (specific/compound) rate this app cannot sum automatically. Compute manually.');
     }
 
     await saveCaseFile(c.env, caseFile);
-    await logCaseEvent(c.env, caseId, 'determination', 'claude_response', narration);
     return c.json({ determination: caseFile.determination });
   }
 
@@ -171,9 +185,13 @@ determinationRoute.post('/:id/determination', async (c) => {
     return c.json({ error: 'destination_country is required to run an export determination.' }, 400);
   }
 
-  const eccnCandidates = await searchEccn(c.env, caseFile.classification.product_description);
-  const earCandidates = await getEccnByCode(c.env, 'EAR99');
-  const allCandidates = earCandidates && !eccnCandidates.some((e) => e.eccn === 'EAR99') ? [...eccnCandidates, earCandidates] : eccnCandidates;
+  // The curated ECCN table is small enough to give the model whole; if it ever grows past that, fall back to the text-search shortlist plus EAR99.
+  const wholeTable = await getAllEccn(c.env);
+  let allCandidates = wholeTable ?? (await searchEccn(c.env, caseFile.classification.product_description));
+  if (!wholeTable) {
+    const earCandidates = await getEccnByCode(c.env, 'EAR99');
+    if (earCandidates && !allCandidates.some((e) => e.eccn === 'EAR99')) allCandidates = [...allCandidates, earCandidates];
+  }
   await logCaseEvent(c.env, caseId, 'determination', 'candidate_set', { eccnCandidates: allCandidates });
 
   let eccnOutput: ExportEccnOutput;
@@ -198,51 +216,28 @@ determinationRoute.post('/:id/determination', async (c) => {
   const ungroundedEccn = !eccnOutput.no_match && !selected;
   const reasonsForControl: string[] = selected ? JSON.parse(selected.reasons_for_control || '[]') : [];
 
-  let licenseRequirement: 'NLR' | 'License Required' | 'License Exception May Apply' | 'Insufficient Data';
-  let licenseReasoningNote = '';
   const coverage = country ? await getCountryCoverage(c.env, country) : null;
+  const chartRows = coverage && coverage.status === 'curated' ? await getCountryChartRows(c.env, country) : [];
+  const verifiedReasons = new Set(
+    (await c.env.DB.prepare(`SELECT DISTINCT reason_for_control AS r FROM country_chart`).all<{ r: string }>()).results.map((x) => x.r.replace(/\d+$/, ''))
+  );
+  const decision = decideExportLicense({
+    country,
+    hardStop,
+    coverage,
+    eccn: selected ? { eccn: selected.eccn, reasonsForControl, licenseExceptions: JSON.parse(selected.license_exceptions || '[]') } : null,
+    chartRows,
+    verifiedReasons,
+  });
+  const licenseRequirement = decision.requirement;
+  const licenseReasoningNote = decision.note;
 
-  if (hardStop) {
-    licenseRequirement = 'License Required';
-    licenseReasoningNote =
-      'Overridden by a true match in Module 3 against a denied or blocked-party list (BIS Entity List/Denied Persons List, UN Security Council list, or OFAC SDN), determinative regardless of ECCN. See the screening open issues for which list.';
-  } else if (coverage?.status === 'comprehensive_embargo') {
-    // Checked BEFORE the EAR99 shortcut below: a destination under a
-    // comprehensive embargo (Part 746: Cuba, Iran, North Korea, Syria) is
-    // not "NLR" just because the item is EAR99 -- BIS and/or OFAC licensing
-    // applies to the destination itself, not only to CCL-controlled items.
-    licenseRequirement = 'License Required';
-    licenseReasoningNote = `Destination "${country}" is subject to a comprehensive EAR embargo (${coverage.notes ?? coverage.status}): a license (from BIS and/or OFAC, depending on the destination) is required regardless of ECCN, including EAR99 items. Do not ship without confirming the exact authorization with BIS and OFAC.`;
-  } else if (coverage?.status === 'broad_restriction_746_5' && (!selected || selected.eccn === 'EAR99' || reasonsForControl.length === 0)) {
-    // Russia/Belarus: Part 746 extends licensing to many EAR99 items too, by
-    // HTS code (Supplements 2, 4 and 6 to Part 746) -- a list this app does
-    // not carry, so it cannot honestly answer NLR here.
-    licenseRequirement = 'Insufficient Data';
-    licenseReasoningNote = `Destination "${country}" is subject to near-comprehensive EAR restrictions (${coverage.notes ?? coverage.status}) that reach many EAR99 items by HTS code (Supplements 2, 4 and 6 to 15 CFR Part 746). This app does not carry those lists, so it cannot conclude No License Required. Check them directly.`;
-  } else if (!selected || selected.eccn === 'EAR99' || reasonsForControl.length === 0) {
-    licenseRequirement = 'NLR';
-    licenseReasoningNote = 'EAR99 or no reason-for-control match: No License Required for standard commercial export, subject to standard embargo/denied-party/end-use screening.';
-  } else if (!coverage || coverage.status === 'not_curated') {
-    licenseRequirement = 'Insufficient Data';
-    licenseReasoningNote = `Destination "${country}" is not in this app's curated Commerce Country Chart coverage. Cannot determine license requirement automatically. Consult 15 CFR 738 Supp. 1 directly.`;
-  } else if (coverage.status === 'broad_restriction_746_5') {
-    licenseRequirement = 'License Required';
-    licenseReasoningNote = `Destination "${country}" is subject to a near-comprehensive EAR restriction (${coverage.notes ?? coverage.status}): license required regardless of the specific reason-for-control match.`;
-  } else {
-    const chartRows = await getCountryChartRows(c.env, country);
-    const chartReasonPrefixes = new Set(chartRows.map((r) => r.reason_for_control.replace(/\d+$/, '')));
-    const matchedReason = reasonsForControl.find((r) => chartReasonPrefixes.has(r));
-    if (matchedReason) {
-      const exceptions: string[] = selected ? JSON.parse(selected.license_exceptions || '[]') : [];
-      licenseRequirement = exceptions.length > 0 ? 'License Exception May Apply' : 'License Required';
-      licenseReasoningNote = `Destination "${country}" is marked for reason-for-control "${matchedReason}" on the Commerce Country Chart, matching this ECCN's reasons_for_control. ${
-        exceptions.length > 0 ? `License exceptions that may apply: ${exceptions.join(', ')}. Verify eligibility conditions before relying on this.` : 'No license exception is curated for this ECCN in this app.'
-      }`;
-    } else {
-      licenseRequirement = 'NLR';
-      licenseReasoningNote = `Destination "${country}" has curated Commerce Country Chart coverage, but none of its marked reasons-for-control match this ECCN's reasons_for_control (${reasonsForControl.join(', ')}): No License Required.`;
-    }
-  }
+  const exportAlerts = await getPendingAlerts(c.env, ['export_controls']).catch(() => []);
+  const exportAsOf = (await curatedBaselines(c.env).catch(() => ({}) as Record<string, string>)).export_controls;
+  const exportFreshness = exportAsOf ? staleness('export controls', exportAsOf, new Date().toISOString().slice(0, 10)) : null;
+  // EAR99 here only means "none of the entries this app carries". A product in a strategic field may sit under one it does not.
+  const maybeElsewhere = eccnOutput.possibly_controlled_elsewhere === true && (!selected || selected.eccn === 'EAR99');
+  const exportDataNeedsReview = exportAlerts.length > 0 || exportFreshness?.level === 'stale' || maybeElsewhere;
 
   const verdict: Verdict =
     licenseRequirement === 'License Required' || hardStop
@@ -255,7 +250,8 @@ determinationRoute.post('/:id/determination', async (c) => {
           caseFile.screening.highest_severity === 'caution' ||
           caseFile.classification.ambiguous ||
           eccnOutput.no_match ||
-          ungroundedEccn
+          ungroundedEccn ||
+          exportDataNeedsReview
         ? 'review_required'
         : 'clear';
 
@@ -288,6 +284,17 @@ determinationRoute.post('/:id/determination', async (c) => {
   } else if (ungroundedEccn) {
     caseFile.open_issues.push(
       `Determination: model returned an ECCN (${eccnOutput.selected_eccn}) outside the retrieved candidate set. Discarded and flagged for manual review.`
+    );
+  }
+  for (const issue of describeAlerts(exportAlerts)) caseFile.open_issues.push(issue);
+  if (maybeElsewhere) {
+    caseFile.open_issues.push(
+      'Determination: this product is in a field the Commerce Control List controls, and it did not match any of the few entries this app carries. EAR99 here means only "not one of those entries". Check the full Commerce Control List (15 CFR Part 774) before treating it as uncontrolled.'
+    );
+  }
+  if (exportFreshness && exportFreshness.level !== 'ok') {
+    caseFile.open_issues.push(
+      `Determination: the ECCN and Country Chart data were last verified on ${exportFreshness.dataAsOf} (${exportFreshness.ageDays} days ago).${exportFreshness.level === 'stale' ? ' That is too old to call this determination clear.' : ' Confirm it is still current.'}`
     );
   }
   if (licenseRequirement === 'Insufficient Data') {

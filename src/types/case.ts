@@ -142,6 +142,8 @@ export interface DeterminationResult {
   // always carries that caveat so the boolean is never read as a final answer.
   de_minimis_eligible: boolean | null;
   de_minimis_note: string | null;
+  // CBP entry fees charged on top of duty (MPF, HMF); null on an export. An amount of null means it could not be computed (see basis).
+  entry_fees?: { label: string; amount_usd: number | null; basis: string }[] | null;
   // export branch: destination is a distinct concept from origin.final_assembly_country
   // (an exported good's origin/assembly country and the country it ships TO are not the
   // same field), so it's collected at determination time rather than reusing Module 2's data.

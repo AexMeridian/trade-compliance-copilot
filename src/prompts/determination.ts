@@ -64,6 +64,8 @@ export const EXPORT_ECCN_SYSTEM_PROMPT = `You are an export compliance analyst s
 
 You will be given the product's description and HTS/Schedule-B classification, plus a list of CANDIDATE ECCN entries retrieved from the reference database. You MUST select from this candidate list only. If the product does not appear to match any dual-use/controlled category in the candidates (which is the common, realistic outcome for most consumer/commercial goods), select the EAR99 candidate if present, or set no_match=true if EAR99 was not even retrieved as a candidate.
 
+The candidate list is short: it holds only a handful of Commerce Control List entries, not the whole list. A product that is plainly ordinary (clothing, furniture, food, kitchenware, paper goods) is EAR99. But a product in a strategic field (lasers, inertial or navigation equipment, night vision, machine tools, propellants and oxidizers, aerospace or satellite parts, high-end sensors, semiconductors, chemicals with weapons uses, encryption) may be controlled by an entry that is not in the list. For those, set possibly_controlled_elsewhere=true even if you select EAR99, because EAR99 here would only mean "not one of the listed entries".
+
 Do not infer reasons-for-control yourself -- use exactly the reasons_for_control already on the candidate you select; you are only choosing which candidate best matches the product.`;
 
 export function buildExportEccnUserContent(productDescription: string, classifiedCode: string, candidates: EccnCandidateRow[]): string {
@@ -84,17 +86,22 @@ export function buildExportEccnTool(eccnCodes: string[]): Anthropic.Tool {
       type: 'object',
       properties: {
         reasoning_steps: { type: 'array', items: { type: 'string' }, description: 'Write these first; the ECCN you select must be the one they conclude with.' },
+        possibly_controlled_elsewhere: {
+          type: 'boolean',
+          description: 'True if the product is in a strategic field that the Commerce Control List controls under an entry that may not be in the candidate list. Decide this before selecting.',
+        },
         selected_eccn: { type: 'string', enum: codes },
         no_match: { type: 'boolean', description: 'True if none of the candidates plausibly fit and EAR99 was not among them.' },
         confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
       },
-      required: ['reasoning_steps', 'selected_eccn', 'no_match', 'confidence'],
+      required: ['reasoning_steps', 'possibly_controlled_elsewhere', 'selected_eccn', 'no_match', 'confidence'],
     },
   };
 }
 
 export interface ExportEccnOutput {
   selected_eccn: string;
+  possibly_controlled_elsewhere: boolean;
   no_match: boolean;
   reasoning_steps: string[];
   confidence: 'high' | 'medium' | 'low';

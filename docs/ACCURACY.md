@@ -172,10 +172,51 @@ Still unverified, because the annexes are images:
 - No IEEPA, Section 122, MPF/HMF, antidumping or countervailing duty, or Chapter 99 logic exists; Section 301 on China is not evaluated.
   The case verdict is already forced to review for China-origin goods.
 
-## 5. Not yet measured (needs approval for model calls, or labelled data)
+## 5. Origin, ECCN and screening: model-scored runs (2026-11-03/04)
 
-- Classification accuracy on a labelled product set (retrieval recall can be measured without the model).
-- Origin and USMCA verdicts, the model's screening verdicts, ECCN selection, and the export license table.
+Harness: `tests/accuracy/module-model.ts` (`--suite origin|eccn|screening`), labelled sets in `origin-set.ts` and `eccn-set.ts`; screening
+parties are drawn from the loaded lists at a fixed stride plus 26 ordinary names. **The first pass was cut short** (the Anthropic account ran out
+of credit during the ECCN run, and an overlapping launch of mine doubled some calls); the second pass below completed it. First-pass results:
+
+- **Origin (40 scenarios, two complete runs).** Run A: 35 correct, 1 confident wrong, 4 abstained. Run B: 33 correct, 0 confident wrong, 7
+  abstained. The confident wrong: U.S. parts finished in China came back "qualifies". Fixed by code: final assembly outside the U.S., Canada
+  and Mexico now returns "does not qualify" without a model call. The abstentions (for example a laptop whose foreign inputs are all in other
+  headings) are safe but lose answers a person could give; the headings are in the component descriptions. A fix (compute the originating
+  share in code and hand it to the model) is not made because it cannot be measured without more credit.
+- **ECCN (17 to 20 of 34 products before credit ran out).** All 14 covered products were selected correctly (3A001, 4A003, 5A002, 5D002,
+  5A992, 1C350, 6A003), as were the ordinary goods reached (EAR99). **Not measured:** the 6 strategic products (lasers, inertial navigation,
+  propellant oxidizer, CNC, night vision, satellite parts) and the 4 edge cases. Those are the test of the new "possibly controlled elsewhere"
+  flag, and it is unproven.
+- **Found by reading the ECCN results (free):** 1C350, a chemical-weapons precursor, to Germany came out "No License Required, clear". The
+  chart data marks only the National Security columns for the six allies, so every other reason was treated as "not marked". The Country
+  Chart marks CB Column 1 for most countries, Germany included. Fixed: a reason outside the verified columns (NS, plus AT) now gives
+  "Insufficient Data", so an ECCN controlled for CB, NP, MT or RS to an ally is flagged unless an NS match already decides it.
+- **Second pass after credit was added (2026-11-06).**
+  - **ECCN, the 10 products not reached before:** 10 of 10 correct (6 strategic products flagged, never "EAR99, clear"; 4 edge cases within the accepted answers). Combined with the first pass, all 34 products are correct; the "possibly controlled elsewhere" flag worked on every strategic product.
+  - **Screening, 50 parties:** all 24 listed parties (SDN companies, perturbed spellings, SDN individuals, Entity List, UN, UK) came back as a confirmed true match; none missed. Of 26 ordinary names, 22 were clean, 4 inconclusive (flagged for review), 0 false true matches. Individuals were matched on name alone because the screen takes no date of birth.
+  - **Origin, 40 scenarios, after fixing a bug in my own assembly-country rule (it treated the U.S. as outside USMCA; found by this run):** 36 correct, 0 confident wrong, 0 missed, 4 abstained. The abstentions are all change-of-heading cases (handset and power tool with a same-heading foreign part, a machine just under 60%, a television), where "insufficient" is the safe answer.
+
+Changes made without model measurement, each covered by a free test: model sees the whole ECCN table (8 entries) instead of a text-search
+shortlist; the "possibly controlled elsewhere" field; the CB-column guard; non-USMCA assembly rule; import duty summary written by code
+(removes one model call per import case); 14-day cache of identical model answers; the regional-value arithmetic is done in code
+(`src/lib/originMath.ts`) when every component has a value and the shares add to 100, which settles 12 of the 40 labelled origin scenarios
+with no model call, each agreeing with its label (`tests/origin-math.test.ts`). Rules with a tariff-shift alternative are never failed on value alone.
+
+## 6. Keeping data current without model calls
+
+See README ("What is not auto-applied") and docs/OPERATIONS.md. Dry run of the change watcher on the stored notices since the curated data's
+2026-09-22 date found 5 real notices (two USMCA, one Section 301 exclusion amendment, two Section 232: polysilicon under Proclamation 11052
+and specialty pharmaceuticals). Until someone reviews them, cases touching those programs show "review required".
+
+## 7. Still open
+
+- Measured model cost (96 calls, 2026-11-06): about $0.02 per call (origin 1,666 in / 1,154 out tokens, screening party 1,849 / 820, ECCN 1,874 / 648), $1.88 in total.
+- Dairy row date: the row says 2026-08-22 and its own note attributes it to a three-day suspension (Proclamation 11056) of the 2026-08-19 date
+  in the proclamation. I did not change it and did not re-read Proclamation 11056.
+- The MPF dollar limits (fiscal years 2026 and 2027) come from carrier and broker notices; the CBP notice itself could not be fetched.
+- Annex product lists (Section 232 derivatives, Section 301 Annexes I and II, Section 338 chapters 04, 22 and 87) are images and unread.
+  Antidumping and countervailing duties, IEEPA and Section 122 measures, and Section 201 are not modelled; every import case now says so.
+- Country Chart: only NS columns are verified for the six allies; fill the other columns from a source that can be read.
 - End-to-end cases checked by a licensed customs broker.
 
 Results here show agreement with public sources, not legal sign-off.

@@ -11,4 +11,4 @@ scripts/seed-sql/
 *.tsbuildinfo
 
 # Local accuracy-run output
-tests/accuracy/last-classification-run.json
+tests/accuracy/last-*-run*.json

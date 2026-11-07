@@ -36,6 +36,7 @@ import { refreshOpenAlex } from './lib/refresh/openalex.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
+import { refreshCuratedWatch } from './lib/refresh/curatedWatch.js';
 import { logRefresh } from './lib/refresh/log.js';
 import { purgeExpiredCases } from './lib/caseStore.js';
 import type { RefreshResult } from './lib/refresh/types.js';
@@ -67,6 +68,8 @@ const DAILY_JOBS: RefreshJob[] = [
   // Markets/news also refresh on request when stale (lib/pulse/refreshLazy.ts) -- this
   // just guarantees a refresh even on a day nobody opens the page.
   { source: 'pulse', run: runPulseSync },
+  // Right after the notices are stored: flags any notice about a hand-verified program that is newer than that program's data.
+  { source: 'curated_watch', run: refreshCuratedWatch },
   { source: 'pulse_fx', run: refreshFx },
   { source: 'pulse_quotes', run: (env) => (env.MARKET_QUOTES === 'off' ? Promise.resolve({ source: 'pulse_quotes', rows: 0 }) : refreshQuotes(env)) },
   { source: 'pulse_news', run: refreshNews },
@@ -80,6 +83,7 @@ const DAILY_JOBS: RefreshJob[] = [
     run: async (env) => {
       // Also trims the refresh log (about 25 rows a day) to the last 90 days, so it cannot grow without end.
       await env.DB.prepare(`DELETE FROM data_refresh_log WHERE finished_at < date('now', '-90 days')`).run().catch(() => undefined);
+      await env.DB.prepare(`DELETE FROM model_cache WHERE created_at < date('now', '-14 days')`).run().catch(() => undefined);
       return { source: 'case_expiry', rows: await purgeExpiredCases(env) };
     },
   },

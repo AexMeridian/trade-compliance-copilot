@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
+import { curatedBaselines } from '../../lib/refresh/curatedWatch.js';
+import { PROGRAM_LABEL, staleness, type CuratedProgram } from '../../lib/curatedWatch.js';
 
 // Public facts about the data the site is built on, used by the Methodology page and by the
 // uptime monitor. Two read-only endpoints:
@@ -39,8 +41,17 @@ statusRoute.get('/data-status', async (c) => {
       lastError: err && (!success || err.last_error > success) ? publicError(err.error_message) : null,
     };
   });
+  // How current each hand-verified table is, and how many newer notices are waiting for review. Failure here must not hide the sources.
+  const today = new Date().toISOString().slice(0, 10);
+  const curated = await curatedBaselines(c.env)
+    .then((b) => Object.entries(b).map(([program, asOf]) => ({ ...staleness(PROGRAM_LABEL[program as CuratedProgram] ?? program, asOf as string, today) })))
+    .catch(() => []);
+  const pending = await c.env.DB.prepare(`SELECT program, COUNT(*) AS n FROM curated_change_alerts WHERE status = 'pending' GROUP BY program`)
+    .all<{ program: string; n: number }>()
+    .then((r) => r.results)
+    .catch(() => []);
   c.header('Cache-Control', 'public, max-age=300');
-  return c.json({ asOf: new Date().toISOString(), sources });
+  return c.json({ asOf: new Date().toISOString(), sources, curated, pendingNotices: pending });
 });
 
 // Counted once per six hours per data centre; the tables change at most weekly.

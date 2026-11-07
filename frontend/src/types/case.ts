@@ -120,6 +120,7 @@ export interface DeterminationResult {
   landed_cost_usd: number | null;
   de_minimis_eligible: boolean | null;
   de_minimis_note: string | null;
+  entry_fees?: { label: string; amount_usd: number | null; basis: string }[] | null;
   destination_country: string | null;
   eccn: string | null;
   reasons_for_control: string[] | null;

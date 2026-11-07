@@ -119,6 +119,24 @@ and each country page scanned about 51,000 sanctions rows. Changes made:
 Watch it: Cloudflare dashboard > Storage & Databases > D1 > the database > Metrics ("Rows read"). Set a usage notification at
 about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a month) includes 25 billion rows read.
 
+## Keeping the calculator current (owner routine)
+
+Nothing here costs model calls. The site does the detecting; you do the checking.
+
+- **What happens by itself.** Daily at 05:00 UTC the Federal Register feed is synced and the change watcher compares each new notice to the
+  curated tables. Weekly, HTS, Schedule B and the four sanctions lists reload (only when the source file changed).
+- **What you will see.** A case that touches Section 232/301/338, USMCA, export controls or CBP fees lists the newer notices under its
+  open issues and shows "review required". `/api/pulse/data-status` shows `pendingNotices` and the age of each curated table.
+- **What to do when notices are pending.** Read each notice (the link is in the case). If it changes a rate, scope, date or rule:
+  edit the curated row in a new migration, verify it against the notice, and set its `data_as_of` to today. That clears every pending
+  alert for the program dated on or before that day. If it changes nothing the calculator models, dismiss it:
+  `npx wrangler d1 execute trade-compliance-db --remote --command "UPDATE curated_change_alerts SET status='dismissed', note='why' WHERE document_number='2026-12345' AND program='sec232'"`
+- **See what is pending:** `npx wrangler d1 execute trade-compliance-db --remote --command "SELECT program, publication_date, title FROM curated_change_alerts WHERE status='pending' ORDER BY publication_date DESC"`
+- **Every October** CBP changes the MPF minimum and maximum. A notice titled "Customs User Fees" raises an alert; update `FEE_SCHEDULE` and
+  `FEE_DATA_AS_OF` in `src/lib/customsFees.ts` from the CBP notice (the current dollar figures were taken from carrier and broker
+  notices, not the CBP notice, so confirm them when you next open that file). Past 2027-09-30 the app gives no MPF dollar figure.
+- **Model spend.** A repeated identical question is served from `model_cache` for 14 days. The accuracy scripts need `--var MODEL_CACHE:off`.
+
 ## Deploys and schedule
 
 - The site deploys from Cloudflare Workers Builds on every push to `main`. `frontend/dist` is not committed, so the Workers Builds

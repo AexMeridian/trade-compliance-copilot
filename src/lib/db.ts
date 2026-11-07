@@ -478,6 +478,13 @@ export async function searchEccn(env: Env, query: string, limit = 15): Promise<E
   return ids.map((id) => byId.get(id)).filter((r): r is EccnCandidateRow => !!r);
 }
 
+/** Every curated ECCN. The table is small, so the model sees all of it instead of a text-search shortlist that can miss the right entry
+ * (a description saying "encryption" does not share a word with an entry saying "cryptography"). Null when the table is too large to send whole. */
+export async function getAllEccn(env: Env, maxEntries = 40): Promise<EccnCandidateRow[] | null> {
+  const { results } = await env.DB.prepare(`SELECT *, 0 as score FROM eccn_entries ORDER BY eccn LIMIT ?1`).bind(maxEntries + 1).all<EccnCandidateRow>();
+  return results.length > maxEntries ? null : results;
+}
+
 export async function getEccnByCode(env: Env, code: string): Promise<EccnCandidateRow | null> {
   const row = await env.DB.prepare(`SELECT *, 0 as score FROM eccn_entries WHERE eccn = ?1`)
     .bind(code)

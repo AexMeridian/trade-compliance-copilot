@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { findUsmcaRule } from '../lib/db.js';
+import { precheckRvc } from '../lib/originMath.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import { readObject } from '../lib/requestBody.js';
 import { ORIGIN_SYSTEM_PROMPT, buildOriginUserContent, buildOriginTool, type OriginToolOutput } from '../prompts/origin.js';
@@ -55,6 +56,53 @@ originRoute.post('/:id/origin', async (c) => {
     caseFile.open_issues.push(
       `Origin: heading ${code} has no curated USMCA rule in this app. Qualification is indeterminate. Consult General Note 11 (HTSUS) directly.`
     );
+    await saveCaseFile(c.env, caseFile);
+    return c.json({ origin: caseFile.origin });
+  }
+
+  // A good must be produced in the USMCA countries to originate there, whatever its parts. Settled by code, so it never reaches the model
+  // (the model once answered "qualifies" for U.S. parts finished in China).
+  // The three parties. (USMCA_COUNTRIES in dutyStack.ts lists only Canada and Mexico, the origins that matter for U.S. imports.)
+  if (!['US', 'CA', 'MX'].includes(finalAssemblyCountry)) {
+    caseFile.origin = {
+      status: 'complete',
+      applicable_rule: { rule_id: rule.id, rule_type: rule.rule_type, citation: rule.citation },
+      components: body.components,
+      final_assembly_country: finalAssemblyCountry,
+      tariff_shift_met: null,
+      rvc_calculated_pct: null,
+      rvc_threshold_pct: rule.rvc_threshold_pct,
+      qualifies: false,
+      reasoning: {
+        summary: `Does not qualify for USMCA preferential treatment: final production is in ${finalAssemblyCountry}, outside the United States, Canada and Mexico.`,
+        steps: [`USMCA origin under ${rule.citation} requires the good to be produced in the territory of the parties. Final assembly is in ${finalAssemblyCountry}, so the sourcing of the parts cannot change the result.`],
+        cited_sources: [{ source_url: rule.source_url, source_tier: rule.source_tier as 1 | 2 | 3, last_updated: rule.last_updated }],
+        confidence: 'high',
+      },
+    };
+    await saveCaseFile(c.env, caseFile);
+    return c.json({ origin: caseFile.origin });
+  }
+
+  const arithmetic = precheckRvc(rule, body.components);
+  if (arithmetic) {
+    caseFile.origin = {
+      status: 'complete',
+      applicable_rule: { rule_id: rule.id, rule_type: rule.rule_type, citation: rule.citation },
+      components: body.components,
+      final_assembly_country: finalAssemblyCountry,
+      tariff_shift_met: null,
+      rvc_calculated_pct: arithmetic.rvc_pct,
+      rvc_threshold_pct: rule.rvc_threshold_pct,
+      qualifies: arithmetic.qualifies,
+      reasoning: {
+        summary: arithmetic.summary,
+        steps: arithmetic.steps,
+        cited_sources: [{ source_url: rule.source_url, source_tier: rule.source_tier as 1 | 2 | 3, last_updated: rule.last_updated }],
+        confidence: 'medium',
+      },
+    };
+    if (rule.notes) caseFile.open_issues.push(`Origin: rule notes this app does not numerically model, to check before relying on this: ${rule.notes.slice(0, 400)}`);
     await saveCaseFile(c.env, caseFile);
     return c.json({ origin: caseFile.origin });
   }

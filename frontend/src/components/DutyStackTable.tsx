@@ -18,6 +18,7 @@ export function DutyStackTable({
   declaredValueUsd,
   landedCostUsd,
   deMinimisNote,
+  entryFees,
 }: {
   lines: DutyStackLine[];
   totalPct: number | null;
@@ -25,6 +26,7 @@ export function DutyStackTable({
   declaredValueUsd?: number | null;
   landedCostUsd?: number | null;
   deMinimisNote?: string | null;
+  entryFees?: { label: string; amount_usd: number | null; basis: string }[] | null;
 }) {
   const revision = lines[0]?.effective_date ?? null;
   const dutyUsd = declaredValueUsd != null && landedCostUsd != null ? Math.round((landedCostUsd - declaredValueUsd) * 100) / 100 : null;
@@ -82,6 +84,19 @@ export function DutyStackTable({
         ))}
       </ul>
 
+      {entryFees && entryFees.length > 0 && (
+        <ul className="mt-3 divide-y divide-hairline border-y border-hairline">
+          {entryFees.map((fee) => (
+            <li key={fee.label} className="grid grid-cols-[1fr_auto] gap-x-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink">{fee.label}</p>
+                <p className="mt-0.5 max-w-prose text-[13px] leading-snug text-ink-muted">{fee.basis}</p>
+              </div>
+              <p className="text-right text-lg font-semibold tabular-nums text-ink">{fee.amount_usd !== null ? usd(fee.amount_usd) : 'n/a'}</p>
+            </li>
+          ))}
+        </ul>
+      )}
       {revision && <p className="mt-2 text-xs text-ink-faint">Checked against {revision}. HTS revisions change; re-run this case if it's been a while.</p>}
       {deMinimisNote && <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-faint">{deMinimisNote}</p>}
       {/* Gated on htsCode (only passed for a real case's own result, not the

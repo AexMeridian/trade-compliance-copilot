@@ -263,6 +263,7 @@ export function Report() {
               declaredValueUsd={det.declared_value_usd}
               landedCostUsd={det.landed_cost_usd}
               deMinimisNote={det.de_minimis_note}
+              entryFees={det.entry_fees}
             />
           ) : (
             <LicensePath determination={det} />

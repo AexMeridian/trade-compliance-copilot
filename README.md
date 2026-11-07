@@ -374,17 +374,32 @@ the account is very likely on a tier whose CPU budget doesn't fit that job;
 there's no in-Worker fix for that beyond upgrading the plan or falling back
 to the manual script below.
 
-**What's deliberately NOT auto-refreshed:** the curated legal content —
-`usmca_rules`, `tariff_overlays` (Section 232/301/338), `country_chart`, and
-`eccn_entries`. Every row in those tables was hand-verified against a primary
-source (a Federal Register notice, a CBP fact sheet, etc.) before being
-encoded — that verification step is exactly what makes this app's "grounded,
-not fabricated" claim credible. Auto-applying an update to a duty rate or a
-license determination from an unverified feed would quietly undermine that
-guarantee, so these stay manually curated. Extending automation to this tier
-should mean detecting new relevant Federal Register / USTR / BIS notices and
-flagging them for human review, never auto-applying a change — see `## Known
-limitations` above; that piece isn't built in this pass.
+**What is not auto-applied, and how it stays current anyway.** The curated legal
+content (`usmca_rules`, `tariff_overlays` for Section 232/301/338, `country_chart`,
+`eccn_entries`, and the CBP user-fee schedule in `src/lib/customsFees.ts`) was
+hand-verified against a primary source before being encoded, and that
+verification is what makes the "grounded, not fabricated" claim credible, so a
+feed never rewrites a rate or a license rule. Three things keep it honest without
+any model calls:
+
+1. **Change watcher** (`src/lib/refresh/curatedWatch.ts`, daily, after the Federal
+   Register sync). A notice about one of those programs that is dated after the
+   program's `data_as_of` becomes a row in `curated_change_alerts`. Any case the
+   program touches then lists the notice as an open issue and cannot be called
+   clear. An alert clears itself when the data is re-verified (its `data_as_of`
+   moves past the notice) or by hand: see docs/OPERATIONS.md.
+2. **Age check.** Curated data older than 45 days adds a warning to the case; older
+   than 90 days it is no longer called clear. `/api/pulse/data-status` reports the
+   age of each table and the count of pending notices.
+3. **Dates are enforced.** An overlay row that has expired or not yet started is
+   not charged and is reported on the case. The MPF limits are looked up by fiscal
+   year and give no dollar figure once the schedule runs out.
+
+What does refresh by itself: HTS and Schedule B (weekly), OFAC SDN, BIS CSL, UN and
+UK sanctions lists (weekly, written only when the upstream file changed), the
+Federal Register feed (daily). Identical model questions are answered from a
+14-day cache (`model_cache`) and the import duty summary is written by code, so a
+repeat or a plain import case costs no model call.
 
 **Manual fallback.** `scripts/refresh_data.md` documents the original,
 Node-script-based manual refresh (`npm run seed:hts`, etc.) — useful for

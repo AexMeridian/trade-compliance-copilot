@@ -356,3 +356,18 @@ export function buildDutyStack(
 
   return { lines, totalPct: unparseable ? null : Math.round(total * 100) / 100 };
 }
+
+/**
+ * Splits overlay rows by whether they are in force on `today`. A row that has expired or has not started yet must not be charged, and the
+ * caller reports it so the estimate does not silently drop a program. Dates are YYYY-MM-DD; an open-ended row has no expiration_date.
+ */
+export function splitOverlaysByDate(overlays: TariffOverlayRow[], today: string): { active: TariffOverlayRow[]; inactive: { row: TariffOverlayRow; reason: string }[] } {
+  const active: TariffOverlayRow[] = [];
+  const inactive: { row: TariffOverlayRow; reason: string }[] = [];
+  for (const row of overlays) {
+    if (row.effective_date > today) inactive.push({ row, reason: `takes effect ${row.effective_date}` });
+    else if (row.expiration_date && row.expiration_date < today) inactive.push({ row, reason: `expired ${row.expiration_date}` });
+    else active.push(row);
+  }
+  return { active, inactive };
+}

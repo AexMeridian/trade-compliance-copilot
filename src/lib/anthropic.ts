@@ -71,6 +71,11 @@ export async function callClaudeTool<T>(
     maxTokens?: number;
   }
 ): Promise<T> {
+  const cacheKey = env.MODEL_CACHE === 'off' ? null : await modelCacheKey(opts);
+  if (cacheKey) {
+    const hit = await readModelCache<T>(env, cacheKey);
+    if (hit !== null) return hit;
+  }
   await claimClaudeCall(env);
   const client = getClient(env);
   const response = await client.messages.create({
@@ -94,5 +99,39 @@ export async function callClaudeTool<T>(
       `Claude did not return a tool_use block (stop_reason: ${response.stop_reason}).`
     );
   }
+  // Token counts per call, so spend can be added up from the logs instead of estimated.
+  console.log(`claude-usage ${opts.tool.name} in=${response.usage.input_tokens} out=${response.usage.output_tokens}`);
+  if (cacheKey) await writeModelCache(env, cacheKey, opts.tool.name, toolUse.input);
   return toolUse.input as T;
+}
+
+export const MODEL_CACHE_DAYS = 14;
+
+async function modelCacheKey(opts: { system: string; userContent: string; tool: Anthropic.Tool }): Promise<string> {
+  const text = JSON.stringify([CLAUDE_MODEL, opts.system, opts.userContent, opts.tool]);
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// The cache only ever saves money, so any failure reading or writing it is ignored and the call goes ahead as normal.
+async function readModelCache<T>(env: Env, key: string): Promise<T | null> {
+  try {
+    const cutoff = new Date(Date.now() - MODEL_CACHE_DAYS * 86_400_000).toISOString();
+    const row = await env.DB.prepare(`SELECT output FROM model_cache WHERE cache_key = ?1 AND created_at > ?2`).bind(key, cutoff).first<{ output: string }>();
+    if (!row) return null;
+    await env.DB.prepare(`UPDATE model_cache SET hits = hits + 1 WHERE cache_key = ?1`).bind(key).run();
+    return JSON.parse(row.output) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function writeModelCache(env: Env, key: string, tool: string, output: unknown): Promise<void> {
+  try {
+    await env.DB.prepare(`INSERT OR REPLACE INTO model_cache (cache_key, tool_name, output, created_at, hits) VALUES (?1, ?2, ?3, ?4, 0)`)
+      .bind(key, tool, JSON.stringify(output), new Date().toISOString())
+      .run();
+  } catch {
+    /* ignore */
+  }
 }
