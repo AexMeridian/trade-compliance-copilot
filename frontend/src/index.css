@@ -33,13 +33,16 @@
   --font-display: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
 
   --color-bar: #0a0a0b;
-  --color-paper: #f5f5f6;
+  --color-paper: #f1f4fb; /* a cool, barely-blue white: the page is still white, with no dead grey */
   --color-paper-raised: #ffffff;
-  --color-ink: #0b0b0c;
-  --color-ink-muted: #47474e;
-  --color-ink-faint: #62626b;
-  --color-hairline: #e4e4e7;
-  --color-hairline-strong: #8a8a94;
+  --color-ink: #0b0d14;
+  --color-ink-muted: #3d4863;
+  --color-ink-faint: #56627e;
+  --color-hairline: #d9e0ef;
+  --color-hairline-strong: #7d89a6;
+  --color-accent-2: #d69e2e; /* warm gold, a second accent for key figures and markers: fills only */
+  --color-accent-2-ink: #8a5a0a; /* the gold dark enough for text on white (AA) */
+  --color-accent-2-soft: #fbf3df;
   --color-mark: #26324d; /* the logo's colour: deep slate navy on light, platinum on dark */
   --color-accent: #4338ca;
   --color-accent-soft: #eeefff;
@@ -82,7 +85,7 @@
      globe redrawn in black lines on white reads as a broken inversion, not a
      deliberate second treatment). These are the light/day values; the dark
      override block below restores today's exact black-hero look unchanged. */
-  --color-hero-bg: #f4f6f9;
+  --color-hero-bg: #eaf0fb;
   --color-hero-ink: #0b1220;
   --color-hero-ink-muted: #45526b;
   --color-hero-ink-faint: #5d697e;
@@ -93,9 +96,10 @@
   --color-hero-btn-bg: #0b1220;
   --color-hero-btn-text: #eef2f8;
   --color-hero-btn-hover: #1b2a4a;
-  --hero-mask-rgb: 244, 246, 249; /* matches --color-hero-bg, for the headline's radial fade */
-  --hero-glow-rgb: 100, 116, 139; /* cool slate: a quiet daylight atmosphere behind the globe */
-  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.07) 0%, rgba(139, 92, 246, 0) 52%); /* a violet bloom low right, so daylight isn't one flat blue */
+  --hero-mask-rgb: 234, 240, 251; /* matches --color-hero-bg, for the headline's radial fade */
+  --hero-glow-rgb: 67, 56, 202; /* the site indigo: a daylight atmosphere behind the globe */
+  /* a violet bloom low right and a gold one low left, so daylight isn't one flat blue */
+  --hero-halo-2: radial-gradient(circle at 80% 84%, rgba(139, 92, 246, 0.14) 0%, rgba(139, 92, 246, 0) 52%), radial-gradient(circle at 14% 80%, rgba(214, 158, 46, 0.14) 0%, rgba(214, 158, 46, 0) 46%);
   --globe-shadow-alpha: 0.22;
   --hero-glow-alpha: 0.14; /* softer in daylight; the dark override brightens it to read as a monitor glow */
 
@@ -141,13 +145,16 @@
   resolves system preference into an explicit attribute before CSS runs.
 */
 :root[data-theme='dark'] {
-  --color-paper: #121214;
-  --color-paper-raised: #1b1b1f;
-  --color-ink: #f2f2f3;
-  --color-ink-muted: #b4b4bc;
-  --color-ink-faint: #8a8a94;
-  --color-hairline: #2a2a2f;
-  --color-hairline-strong: #45454d;
+  --color-paper: #0d1018;
+  --color-paper-raised: #161b27;
+  --color-ink: #f2f4f8;
+  --color-ink-muted: #b6bed2;
+  --color-ink-faint: #8b95ad;
+  --color-hairline: #252c3d;
+  --color-hairline-strong: #475069;
+  --color-accent-2: #f0b429;
+  --color-accent-2-ink: #f5c453;
+  --color-accent-2-soft: #2e2410;
   --color-mark: #cdd6e4;
   --color-accent: #818cf8;
   --color-accent-soft: #1e1b4b;
@@ -313,12 +320,24 @@
      accent on hover. The shadow is two low layers so cards sit on the page without looking like floating buttons. */
   .card {
     background: var(--color-paper-raised);
-    border: 1px solid var(--color-hairline);
+    border: 1px solid color-mix(in srgb, var(--glow, var(--color-accent)) 14%, var(--color-hairline));
     border-radius: 12px;
     box-shadow:
       0 1px 2px color-mix(in srgb, var(--color-ink) 5%, transparent),
-      0 10px 24px -16px color-mix(in srgb, var(--color-ink) 16%, transparent);
+      0 12px 28px -16px color-mix(in srgb, var(--glow, var(--color-accent)) 30%, transparent);
     transition: border-color 0.15s ease;
+  }
+  /* A featured card: a thin gradient edge across the top in the page accent, fading to the second accent. */
+  .card-accent {
+    position: relative;
+  }
+  .card-accent::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+    background: linear-gradient(90deg, var(--glow, var(--color-accent)), var(--color-accent-2));
   }
   .card:hover {
     border-color: color-mix(in srgb, var(--glow, var(--color-accent)) 38%, var(--color-hairline));
@@ -344,14 +363,18 @@
     top: 0;
     left: 50%;
     width: 100vw;
-    height: 640px;
+    height: 1100px;
     transform: translateX(-50%);
     z-index: -1;
     pointer-events: none;
-    background-image: radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--glow) 9%, transparent), transparent 72%);
+    background-image:
+      radial-gradient(ellipse 70% 55% at 50% 0%, color-mix(in srgb, var(--glow) 17%, transparent), transparent 72%),
+      radial-gradient(ellipse 45% 40% at 92% 38%, color-mix(in srgb, var(--color-accent-2) 11%, transparent), transparent 70%);
   }
   :root[data-theme='dark'] .page-glow::before {
-    background-image: radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--glow) 13%, transparent), transparent 72%);
+    background-image:
+      radial-gradient(ellipse 70% 55% at 50% 0%, color-mix(in srgb, var(--glow) 22%, transparent), transparent 72%),
+      radial-gradient(ellipse 45% 40% at 92% 38%, color-mix(in srgb, var(--color-accent-2) 9%, transparent), transparent 70%);
   }
 
   /* The footer's edge: a hairline that fades in from the sides, in place of a plain rule. */
@@ -373,6 +396,8 @@
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white no-underline hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
+    background-image: linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, #0e7490));
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--color-accent) 70%, transparent);
   }
 
   /* On the hero -- see --color-hero-* above for why this isn't .btn/.btn-primary. */

@@ -116,7 +116,7 @@ export default function App() {
           into the hero below -- both use bg-bar, so without a seam they were
           one indistinguishable black area. no-print: a printed case report
           (Report.tsx) has its own print-only header, not this site chrome. */}
-      <header className="no-print sticky top-0 z-10 border-b border-hairline bg-paper-raised/90 text-ink backdrop-blur-md">
+      <header className="no-print sticky top-0 z-10 border-b-2 border-transparent bg-paper-raised/90 text-ink backdrop-blur-md [border-image:linear-gradient(90deg,var(--color-accent),var(--color-hue-cyan),var(--color-accent-2))_1]">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           {/* Below sm, the full wordmark doesn't fit next to all four nav
               links without truncating mid-word -- the mark alone (it's

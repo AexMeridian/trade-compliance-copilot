@@ -51,7 +51,7 @@ export function SectionTabs<T extends string>({
               aria-controls={`${idPrefix}-tabpanel`}
               title={t.hint}
               onClick={() => onChange(t.id)}
-              className={`-mb-px shrink-0 whitespace-nowrap px-4 py-2.5 text-[15px] font-semibold ${on ? `border-b-4 ${t.border ?? 'border-ink'} text-ink` : 'border-b-4 border-transparent text-ink-muted hover:text-ink'}`}
+              className={`-mb-px shrink-0 whitespace-nowrap px-4 py-2.5 text-[15px] font-semibold ${on ? `rounded-t-md border-b-4 ${t.border ?? 'border-accent'} bg-linear-to-b from-transparent to-accent/10 text-ink` : 'border-b-4 border-transparent text-ink-muted hover:bg-accent/5 hover:text-ink'}`}
             >
               {t.label}
             </button>

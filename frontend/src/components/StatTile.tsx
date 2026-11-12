@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 export type Tone = 'soft' | 'hard';
 
 export const TONE = {
-  soft: { text: 'text-soft', bar: 'bg-soft', tint: 'bg-soft-tint', ring: 'hover:border-soft', edge: 'before:bg-soft', css: 'var(--color-soft)' },
-  hard: { text: 'text-hard', bar: 'bg-hard', tint: 'bg-hard-tint', ring: 'hover:border-hard', edge: 'before:bg-hard', css: 'var(--color-hard)' },
+  soft: { ink: 'text-soft', text: 'text-soft', bar: 'bg-soft', tint: 'bg-soft-tint', ring: 'hover:border-soft', edge: 'before:bg-soft', css: 'var(--color-soft)' },
+  hard: { ink: 'text-hard', text: 'text-hard', bar: 'bg-hard', tint: 'bg-hard-tint', ring: 'hover:border-hard', edge: 'before:bg-hard', css: 'var(--color-hard)' },
 } as const;
 
 // One headline reading: a big figure, what it is, a small picture of it (a sparkline or bars) and, if it leads somewhere, a way in. The
@@ -31,8 +31,9 @@ export function StatTile({
   const body = (
     <>
       <span className={`absolute inset-x-0 top-0 h-1 ${t.bar}`} aria-hidden="true" />
+      <span className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-transparent to-accent-2" aria-hidden="true" />
       <span className="text-[13px] font-semibold text-ink-muted">{label}</span>
-      <span className="display mt-2 block text-[34px] leading-none tabular-nums text-ink sm:text-[38px]">
+      <span className={`display mt-2 block text-[34px] leading-none tabular-nums ${t.ink} sm:text-[38px]`}>
         {figure}
       </span>
       {note && <span className="mt-2 block text-[13px] leading-snug text-ink-muted">{note}</span>}
