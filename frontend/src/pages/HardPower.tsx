@@ -296,6 +296,82 @@ export function HardPower() {
                 </Item>
               </div>
 
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">Trade measures</h3>
+                <PulsePanel
+                  title="Where measures converge"
+                  subtitle="Countries named by several different kinds of source at once, last 60 days"
+                  help="This ranks countries by how many kinds of source (U.S. actions, news, sanctions or export listings, forced-labor orders) name them. It is a count of what was published, not a risk score."
+                >
+                  <ConvergencePanel />
+                </PulsePanel>
+                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+                  <div className="min-w-0 lg:col-span-8">
+                    <PulsePanel title="What matters most" subtitle="Standalone actions only, ranked by document type and then date." help="A presidential order or final rule counts for more than a routine notice.">
+                      {loading ? loadingBlock : <PulseTopSignals actions={recentAll} />}
+                    </PulsePanel>
+                  </div>
+                  <div className="min-w-0 lg:col-span-4">
+                    <PulsePanel title="Which countries face the most measures" subtitle="Section 301 forced-labor rate, plus notes on other extra duties." help="Real, currently collected extra duties by country of origin, not how often a country is mentioned in the news.">
+                      {loading || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}
+                    </PulsePanel>
+                  </div>
+                  <div className="min-w-0 lg:col-span-8">
+                    <PulsePanel title="Active measures" subtitle="Section 232, 301 and 338 measures in force." help="Extra taxes on imports the U.S. currently charges under specific laws: an ongoing measure, not a one-time announcement.">
+                      {loading ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}
+                    </PulsePanel>
+                  </div>
+                  <div className="min-w-0 lg:col-span-4">
+                    <PulsePanel title="Pace of U.S. trade actions" subtitle={`Actions published per month, last ${TEMPO_RANGES.find((r) => r.id === tempoRange)?.label ?? '2yr'}.`} help="Taller bars mean a busier month.">
+                      {loading ? loadingBlock : <PulseTempoChart months={months} trendPct={summary?.trendPct ?? null} range={tempoRange} onRangeChange={handleTempoRangeChange} />}
+                    </PulsePanel>
+                  </div>
+                </div>
+                {seeAll('All trade tools', 'trade')}
+              </section>
+
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">Sanctions</h3>
+                <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date.">
+                  <RecentListings />
+                </PulsePanel>
+                {seeAll('Browse sanctioned entities', 'sanctions')}
+              </section>
+
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">Money and the dollar</h3>
+                {coferPoints.length > 0 && (
+                  <PulsePanel title="Percent of world FX reserves held in U.S. dollars" subtitle="Quarterly since 1999." help="IMF COFER: the currency composition of official foreign-exchange reserves.">
+                    <PowerCoferChart points={coferPoints} />
+                  </PulsePanel>
+                )}
+                {tic && tic.countries.length > 0 && (
+                  <PulsePanel title="Largest foreign holders of U.S. Treasury securities" subtitle="Monthly, about a six-week lag." help="Holdings are reported by where the securities are held, so financial centers can hold securities on behalf of investors elsewhere.">
+                    <TicHolders data={tic} />
+                  </PulsePanel>
+                )}
+                <PulseMarketStrip tiles={tilesIn('Rates & dollar')} />
+                <PulsePanel title="Who moved most" subtitle="30-day change against the dollar." help="Ranks these currencies by how much they changed against the dollar over the last 30 days.">
+                  <PulseCurrencyMovers rows={markets?.currencies ?? []} />
+                </PulsePanel>
+                {seeAll('More on money and the dollar', 'money')}
+              </section>
+
+              <section className="flex flex-col gap-4">
+                <h3 className="font-display text-xl font-bold text-ink">Military and alliances</h3>
+                {loading ? (
+                  loadingBlock
+                ) : (
+                  <InfluenceBlocs breakdown={summary?.countryBreakdown ?? []} activeCountry={activeCountry} onSelect={setActiveCountry} />
+                )}
+                {Object.keys(natoDefense).length > 0 && (
+                  <PulsePanel title="NATO defense spending, % of GDP" subtitle="NATO's own published estimates, not a live feed." help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are estimates.">
+                    <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />
+                  </PulsePanel>
+                )}
+                {seeAll('More on military and alliances', 'military')}
+              </section>
+
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
                 Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. Most of these figures come from the same feeds as the{' '}
                 <Link to="/" className="text-accent hover:underline">
