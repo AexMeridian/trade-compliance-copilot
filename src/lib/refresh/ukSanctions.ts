@@ -17,6 +17,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://ofsistorage.blob.core.windows.net/publishlive/2022format/ConList.xml';
@@ -117,6 +118,7 @@ export async function refreshUkSanctions(env: Env): Promise<RefreshResult> {
     }
   }
 
+  await assertNotShrunk(env, 'uk_sanctions', entryRows.length);
   const entryStatements = buildInsertStatements(
     `INSERT INTO uk_sanctions_entries (id, uid, group_id, entity_type, primary_name, name_normalized, regime_name, listing_type, date_listed, addresses, statement_of_reasons, source_url, source_tier, last_updated) VALUES`,
     entryRows,
@@ -131,6 +133,6 @@ export async function refreshUkSanctions(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
-  await gate.commit();
+  await gate.commit(entryRows.length);
   return { source: 'uk_sanctions', rows: entryRows.length + aliasRows.length };
 }

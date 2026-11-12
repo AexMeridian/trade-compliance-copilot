@@ -5,6 +5,7 @@ import type { Env } from '../../types/env.js';
 import { parseCsvLine } from './csv.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt';
@@ -48,6 +49,7 @@ export async function refreshScheduleB(env: Env): Promise<RefreshResult> {
     throw new Error('Schedule B refresh produced zero rows -- aborting without touching schedule_b_lines');
   }
 
+  await assertNotShrunk(env, 'schedule_b', rows.length);
   const insertStatements = buildInsertStatements(
     `INSERT INTO schedule_b_lines (id, code, indent, description, superior_id, units, hs6, chapter, edition, source_url, source_tier, last_updated) VALUES`,
     rows,
@@ -59,6 +61,6 @@ export async function refreshScheduleB(env: Env): Promise<RefreshResult> {
     ...insertStatements.map((s) => env.DB.prepare(s)),
   ]);
 
-  await gate.commit();
+  await gate.commit(rows.length);
   return { source: 'schedule_b', rows: rows.length };
 }

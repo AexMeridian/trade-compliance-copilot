@@ -36,6 +36,7 @@ import { refreshOpenAlex } from './lib/refresh/openalex.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
+import { runHealth } from './lib/healthRun.js';
 import { refreshCuratedWatch } from './lib/refresh/curatedWatch.js';
 import { logRefresh } from './lib/refresh/log.js';
 import { purgeExpiredCases } from './lib/caseStore.js';
@@ -47,6 +48,7 @@ import type { RefreshResult } from './lib/refresh/types.js';
 export const DAILY_CRON = '0 5 * * *';
 export const BULK_CRON = '0 6 * * *';
 export const INDICATOR_CRON = '0 7 * * *';
+export const HEALTH_CRON = '0 8 * * *'; // after the others have run: checks what they did, emails what needs a person
 
 interface RefreshJob {
   source: RefreshResult['source'];
@@ -156,6 +158,7 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
     if (controller.cron === DAILY_CRON) jobs = DAILY_JOBS;
     else if (controller.cron === BULK_CRON) jobs = await pickDueBulkJobs(env);
     else if (controller.cron === INDICATOR_CRON) jobs = await pickDueIndicatorJobs(env);
+    else if (controller.cron === HEALTH_CRON) jobs = [{ source: 'health', run: runHealth }];
     else {
       console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc against src/scheduled.ts`);
       return;

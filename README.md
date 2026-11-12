@@ -401,6 +401,19 @@ Federal Register feed (daily). Identical model questions are answered from a
 14-day cache (`model_cache`) and the import duty summary is written by code, so a
 repeat or a plain import case costs no model call.
 
+**Running without watching it.** A fourth cron (08:00 UTC, `src/lib/healthRun.ts`)
+checks source freshness, failure streaks, pending notices, the database schema,
+the model account and a set of built-in accuracy checks (`src/lib/canary.ts`),
+and emails the owner only when something needs a person (`src/lib/notify.ts`,
+Cloudflare Email Routing; setup in docs/OPERATIONS.md). A bulk reload that would
+shrink a table by more than 20% is refused. The Commerce Country Chart is read
+from the eCFR by `scripts/sync-country-chart.ts`, run weekly by a GitHub
+workflow that opens a pull request for review. The calculator pauses with a
+clear message when the AI account is out of credit or the monthly budget
+(`MONTHLY_BUDGET_USD`) is reached. Only the four calculator routes can spend
+model credit; `tests/no-model-outside-calculator.test.ts` enforces it.
+
+
 **Manual fallback.** `scripts/refresh_data.md` documents the original,
 Node-script-based manual refresh (`npm run seed:hts`, etc.) — useful for
 local dev, for a data source that isn't on the automatic schedule, or as a

@@ -15,6 +15,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML';
@@ -110,6 +111,7 @@ export async function refreshSdn(env: Env): Promise<RefreshResult> {
     }
   }
 
+  await assertNotShrunk(env, 'sdn', entryRows.length);
   const entryStatements = buildInsertStatements(
     `INSERT INTO sdn_entries (id, uid, primary_name, name_normalized, entity_type, programs, dob, place_of_birth, addresses, remarks, source_url, source_tier, last_updated) VALUES`,
     entryRows,
@@ -130,6 +132,6 @@ export async function refreshSdn(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
-  await gate.commit();
+  await gate.commit(entryRows.length);
   return { source: 'sdn', rows: entryRows.length + aliasRows.length };
 }

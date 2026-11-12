@@ -1,0 +1,2773 @@
+{
+ "amended": "2025-09-30",
+ "countries": {
+  "AD": {
+   "name": "Andorra",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AE": {
+   "name": "United Arab Emirates",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AF": {
+   "name": "Afghanistan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AG": {
+   "name": "Antigua and Barbuda",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AL": {
+   "name": "Albania",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2"
+   ]
+  },
+  "AM": {
+   "name": "Armenia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "AO": {
+   "name": "Angola",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AR": {
+   "name": "Argentina",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AT": {
+   "name": "Austria",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "AU": {
+   "name": "Australia",
+   "marked": [
+    "CB1"
+   ]
+  },
+  "AW": {
+   "name": "Aruba",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "AZ": {
+   "name": "Azerbaijan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "BA": {
+   "name": "Bosnia and Herzegovina",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BB": {
+   "name": "Barbados",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BD": {
+   "name": "Bangladesh",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BE": {
+   "name": "Belgium",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "BF": {
+   "name": "Burkina Faso",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BG": {
+   "name": "Bulgaria",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "BH": {
+   "name": "Bahrain",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BI": {
+   "name": "Burundi",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BJ": {
+   "name": "Benin",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BN": {
+   "name": "Brunei",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BO": {
+   "name": "Bolivia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BR": {
+   "name": "Brazil",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BS": {
+   "name": "The Bahamas",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BT": {
+   "name": "Bhutan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BW": {
+   "name": "Botswana",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "BY": {
+   "name": "Belarus",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "BZ": {
+   "name": "Belize",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CA": {
+   "name": "Canada",
+   "marked": [
+    "CB1",
+    "FC1"
+   ]
+  },
+  "CD": {
+   "name": "Democratic Republic of the Congo",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CF": {
+   "name": "Central African Republic",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CG": {
+   "name": "Republic of the Congo",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CH": {
+   "name": "Switzerland",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "CI": {
+   "name": "Cote d'Ivoire",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CL": {
+   "name": "Chile",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CM": {
+   "name": "Cameroon",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CN": {
+   "name": "China",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CO": {
+   "name": "Colombia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CR": {
+   "name": "Costa Rica",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CV": {
+   "name": "Cape Verde",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CW": {
+   "name": "Curaçao",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CY": {
+   "name": "Cyprus",
+   "marked": [
+    "CB1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "CZ": {
+   "name": "Czech Republic",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "DE": {
+   "name": "Germany",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "DJ": {
+   "name": "Djibouti",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "DK": {
+   "name": "Denmark",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "DM": {
+   "name": "Dominica",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "DO": {
+   "name": "Dominican Republic",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "DZ": {
+   "name": "Algeria",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "EC": {
+   "name": "Ecuador",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "EE": {
+   "name": "Estonia",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "EG": {
+   "name": "Egypt",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "EH": {
+   "name": "Western Sahara",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ER": {
+   "name": "Eritrea",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ES": {
+   "name": "Spain",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "ET": {
+   "name": "Ethiopia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "FI": {
+   "name": "Finland",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "FJ": {
+   "name": "Fiji",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2",
+    "CC3"
+   ]
+  },
+  "FM": {
+   "name": "Micronesia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "FR": {
+   "name": "France",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "GA": {
+   "name": "Gabon",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GB": {
+   "name": "United Kingdom",
+   "marked": [
+    "CB1"
+   ]
+  },
+  "GD": {
+   "name": "Grenada",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GE": {
+   "name": "Georgia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "GH": {
+   "name": "Ghana",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GM": {
+   "name": "The Gambia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GN": {
+   "name": "Guinea",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GQ": {
+   "name": "Equatorial Guinea",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GR": {
+   "name": "Greece",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "GT": {
+   "name": "Guatemala",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GW": {
+   "name": "Guinea-Bissau",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "GY": {
+   "name": "Guyana",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "HN": {
+   "name": "Honduras",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "HR": {
+   "name": "Croatia",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "HT": {
+   "name": "Haiti",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "HU": {
+   "name": "Hungary",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "ID": {
+   "name": "Indonesia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "IE": {
+   "name": "Ireland",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "IL": {
+   "name": "Israel",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "IN": {
+   "name": "India",
+   "marked": [
+    "CB1",
+    "NP1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "IQ": {
+   "name": "Iraq",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "IS": {
+   "name": "Iceland",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "IT": {
+   "name": "Italy",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "JM": {
+   "name": "Jamaica",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "JO": {
+   "name": "Jordan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "JP": {
+   "name": "Japan",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "KE": {
+   "name": "Kenya",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "KG": {
+   "name": "Kyrgyzstan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "KH": {
+   "name": "Cambodia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "KI": {
+   "name": "Kiribati",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "KM": {
+   "name": "Comoros",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "KN": {
+   "name": "Saint Kitts and Nevis",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "KR": {
+   "name": "South Korea",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "KW": {
+   "name": "Kuwait",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "KZ": {
+   "name": "Kazakhstan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "LA": {
+   "name": "Laos",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "LB": {
+   "name": "Lebanon",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "LC": {
+   "name": "Saint Lucia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "LI": {
+   "name": "Liechtenstein",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "LK": {
+   "name": "Sri Lanka",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "LR": {
+   "name": "Liberia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "LS": {
+   "name": "Lesotho",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "LT": {
+   "name": "Lithuania",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "LU": {
+   "name": "Luxembourg",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "LV": {
+   "name": "Latvia",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "LY": {
+   "name": "Libya",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MA": {
+   "name": "Morocco",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MC": {
+   "name": "Monaco",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MD": {
+   "name": "Moldova",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "ME": {
+   "name": "Montenegro",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2",
+    "CC3"
+   ]
+  },
+  "MG": {
+   "name": "Madagascar",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MH": {
+   "name": "Marshall Islands",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MK": {
+   "name": "North Macedonia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ML": {
+   "name": "Mali",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MM": {
+   "name": "Burma",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MN": {
+   "name": "Mongolia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "MO": {
+   "name": "Macau",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MR": {
+   "name": "Mauritania",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MT": {
+   "name": "Malta",
+   "marked": [
+    "CB1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MU": {
+   "name": "Mauritius",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MV": {
+   "name": "Maldives",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MW": {
+   "name": "Malawi",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MX": {
+   "name": "Mexico",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MY": {
+   "name": "Malaysia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "MZ": {
+   "name": "Mozambique",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NA": {
+   "name": "Namibia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NE": {
+   "name": "Niger",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NG": {
+   "name": "Nigeria",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NI": {
+   "name": "Nicaragua",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NL": {
+   "name": "Netherlands",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "NO": {
+   "name": "Norway",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "NP": {
+   "name": "Nepal",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NR": {
+   "name": "Nauru",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "NZ": {
+   "name": "New Zealand",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "OM": {
+   "name": "Oman",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PA": {
+   "name": "Panama",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PE": {
+   "name": "Peru",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PG": {
+   "name": "Papua New Guinea",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PH": {
+   "name": "Philippines",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PK": {
+   "name": "Pakistan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PL": {
+   "name": "Poland",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "PT": {
+   "name": "Portugal",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "PW": {
+   "name": "Palau",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "PY": {
+   "name": "Paraguay",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "QA": {
+   "name": "Qatar",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "RO": {
+   "name": "Romania",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "RS": {
+   "name": "Serbia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2",
+    "CC3"
+   ]
+  },
+  "RU": {
+   "name": "Russia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "RW": {
+   "name": "Rwanda",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2",
+    "CC3"
+   ]
+  },
+  "SA": {
+   "name": "Saudi Arabia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SB": {
+   "name": "Solomon Islands",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SC": {
+   "name": "Seychelles",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SD": {
+   "name": "Sudan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SE": {
+   "name": "Sweden",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "SG": {
+   "name": "Singapore",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SI": {
+   "name": "Slovenia",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "SK": {
+   "name": "Slovakia",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "SL": {
+   "name": "Sierra Leone",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SM": {
+   "name": "San Marino",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SN": {
+   "name": "Senegal",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SO": {
+   "name": "Somalia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SR": {
+   "name": "Suriname",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SS": {
+   "name": "South Sudan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ST": {
+   "name": "Sao Tome and Principe",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SV": {
+   "name": "El Salvador",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SX": {
+   "name": "Sint Maarten",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "SZ": {
+   "name": "Eswatini",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TD": {
+   "name": "Chad",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TG": {
+   "name": "Togo",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TH": {
+   "name": "Thailand",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TJ": {
+   "name": "Tajikistan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "TL": {
+   "name": "Timor-Leste",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TM": {
+   "name": "Turkmenistan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "TN": {
+   "name": "Tunisia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TO": {
+   "name": "Tonga",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TR": {
+   "name": "Türkiye",
+   "marked": [
+    "CB1",
+    "NS1",
+    "MT1",
+    "RS1"
+   ]
+  },
+  "TT": {
+   "name": "Trinidad and Tobago",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TV": {
+   "name": "Tuvalu",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TW": {
+   "name": "Taiwan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "TZ": {
+   "name": "Tanzania",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "UA": {
+   "name": "Ukraine",
+   "marked": [
+    "CB1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "UG": {
+   "name": "Uganda",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "UY": {
+   "name": "Uruguay",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "UZ": {
+   "name": "Uzbekistan",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "VA": {
+   "name": "Vatican City",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "VC": {
+   "name": "Saint Vincent and the Grenadines",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "VE": {
+   "name": "Venezuela",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NP2",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "FC1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "VN": {
+   "name": "Vietnam",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2"
+   ]
+  },
+  "VU": {
+   "name": "Vanuatu",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "WS": {
+   "name": "Samoa",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "XK": {
+   "name": "Kosovo",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC2",
+    "CC3"
+   ]
+  },
+  "YE": {
+   "name": "Yemen",
+   "marked": [
+    "CB1",
+    "CB2",
+    "CB3",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ZA": {
+   "name": "South Africa",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NS1",
+    "MT1",
+    "RS1",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ZM": {
+   "name": "Zambia",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  },
+  "ZW": {
+   "name": "Zimbabwe",
+   "marked": [
+    "CB1",
+    "CB2",
+    "NP1",
+    "NS1",
+    "NS2",
+    "MT1",
+    "RS1",
+    "RS2",
+    "CC1",
+    "CC3"
+   ]
+  }
+ }
+}

@@ -15,6 +15,7 @@ import { emptyCaseFile, type CaseFile, type Direction } from '../../src/types/ca
 import { ORIGIN_SCENARIOS } from './origin-set.js';
 import { ECCN_PRODUCTS } from './eccn-set.js';
 import { openLocalDb } from './d1shim.js';
+import { PER_CALL_USD, requireCostConfirmation } from './costGuard.js';
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
 const args = process.argv.slice(2);
@@ -89,7 +90,7 @@ async function health() {
 // --- origin ---------------------------------------------------------------------------------------------------------------------------
 async function runOrigin() {
   const items = ORIGIN_SCENARIOS.slice(0, limit);
-  console.log(`origin: ${items.length} model calls`);
+  requireCostConfirmation(args, items.length, PER_CALL_USD.origin, 'origin');
   const rows: unknown[] = [];
   let correct = 0, confidentWrong = 0, strictMiss = 0, abstained = 0, errors = 0;
   for (const s of items) {
@@ -128,7 +129,7 @@ async function runOrigin() {
 // --- eccn -----------------------------------------------------------------------------------------------------------------------------
 async function runEccn() {
   const items = ECCN_PRODUCTS.slice(from, limit);
-  console.log(`eccn: ${items.length} model calls`);
+  requireCostConfirmation(args, items.length, PER_CALL_USD.eccn, 'eccn');
   const rows: unknown[] = [];
   const tally: Record<string, number> = { correct: 0, flagged: 0, 'confident wrong': 0, errors: 0 };
   for (const p of items) {
@@ -209,7 +210,7 @@ function screeningParties(): Party[] {
 
 async function runScreening() {
   const parties = screeningParties().slice(0, limit);
-  console.log(`screening: ${parties.length} parties = ${parties.length} model calls at most (a party with no candidates costs none)`);
+  requireCostConfirmation(args, parties.length, PER_CALL_USD.screening, 'screening (at most; a party with no candidates costs none)');
   const rows: unknown[] = [];
   const t = { listedFlagged: 0, listedTrue: 0, listedMissed: 0, cleanClean: 0, cleanCaution: 0, cleanTrue: 0, errors: 0 };
   const BATCH = 5;

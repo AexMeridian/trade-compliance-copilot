@@ -208,6 +208,14 @@ See README ("What is not auto-applied") and docs/OPERATIONS.md. Dry run of the c
 2026-09-22 date found 5 real notices (two USMCA, one Section 301 exclusion amendment, two Section 232: polysilicon under Proclamation 11052
 and specialty pharmaceuticals). Until someone reviews them, cases touching those programs show "review required".
 
+## 6b. Country Chart replaced with the official table (2026-11-07)
+
+Reading the chart straight from the eCFR (`scripts/sync-country-chart.ts`, 196 destinations) showed that the hand-entered rows, which had been
+described as verified, were wrong: Germany, the U.K., Japan and Korea were entered as NS1 and NS2 but are marked CB1, NS1, MT1 and RS1; Canada was
+entered as NS1 and NS2 but is marked CB1 and FC1. Effect: an NS-controlled item to Canada was reported as needing a license when it does not, and
+chemical, missile and regional-stability controls to the allies were not seen. Migration 0030 loads the whole chart. The export license table test
+now covers 200 destinations by 8 ECCNs (1,600 pairs) against an independent oracle. The 8-entry ECCN table is still the limit.
+
 ## 7. Still open
 
 - Measured model cost (96 calls, 2026-11-06): about $0.02 per call (origin 1,666 in / 1,154 out tokens, screening party 1,849 / 820, ECCN 1,874 / 648), $1.88 in total.
@@ -216,7 +224,8 @@ and specialty pharmaceuticals). Until someone reviews them, cases touching those
 - The MPF dollar limits (fiscal years 2026 and 2027) come from carrier and broker notices; the CBP notice itself could not be fetched.
 - Annex product lists (Section 232 derivatives, Section 301 Annexes I and II, Section 338 chapters 04, 22 and 87) are images and unread.
   Antidumping and countervailing duties, IEEPA and Section 122 measures, and Section 201 are not modelled; every import case now says so.
-- Country Chart: only NS columns are verified for the six allies; fill the other columns from a source that can be read.
+- ECCN table: 8 entries. The eCFR also publishes Part 774 (the Commerce Control List) as XML; loading it the way the Country Chart is loaded is the next step.
+- The ECCN reasons_for_control lists name a family (RS), not a column (RS1 or RS2), so a destination marked RS2 only is treated as marked for an RS item. This errs towards "license required".
 - End-to-end cases checked by a licensed customs broker.
 
 Results here show agreement with public sources, not legal sign-off.

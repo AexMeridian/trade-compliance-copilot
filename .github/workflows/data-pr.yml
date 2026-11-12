@@ -1,0 +1,62 @@
+name: Data update pull request
+
+# Weekly: re-reads the official Commerce Country Chart from the eCFR. If it differs from data/country-chart.json, opens a pull request with the
+# new snapshot and the next numbered migration, plus the unit-test result, for the owner to read and merge. Merging deploys and applies the
+# migration. Nothing here changes live data by itself, uses a model, or holds any secret beyond the automatic GITHUB_TOKEN.
+#
+# One-time setting: repository Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+on:
+  schedule:
+    - cron: '30 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  country-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Re-read the Country Chart
+        id: sync
+        run: |
+          npx tsx scripts/sync-country-chart.ts --write | tee /tmp/sync.log
+          if [ -n "$(git status --porcelain)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Run the unit tests on the new data
+        if: steps.sync.outputs.changed == 'true'
+        id: tests
+        continue-on-error: true
+        run: npm run test:unit
+      - name: Open the pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="data/country-chart-$(date -u +%Y%m%d)"
+          git config user.name "aex-terminal-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "Update the Commerce Country Chart from the eCFR"
+          git push origin "$branch"
+          result="passed"
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then result="FAILED, read the log before merging"; fi
+          {
+            echo "The official Country Chart (15 CFR 738 Supp. 1) now differs from data/country-chart.json."
+            echo
+            echo '```'
+            cat /tmp/sync.log
+            echo '```'
+            echo
+            echo "Unit tests on the new data: $result."
+            echo
+            echo "Review the changed rows above against https://www.ecfr.gov/current/title-15/part-738/appendix-Supplement%20No.%201%20to%20Part%20738 . Merging deploys the new migration."
+          } > /tmp/body.md
+          gh pr create --title "Update the Commerce Country Chart" --body-file /tmp/body.md --base main --head "$branch"

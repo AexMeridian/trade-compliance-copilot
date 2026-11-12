@@ -3,7 +3,7 @@
 // calculator says so on every case the program touches. The matching is plain pattern work on titles and abstracts the daily Pulse sync
 // already stored: no network, no model.
 
-export type CuratedProgram = 'sec232' | 'sec301' | 'sec338' | 'usmca' | 'export_controls' | 'customs_fees';
+export type CuratedProgram = 'sec232' | 'sec301' | 'sec338' | 'usmca' | 'export_controls' | 'customs_fees' | 'hts_ch99' | 'ecfr_ear' | 'ecfr_fees';
 
 export const PROGRAM_LABEL: Record<CuratedProgram, string> = {
   sec232: 'Section 232 duties',
@@ -12,6 +12,9 @@ export const PROGRAM_LABEL: Record<CuratedProgram, string> = {
   usmca: 'USMCA rules of origin',
   export_controls: 'export control rules',
   customs_fees: 'CBP user fees',
+  hts_ch99: 'HTS Chapter 99 additional-duty lines',
+  ecfr_ear: 'Export Administration Regulations text',
+  ecfr_fees: 'customs user fee regulations',
 };
 
 export interface WatchedAction {
@@ -108,4 +111,40 @@ export function describeAlerts(alerts: { program: CuratedProgram; title: string;
     const more = list.length > 3 ? ` and ${list.length - 3} more` : '';
     return `Determination: ${list.length} Federal Register notice${list.length === 1 ? '' : 's'} on ${PROGRAM_LABEL[program]} ${list.length === 1 ? 'was' : 'were'} published after this app's ${PROGRAM_LABEL[program]} data was last verified: ${shown}${more}. The figures here may be out of date until that data is reviewed.`;
   });
+}
+
+// --- eCFR amendment dates -----------------------------------------------------------------------------------------------------------------
+// The eCFR versioner API lists every version of a part with its amendment date. A part amended after the matching table was last verified is a
+// reason for the owner to look; it is not tied to a case, because most amendments (another ECCN, another country) do not touch a given result.
+
+export const ECFR_PARTS: { title: number; part: number; program: 'ecfr_ear' | 'ecfr_fees'; label: string }[] = [
+  { title: 15, part: 738, program: 'ecfr_ear', label: '15 CFR Part 738 (Commerce Country Chart)' },
+  { title: 15, part: 740, program: 'ecfr_ear', label: '15 CFR Part 740 (License Exceptions)' },
+  { title: 15, part: 746, program: 'ecfr_ear', label: '15 CFR Part 746 (Embargoes and other special controls)' },
+  { title: 15, part: 774, program: 'ecfr_ear', label: '15 CFR Part 774 (Commerce Control List)' },
+  { title: 19, part: 24, program: 'ecfr_fees', label: '19 CFR Part 24 (Customs financial and accounting procedures, user fees)' },
+];
+
+/** The newest amendment_date in an eCFR versions response (YYYY-MM-DD), or null if the response has no usable versions. */
+export function latestAmendment(response: unknown): string | null {
+  const versions = (response as { content_versions?: { amendment_date?: string }[] } | null)?.content_versions;
+  if (!Array.isArray(versions)) return null;
+  const dates = versions.map((v) => v.amendment_date).filter((d): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
+  return dates.length === 0 ? null : dates.sort()[dates.length - 1];
+}
+
+export function ecfrAlerts(
+  found: { title: number; part: number; program: 'ecfr_ear' | 'ecfr_fees'; label: string; latest: string }[],
+  baselines: Partial<Record<CuratedProgram, string>>,
+  known: Set<string>
+): NewAlert[] {
+  const out: NewAlert[] = [];
+  for (const f of found) {
+    const baseline = baselines[f.program];
+    if (!baseline || f.latest <= baseline) continue;
+    const id = `ecfr:${f.title}-${f.part}:${f.latest}`;
+    if (known.has(`${id}:${f.program}`)) continue;
+    out.push({ document_number: id, program: f.program, title: `${f.label} was amended on ${f.latest}`, publication_date: f.latest, effective_on: null, html_url: `https://www.ecfr.gov/current/title-${f.title}/part-${f.part}` });
+  }
+  return out;
 }

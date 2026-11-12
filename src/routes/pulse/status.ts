@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
+import { readHealthSummary } from '../../lib/healthRun.js';
 import { curatedBaselines } from '../../lib/refresh/curatedWatch.js';
 import { PROGRAM_LABEL, staleness, type CuratedProgram } from '../../lib/curatedWatch.js';
 
@@ -50,8 +51,9 @@ statusRoute.get('/data-status', async (c) => {
     .all<{ program: string; n: number }>()
     .then((r) => r.results)
     .catch(() => []);
+  const health = await readHealthSummary(c.env);
   c.header('Cache-Control', 'public, max-age=300');
-  return c.json({ asOf: new Date().toISOString(), sources, curated, pendingNotices: pending });
+  return c.json({ asOf: new Date().toISOString(), ok: health ? health.ok : null, health, sources, curated, pendingNotices: pending });
 });
 
 // Counted once per six hours per data centre; the tables change at most weekly.

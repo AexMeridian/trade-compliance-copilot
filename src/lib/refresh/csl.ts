@@ -8,6 +8,7 @@ import { normalizeNameString } from '../normalize.js';
 import { parseCsvLine } from './csv.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const SOURCE_URL = 'https://www.trade.gov/consolidated-screening-list';
@@ -72,6 +73,7 @@ export async function refreshCsl(env: Env): Promise<RefreshResult> {
     throw new Error('CSL refresh produced zero entries -- aborting without touching csl_entries/csl_aliases');
   }
 
+  await assertNotShrunk(env, 'csl', entryRows.length);
   const entryStatements = buildInsertStatements(
     `INSERT INTO csl_entries (id, source_list, name, name_normalized, addresses, federal_register_notice, license_requirement, license_policy, start_date, source_url, source_tier, last_updated) VALUES`,
     entryRows,
@@ -90,6 +92,6 @@ export async function refreshCsl(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
-  await gate.commit();
+  await gate.commit(entryRows.length);
   return { source: 'csl', rows: entryRows.length + aliasRows.length };
 }

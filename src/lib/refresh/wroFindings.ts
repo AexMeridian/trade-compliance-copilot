@@ -18,6 +18,7 @@
 import type { Env } from '../../types/env.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const DOCUMENT_PAGE = 'https://www.cbp.gov/document/stats/withhold-release-orders-findings';
@@ -119,6 +120,7 @@ export async function refreshWroFindings(env: Env): Promise<RefreshResult> {
     throw new Error('WRO/Findings refresh produced zero entries -- aborting without touching wro_findings');
   }
 
+  await assertNotShrunk(env, 'wro_findings', rows.length);
   const statements = buildInsertStatements(
     `INSERT INTO wro_findings (id, effective_date, country_code, country, merchandise, order_type, industry, status, entity, remarks, source_url, last_updated) VALUES`,
     rows,
@@ -127,6 +129,6 @@ export async function refreshWroFindings(env: Env): Promise<RefreshResult> {
 
   await env.DB.batch([env.DB.prepare('DELETE FROM wro_findings'), ...statements.map((s) => env.DB.prepare(s))]);
 
-  await gate.commit();
+  await gate.commit(rows.length);
   return { source: 'wro_findings', rows: rows.length };
 }

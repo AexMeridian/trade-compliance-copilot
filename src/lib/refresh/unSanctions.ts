@@ -14,6 +14,7 @@ import type { Env } from '../../types/env.js';
 import { normalizeNameString } from '../normalize.js';
 import { sqlString, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
+import { assertNotShrunk } from './guards.js';
 import { changeGate } from './changeGate.js';
 
 const SOURCE_PAGE = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml';
@@ -155,6 +156,7 @@ export async function refreshUnSanctions(env: Env): Promise<RefreshResult> {
     }
   }
 
+  await assertNotShrunk(env, 'un_sanctions', entryRows.length);
   const entryStatements = buildInsertStatements(
     `INSERT INTO un_sanctions_entries (id, uid, entity_type, primary_name, name_normalized, un_list_type, reference_number, listed_on, nationality, addresses, remarks, source_url, source_tier, last_updated) VALUES`,
     entryRows,
@@ -169,6 +171,6 @@ export async function refreshUnSanctions(env: Env): Promise<RefreshResult> {
     ...aliasStatements.map((s) => env.DB.prepare(s)),
   ]);
 
-  await gate.commit();
+  await gate.commit(entryRows.length);
   return { source: 'un_sanctions', rows: entryRows.length + aliasRows.length };
 }

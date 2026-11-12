@@ -95,6 +95,11 @@
     "CLAUDE_DAILY_CAP": "300"
   },
 
+  // Alert email (src/lib/notify.ts). Left off until Cloudflare Email Routing is enabled for aexmeridian.com and the destination address is
+  // verified (docs/OPERATIONS.md, "Alerts by email"); until then the health job writes its messages to the Worker log instead of sending.
+  // To turn on: remove the comment markers below and deploy.
+  // "send_email": [{ "name": "ALERT_EMAIL", "destination_address": "CEO@aexmeridian.com" }],
+
   "observability": {
     "enabled": true
   },
@@ -109,9 +114,11 @@
   //              exceeds D1's free cap of 100,000 rows written
   //   07:00 UTC  the weekly country indicators that are due (World Bank, UN voting,
   //              UNESCO, UNHCR, Nobel, OCHA), at most 40 requests a day
+  //   08:00 UTC  the health check (src/lib/healthRun.ts): looks at what the others did,
+  //              runs the built-in accuracy checks, emails the owner only if something needs them
   // Curated legal content (USMCA rules, tariff overlays, country chart, ECCN) is
   // NOT on this schedule -- see the comment at the top of src/scheduled.ts.
   "triggers": {
-    "crons": ["0 5 * * *", "0 6 * * *", "0 7 * * *"]
+    "crons": ["0 5 * * *", "0 6 * * *", "0 7 * * *", "0 8 * * *"]
   }
 }

@@ -9,6 +9,7 @@
 // in place rather than a half-deleted table -- the failure mode of deleting
 // first and reloading second is exactly what this ordering avoids.
 import type { Env } from '../../types/env.js';
+import { assertNotShrunk } from './guards.js';
 import { sqlString, sqlJson, buildInsertStatements } from './sql.js';
 import type { RefreshResult } from './types.js';
 import { changeGate } from './changeGate.js';
@@ -97,6 +98,7 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
   // search index and path index).
   const gate = await changeGate(env, 'hts', chapterTexts.join('|'));
   if (gate.unchanged) return { source: 'hts', rows: 0, unchanged: true };
+  await assertNotShrunk(env, 'hts', totalRows);
 
   await env.DB.batch([
     env.DB.prepare('DELETE FROM hts_lines'),
@@ -107,6 +109,6 @@ export async function refreshHts(env: Env): Promise<RefreshResult> {
     env.DB.prepare(HTS_PATH_INDEX_BUILD_SQL),
   ]);
 
-  await gate.commit();
+  await gate.commit(totalRows);
   return { source: 'hts', rows: totalRows };
 }

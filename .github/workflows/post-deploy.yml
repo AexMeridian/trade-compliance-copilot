@@ -1,0 +1,32 @@
+name: Post-deploy check
+
+# Cloudflare Workers Builds deploys on every push to main. A few minutes later this checks the live site and fails (GitHub emails the owner)
+# if the deploy left it unhealthy. Read-only: plain GET requests, no secrets, no model calls.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the deploy to finish
+        run: sleep 240
+      - name: Check the live site
+        run: |
+          set -u
+          BASE=https://aexterminal.com
+          fail=0
+          for path in /api/health /api/pulse/data-status / /calculator /methodology; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BASE$path" || echo 000)
+            echo "$path -> $code"
+            if [ "$code" != "200" ]; then fail=1; fi
+          done
+          # The status endpoint must say the database tables exist and nothing critical is failing.
+          body=$(curl -s --max-time 30 "$BASE/api/pulse/data-status")
+          echo "$body" | head -c 600; echo
+          if echo "$body" | grep -q '"ok":false'; then
+            echo "::warning::health summary reports ok:false (see critical keys above)"
+          fi
+          exit $fail

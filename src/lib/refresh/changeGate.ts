@@ -26,7 +26,8 @@ export async function storedFingerprint(env: Env, source: string): Promise<strin
 
 export interface ChangeGate {
   unchanged: boolean;
-  commit: () => Promise<void>;
+  /** Call after the write succeeded. `size` is the number of rows loaded; the next load is refused if it is far smaller (guards.ts). */
+  commit: (size?: number) => Promise<void>;
 }
 
 export async function changeGate(env: Env, source: string, payload: string): Promise<ChangeGate> {
@@ -34,7 +35,15 @@ export async function changeGate(env: Env, source: string, payload: string): Pro
   const unchanged = (await storedFingerprint(env, source)) === fingerprint;
   return {
     unchanged,
-    commit: async () => {
+    commit: async (size?: number) => {
+      if (size !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO pulse_feed_state (source_key, last_attempt_at, last_success_at, last_note) VALUES (?1, ?2, ?2, ?3)
+           ON CONFLICT(source_key) DO UPDATE SET last_attempt_at = excluded.last_attempt_at, last_success_at = excluded.last_success_at, last_note = excluded.last_note`
+        )
+          .bind(`size:${source}`, new Date().toISOString(), String(size))
+          .run();
+      }
       await env.DB.prepare(
         `INSERT INTO pulse_feed_state (source_key, last_attempt_at, last_success_at, last_note) VALUES (?1, ?2, ?2, ?3)
          ON CONFLICT(source_key) DO UPDATE SET last_attempt_at = excluded.last_attempt_at,

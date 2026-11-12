@@ -9,6 +9,7 @@ export interface RefreshResult {
     | 'uk_sanctions'
     | 'pulse'
     | 'curated_watch'
+    | 'health'
     | 'pulse_fx'
     | 'pulse_quotes'
     | 'pulse_news'

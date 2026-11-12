@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../types/env.js';
+import { classifyModelError, estimateUsd, monthlyBudgetUsd, monthStart, type ModelFailure } from './modelSpend.js';
 
 // Model pinned per project spec. Reasoning is captured as structured fields on
 // the forced tool call itself (reasoning_steps, etc.) rather than via the
@@ -26,6 +27,52 @@ export function getClient(env: Env): Anthropic {
 
 export class ClaudeGroundingError extends Error {}
 export class ClaudeDailyCapError extends Error {}
+/** The calculator cannot reach the model for a reason the owner must fix (account credit, credentials) or has hit its monthly budget. */
+export class ClaudeUnavailableError extends Error {
+  constructor(readonly reason: ModelFailure) {
+    super(`Model unavailable: ${reason}`);
+  }
+}
+
+// What the health job reads: a failing key is a critical email; the next successful call clears it.
+async function markModelState(env: Env, key: string, status: 'failing' | 'ok', detail: string | null): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO alert_state (key, status, detail, first_seen_at, last_seen_at) VALUES (?1, ?2, ?3, ?4, ?4)
+       ON CONFLICT(key) DO UPDATE SET status = excluded.status, detail = excluded.detail, last_seen_at = excluded.last_seen_at,
+         first_seen_at = CASE WHEN alert_state.status = excluded.status THEN alert_state.first_seen_at ELSE excluded.first_seen_at END`
+    )
+      .bind(key, status, detail, now)
+      .run();
+  } catch {
+    /* the table may not exist yet (migration not applied); never let bookkeeping break a calculation */
+  }
+}
+
+async function monthToDateUsd(env: Env): Promise<number | null> {
+  try {
+    const row = await env.DB.prepare(`SELECT COALESCE(SUM(input_tokens), 0) AS i, COALESCE(SUM(output_tokens), 0) AS o FROM model_usage WHERE day >= ?1`)
+      .bind(monthStart(new Date()))
+      .first<{ i: number; o: number }>();
+    return row ? estimateUsd(row.i, row.o) : 0;
+  } catch {
+    return null; // unreadable: allow the call rather than block the calculator
+  }
+}
+
+async function recordUsage(env: Env, tool: string, inputTokens: number, outputTokens: number): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO model_usage (day, tool, calls, input_tokens, output_tokens) VALUES (?1, ?2, 1, ?3, ?4)
+       ON CONFLICT(day, tool) DO UPDATE SET calls = calls + 1, input_tokens = input_tokens + excluded.input_tokens, output_tokens = output_tokens + excluded.output_tokens`
+    )
+      .bind(new Date().toISOString().slice(0, 10), tool, inputTokens, outputTokens)
+      .run();
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
  * Counts one Claude call against the day's shared ceiling (CLAUDE_DAILY_CAP, default 300 per UTC day; one counter row in D1).
@@ -76,16 +123,37 @@ export async function callClaudeTool<T>(
     const hit = await readModelCache<T>(env, cacheKey);
     if (hit !== null) return hit;
   }
+  const spent = await monthToDateUsd(env);
+  if (spent !== null && spent >= monthlyBudgetUsd(env.MONTHLY_BUDGET_USD)) {
+    await markModelState(env, 'model_budget', 'failing', `Estimated spend this month: $${spent.toFixed(2)}`);
+    throw new ClaudeUnavailableError('budget');
+  }
   await claimClaudeCall(env);
   const client = getClient(env);
-  const response = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: opts.maxTokens ?? 4096,
-    system: opts.system,
-    tools: [opts.tool],
-    tool_choice: { type: 'tool', name: opts.tool.name },
-    messages: [{ role: 'user', content: opts.userContent }],
-  });
+  let response;
+  try {
+    response = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: opts.maxTokens ?? 4096,
+      system: opts.system,
+      tools: [opts.tool],
+      tool_choice: { type: 'tool', name: opts.tool.name },
+      messages: [{ role: 'user', content: opts.userContent }],
+    });
+  } catch (err) {
+    const failure = classifyModelError(err);
+    if (failure === 'credit' || failure === 'auth') {
+      await markModelState(env, `model_${failure}`, 'failing', err instanceof Error ? err.message.slice(0, 200) : null);
+      throw new ClaudeUnavailableError(failure);
+    }
+    throw err;
+  }
+  // A successful call proves the account works again.
+  await env.DB.prepare(`UPDATE alert_state SET status = 'ok', last_seen_at = ?1 WHERE key IN ('model_credit', 'model_auth') AND status = 'failing'`)
+    .bind(new Date().toISOString())
+    .run()
+    .catch(() => undefined);
+  await recordUsage(env, opts.tool.name, response.usage.input_tokens, response.usage.output_tokens);
 
   if ((response.stop_reason as string) === 'refusal') {
     throw new ClaudeGroundingError('Claude declined to answer (refusal).');

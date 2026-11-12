@@ -121,21 +121,59 @@ about 60 percent of 5 M. If the site outgrows the free plan, Workers Paid ($5 a 
 
 ## Keeping the calculator current (owner routine)
 
-Nothing here costs model calls. The site does the detecting; you do the checking.
+The site watches itself. Nothing here calls the model, so none of it costs credit. You get an email only when something needs a person.
 
-- **What happens by itself.** Daily at 05:00 UTC the Federal Register feed is synced and the change watcher compares each new notice to the
-  curated tables. Weekly, HTS, Schedule B and the four sanctions lists reload (only when the source file changed).
-- **What you will see.** A case that touches Section 232/301/338, USMCA, export controls or CBP fees lists the newer notices under its
-  open issues and shows "review required". `/api/pulse/data-status` shows `pendingNotices` and the age of each curated table.
-- **What to do when notices are pending.** Read each notice (the link is in the case). If it changes a rate, scope, date or rule:
-  edit the curated row in a new migration, verify it against the notice, and set its `data_as_of` to today. That clears every pending
-  alert for the program dated on or before that day. If it changes nothing the calculator models, dismiss it:
-  `npx wrangler d1 execute trade-compliance-db --remote --command "UPDATE curated_change_alerts SET status='dismissed', note='why' WHERE document_number='2026-12345' AND program='sec232'"`
-- **See what is pending:** `npx wrangler d1 execute trade-compliance-db --remote --command "SELECT program, publication_date, title FROM curated_change_alerts WHERE status='pending' ORDER BY publication_date DESC"`
-- **Every October** CBP changes the MPF minimum and maximum. A notice titled "Customs User Fees" raises an alert; update `FEE_SCHEDULE` and
-  `FEE_DATA_AS_OF` in `src/lib/customsFees.ts` from the CBP notice (the current dollar figures were taken from carrier and broker
-  notices, not the CBP notice, so confirm them when you next open that file). Past 2027-09-30 the app gives no MPF dollar figure.
-- **Model spend.** A repeated identical question is served from `model_cache` for 14 days. The accuracy scripts need `--var MODEL_CACHE:off`.
+**What runs by itself**
+- 05:00 UTC daily: Federal Register sync, then the change watcher (new notices on Section 232/301/338, USMCA, export controls and CBP fees; the
+  HTS Chapter 99 lines; amendment dates of 15 CFR 738, 740, 746, 774 and 19 CFR 24 from the eCFR).
+- 06:00 and 07:00 UTC: weekly reloads of HTS, Schedule B and the OFAC, BIS, UN and UK lists, and the country indicators. A reload that would load
+  under 80% of last time's rows is refused and reported (the live table stays as it was).
+- 08:00 UTC: the health check. It looks at what the others did, runs built-in accuracy checks (a few rates, three listed names, duty and license
+  arithmetic), and confirms every database table exists. Mondays it sends a one-page summary.
+- Weekly (GitHub): a bot re-reads the official Commerce Country Chart and opens a pull request if it changed.
+- After each push: a check of the live site (GitHub emails you if it fails).
+
+**The emails and what to do**
+
+| Subject starts with | Meaning | What to do |
+|---|---|---|
+| Needs attention: ... is N days old / has failed N times | A data source stopped refreshing | Check the Worker log; the next daily run retries. A one-off failure is not mailed. |
+| Needs attention: N database tables are missing | A migration was not applied | `npm run db:migrate:remote` |
+| Needs attention: The calculator is paused | The AI account is out of credit, the key was rejected, or the monthly budget was reached | Top up credit, replace the key (`wrangler secret put ANTHROPIC_API_KEY`), or raise `MONTHLY_BUDGET_USD` |
+| Needs attention: built-in accuracy checks failed | A rate, a listed name, or an arithmetic rule gave a different answer | Read the email; either upstream data changed shape or code changed an answer. A really delisted canary name is replaced in `src/lib/canary.ts`. |
+| To review: N Federal Register notices to review | A notice about a program the calculator models is newer than its data | See below |
+| Resolved: ... | A problem above cleared | Nothing |
+
+**When notices are pending.** Read each (the link is in the email). If it changes a rate, scope, date or rule, edit the curated row in a new
+migration, check it against the notice, and set its `data_as_of` to today; that clears every pending alert for the program dated on or before that
+day. If it changes nothing the calculator models, dismiss it:
+`npx wrangler d1 execute trade-compliance-db --remote --command "UPDATE curated_change_alerts SET status='dismissed', note='why' WHERE document_number='2026-12345' AND program='sec232'"`
+To list what is pending: `npx wrangler d1 execute trade-compliance-db --remote --command "SELECT program, publication_date, title FROM curated_change_alerts WHERE status='pending' ORDER BY publication_date DESC"`
+Cases that touch Section 232/301/338, USMCA or export controls show "review required" while a notice for their program is pending. Chapter 99 and
+eCFR alerts come to you only; they do not change any case.
+
+**Country Chart pull request.** The weekly bot's pull request lists each changed country and the test result. Read the changes against the eCFR
+page it links, merge, and the deploy applies the migration (`scripts/sync-country-chart.ts` writes it; to run it by hand:
+`npx tsx scripts/sync-country-chart.ts --write`).
+
+**Dated chores** appear in the Monday summary when within 45 days: the October change to the MPF limits (update `FEE_SCHEDULE` in
+`src/lib/customsFees.ts`), the HTS January revision, the USMCA July anniversary, and the end of the fee schedule (2027-09-30). To add key or
+token expiry dates, set the variable `REMINDER_DATES` to `anthropic key:2027-01-15,cloudflare token:2027-03-01`.
+
+**Model spend.** About $0.02 per model call, about $0.07 to $0.10 for a typical case. Identical questions are answered from a 14-day cache.
+`MONTHLY_BUDGET_USD` (default 30) pauses the calculator when the month's estimate is reached; the Monday summary shows the month so far. The
+accuracy scripts refuse to run without `--confirm-cost`.
+
+### One-time setup (owner)
+1. **Migrations on deploy.** Cloudflare dashboard > Workers & Pages > this Worker > Settings > Build. Set the build command to
+   `npm run build:frontend && npx wrangler d1 migrations apply trade-compliance-db --remote`. If the build fails with a permission error, edit the
+   build token (same page) so it can edit D1 databases.
+2. **Alerts by email.** Cloudflare dashboard > the aexmeridian.com domain > Email > Email Routing > enable it, and add and verify CEO@aexmeridian.com
+   as a destination address. Then in `wrangler.jsonc` remove the comment markers on the `send_email` line and push. Until then the health job writes
+   its messages to the Worker log.
+3. **Uptime monitor** (UptimeRobot, free): check `https://aexterminal.com/api/health` every 5 minutes. It catches the case where the Worker itself is down.
+4. **GitHub:** Settings > Actions > General > allow Actions to create pull requests. Optionally enable auto-merge for Dependabot patch updates.
+5. **Apply the pending migrations** now: `npm run db:migrate:remote` (0027 to 0030).
 
 ## Deploys and schedule
 

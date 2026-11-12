@@ -2,7 +2,7 @@
 // no model. Run: npm run test:unit
 
 import assert from 'node:assert/strict';
-import { programsFor, findNewAlerts, staleness, describeAlerts, programsForOverlays, type WatchedAction } from '../src/lib/curatedWatch.js';
+import { programsFor, findNewAlerts, staleness, describeAlerts, programsForOverlays, latestAmendment, ecfrAlerts, ECFR_PARTS, type WatchedAction } from '../src/lib/curatedWatch.js';
 import { computeEntryFees, FEE_SCHEDULE } from '../src/lib/customsFees.js';
 import { splitOverlaysByDate } from '../src/lib/dutyStack.js';
 import type { TariffOverlayRow } from '../src/lib/db.js';
@@ -136,6 +136,33 @@ test('overlay rows are in force only between their dates', () => {
   assert.deepEqual(inactive.map((i) => i.row.id), [2, 3]);
   assert.match(inactive[0].reason, /takes effect 2026-12-01/);
   assert.match(inactive[1].reason, /expired 2026-10-31/);
+});
+
+// eCFR amendment dates
+test('the newest amendment date is read from an eCFR versions response', () => {
+  assert.equal(latestAmendment({ content_versions: [{ amendment_date: '2025-09-30' }, { amendment_date: '2026-08-28' }, { amendment_date: '2024-01-02' }] }), '2026-08-28');
+});
+test('an empty or malformed eCFR response gives no date', () => {
+  assert.equal(latestAmendment(null), null);
+  assert.equal(latestAmendment({}), null);
+  assert.equal(latestAmendment({ content_versions: [] }), null);
+  assert.equal(latestAmendment({ content_versions: [{ amendment_date: 'soon' }, {}] }), null);
+});
+test('only an amendment newer than the table raises an alert, once', () => {
+  const part = ECFR_PARTS.find((p) => p.part === 774)!;
+  const base = { ear: '2026-09-22' };
+  const old = ecfrAlerts([{ ...part, latest: '2026-08-28' }], { ecfr_ear: base.ear }, new Set());
+  assert.equal(old.length, 0);
+  const fresh = ecfrAlerts([{ ...part, latest: '2026-10-30' }], { ecfr_ear: base.ear }, new Set());
+  assert.equal(fresh.length, 1);
+  assert.equal(fresh[0].program, 'ecfr_ear');
+  assert.match(fresh[0].title, /Commerce Control List.*2026-10-30/);
+  assert.equal(ecfrAlerts([{ ...part, latest: '2026-10-30' }], { ecfr_ear: base.ear }, new Set([`${fresh[0].document_number}:ecfr_ear`])).length, 0);
+});
+test('the fee regulations are checked against the fee schedule date, not the export-control date', () => {
+  const part = ECFR_PARTS.find((p) => p.part === 24)!;
+  assert.equal(part.program, 'ecfr_fees');
+  assert.equal(ecfrAlerts([{ ...part, latest: '2026-10-01' }], { ecfr_ear: '2026-09-22', ecfr_fees: '2026-11-03' }, new Set()).length, 0);
 });
 
 if (failures > 0) {

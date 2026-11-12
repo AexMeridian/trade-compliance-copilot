@@ -11,6 +11,7 @@
 // --runs 2 to measure run-to-run stability. Writes tests/accuracy/last-classification-run.json. Run: npm run test:accuracy:model
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { PER_CALL_USD, requireCostConfirmation } from './costGuard.js';
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
 const args = process.argv.slice(2);
@@ -48,7 +49,7 @@ if (!health?.ok) {
   console.error(`Cannot reach ${BASE}. Start wrangler dev first.`);
   process.exit(1);
 }
-console.log(`${items.length} products x ${runs} run(s) = ${items.length * runs} model calls${skip ? ` (resuming after ${skip} saved)` : ''}`);
+requireCostConfirmation(args, items.length * runs, PER_CALL_USD.classification, `classification${skip ? ` (resuming after ${skip} saved)` : ''}`);
 
 type Row = { description: string; expected: string | null; runs: { code: string | null; ambiguous: boolean; outcome: string }[] };
 const rows: Row[] = skip ? (JSON.parse(readFileSync('tests/accuracy/last-classification-run.json', 'utf8')) as Row[]).slice(0, skip) : [];

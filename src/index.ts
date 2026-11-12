@@ -10,7 +10,8 @@ import { screeningRoute } from './routes/screening.js';
 import { determinationRoute } from './routes/determination.js';
 import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
-import { ClaudeDailyCapError } from './lib/anthropic.js';
+import { ClaudeDailyCapError, ClaudeUnavailableError } from './lib/anthropic.js';
+import { UNAVAILABLE_MESSAGE } from './lib/modelSpend.js';
 import { servePage } from './pages.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
@@ -191,6 +192,10 @@ app.get('/api/health', async (c) => {
 app.get('*', servePage);
 
 app.onError((err, c) => {
+  if (err instanceof ClaudeUnavailableError) {
+    c.header('Retry-After', '3600');
+    return c.json({ error: UNAVAILABLE_MESSAGE[err.reason] }, 503);
+  }
   if (err instanceof ClaudeDailyCapError) {
     return c.json({ error: 'The calculator has reached its daily capacity for AI-assisted checks. Please try again tomorrow.' }, 503);
   }
