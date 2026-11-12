@@ -21,6 +21,8 @@ Last updated: 2026-11-11
 - Monthly calculator budget: default is $30 (`MONTHLY_BUDGET_USD` in the Worker variables). Tell Claude the number you want.
 - Key and token expiry reminders: set `REMINDER_DATES` to e.g. `anthropic key:2027-01-15,cloudflare token:2027-03-01` to have them listed in the Monday summary.
 
+- Soft Power data that needs a free key (UN Comtrade for bilateral trade; optionally IATI for aid by recipient): say if you want them, then create the free account and run `wrangler secret put <NAME>`. Claude will name the secret. Also ask RSF (rsf.org) in writing what reuse they allow for the Press Freedom Index; if they confirm open reuse, it can be added.
+
 ## Recurring (when an email or reminder arrives)
 
 - **Pending law notices.** When an email says notices are pending, read each one (the link is in the email). If it changes a rate, scope or date the calculator uses, tell Claude; it edits the curated rows. If not, dismiss it (command in `docs/OPERATIONS.md`). Nine are pending in the local copy, including new Section 232 actions on robotics and wind turbines.

@@ -3,8 +3,9 @@ import { Sparkline } from '../components/Sparkline';
 import { StatTile } from '../components/StatTile';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type TicHolders as TicData } from '../lib/api';
+import { getPower, getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type PowerIndicator, type TicHolders as TicData } from '../lib/api';
 import { TicHolders } from '../components/TicHolders';
+import { IndicatorExplorer } from '../components/IndicatorExplorer';
 import { NatoSpendingBars } from '../components/NatoSpendingBars';
 import { SanctionsLeaders } from '../components/SanctionsLeaders';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
@@ -70,6 +71,7 @@ export function HardPower() {
   const [error, setError] = useState<string | null>(null);
   const [sanctionsCountry, setSanctionsCountry] = useState<string>('');
   const [policyChecked, setPolicyChecked] = useState<string | null>(null);
+  const [power, setPower] = useState<PowerIndicator[]>([]);
 
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
@@ -125,6 +127,18 @@ export function HardPower() {
     if (!home.summary && !home.recent) throw new Error('The latest data could not be loaded.');
   }, []);
 
+  // The country measures that sit on the hard-power side (economic weight, investment, high-tech trade, defense), from the same weekly
+  // indicator store the Soft Power page reads.
+  useEffect(() => {
+    let cancelled = false;
+    getPower(['US', 'CN'])
+      .then((r) => !cancelled && setPower(r.indicators.filter((i) => i.dimension === 'hard_power')))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     loadAll()
       .catch((e) => setError((e as Error).message))
@@ -149,6 +163,7 @@ export function HardPower() {
   const politicalNews = (news?.items ?? []).filter((n) => n.category === 'Elections & Politics' || n.category === 'Official');
   const headline = politicalNews[0] ?? null;
   const tilesIn = (group: string) => (markets?.tiles ?? []).filter((t) => t.group === group);
+  const isDefense = (id: string) => id.startsWith('military_');
   const loadingBlock = <p className="text-sm text-ink-faint">Loading…</p>;
   const seeAll = (label: string, to: HardTabId) => (
     <button type="button" onClick={() => setTab(to, true)} className="mt-3 text-[13px] text-accent hover:underline">
@@ -556,6 +571,15 @@ export function HardPower() {
                 </div>
               </section>
 
+              {power.some((i) => !isDefense(i.id)) && (
+                <IndicatorExplorer
+                  tone="hard"
+                  heading="Economic weight and reach"
+                  blurb="Size, trade, investment and high-technology exports: what a country can pay for, buy or withhold. Pick a measure to see every country ranked."
+                  indicators={power.filter((i) => !isDefense(i.id))}
+                />
+              )}
+
               <p className="text-xs leading-relaxed text-ink-faint">
                 Reserve-share data is the IMF's COFER series, published quarterly with roughly a one-quarter lag. Currency rates are the ECB's daily reference rates,
                 published once per business day.
@@ -583,6 +607,10 @@ export function HardPower() {
                 >
                   <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />
                 </PulsePanel>
+              )}
+
+              {power.some((i) => isDefense(i.id)) && (
+                <IndicatorExplorer tone="hard" heading="Military spending, every country" blurb="What each government spends on its armed forces, in dollars and as a share of its economy." indicators={power.filter((i) => isDefense(i.id))} />
               )}
 
               {activeCountry && (

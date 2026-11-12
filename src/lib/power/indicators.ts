@@ -42,7 +42,7 @@ export const DIMENSIONS: DimensionInfo[] = [
   { id: 'knowledge', label: 'Knowledge and technology', blurb: 'Research and innovation that other countries want to be near.' },
   { id: 'ties', label: 'Ties and exchange', blurb: 'The people, money and visits that connect a country to others. These are the footprints of attraction, not proof of it.' },
   { id: 'alignment', label: 'Voting at the United Nations', blurb: 'How closely a country’s votes in the General Assembly track the United States, China and Russia. A behavior, not an opinion.' },
-  { id: 'hard_power', label: 'Hard-power context', blurb: 'Economic and military weight, shown for contrast with the rest.' },
+  { id: 'hard_power', label: 'Hard-power context', blurb: 'Economic and military weight: money, investment, exports of high technology, and defense. These are what a state can pay or compel with, shown for contrast with the soft-power measures.' },
 ];
 export const DIMENSION_LABELS = Object.fromEntries(DIMENSIONS.map((d) => [d.id, d.label])) as Record<Dimension, string>;
 
@@ -116,7 +116,7 @@ export const INDICATORS: IndicatorDef[] = [
     higherIs: 'a larger share of GDP spent on research', minCountries: 80,
   },
   {
-    id: 'hightech_exports', provider: 'worldbank', code: 'TX.VAL.TECH.MF.ZS', label: 'High-technology exports', unit: 'pct', dimension: 'knowledge',
+    id: 'hightech_exports', provider: 'worldbank', code: 'TX.VAL.TECH.MF.ZS', label: 'High-technology exports', unit: 'pct', dimension: 'hard_power',
     definition: 'High-technology exports as a percentage of manufactured exports.',
     caveat: 'Re-exports and assembly can raise it without domestic invention.',
     higherIs: 'a larger high-tech share of manufactured exports', minCountries: 100,
@@ -128,13 +128,13 @@ export const INDICATORS: IndicatorDef[] = [
     higherIs: 'a larger share online', minCountries: 150,
   },
   {
-    id: 'ip_receipts', provider: 'worldbank', code: 'BX.GSR.ROYL.CD', label: 'Intellectual-property receipts', unit: 'usd', dimension: 'knowledge',
+    id: 'ip_receipts', provider: 'worldbank', code: 'BX.GSR.ROYL.CD', label: 'Intellectual-property receipts', unit: 'usd', dimension: 'hard_power',
     definition: 'Charges received for the use of intellectual property (patents, trademarks, copyrights, franchises, media and film rights), current US dollars.',
     caveat: 'Includes payments between branches of one company, which can move with tax planning, so large figures partly reflect where firms book their rights.',
     higherIs: 'more earned from licensing', minCountries: 100,
   },
   {
-    id: 'ict_exports', provider: 'worldbank', code: 'BX.GSR.CCIS.CD', label: 'ICT service exports', unit: 'usd', dimension: 'knowledge',
+    id: 'ict_exports', provider: 'worldbank', code: 'BX.GSR.CCIS.CD', label: 'ICT service exports', unit: 'usd', dimension: 'hard_power',
     definition: 'Exports of computer, communications and information services, current US dollars.',
     caveat: 'Counts what a country sells abroad, not what others think of it. Outsourcing hubs and platform headquarters both rank high.',
     higherIs: 'more exported', minCountries: 120,
@@ -162,6 +162,73 @@ export const INDICATORS: IndicatorDef[] = [
     definition: 'How unequally income is spread: 0 means everyone has the same income and 100 means one person has it all.',
     caveat: 'Surveys differ in method and year across countries, and many countries have no recent reading, so the ranking covers fewer countries than most.',
     higherIs: 'more unequal incomes', minCountries: 60,
+  },
+  // More World Development Indicators (checked live against the Indicators API; each returns all 266 areas).
+  {
+    id: 'tourism_receipts', provider: 'worldbank', code: 'ST.INT.RCPT.CD', label: 'International tourism receipts', unit: 'usd', dimension: 'hard_power',
+    definition: 'Expenditure by international inbound visitors, including payments to carriers for transport, current US dollars.',
+    caveat: 'Money spent by visitors, not what they think of the country. Large economies and cheap-to-visit ones can both rank high for different reasons.',
+    higherIs: 'more spent by visitors', minCountries: 100,
+  },
+  {
+    id: 'fdi_inflows', provider: 'worldbank', code: 'BX.KLT.DINV.CD.WD', label: 'Foreign direct investment received', unit: 'usd', dimension: 'hard_power',
+    definition: 'Net inflows of investment by foreign owners seeking a lasting stake in a firm, current US dollars.',
+    caveat: 'Swings from year to year and is distorted by financial hubs that pass money through. A negative value means investors withdrew more than they put in.',
+    higherIs: 'more foreign investment received', minCountries: 120,
+  },
+  {
+    id: 'net_migration', provider: 'worldbank', code: 'SM.POP.NETM', label: 'Net migration', unit: 'count', dimension: 'ties',
+    definition: 'People arriving minus people leaving over five years (UN Population Division estimates), including those who moved by force.',
+    caveat: 'Reflects wars, disasters and labour demand as much as attraction. A negative value means more people left than arrived.',
+    higherIs: 'more people arriving than leaving', minCountries: 150,
+  },
+  {
+    id: 'tertiary_enrollment', provider: 'worldbank', code: 'SE.TER.ENRR', label: 'Tertiary school enrollment', unit: 'pct', dimension: 'culture',
+    definition: 'Total enrollment in tertiary education, as a percentage of the population in the five years after secondary school. It can exceed 100%.',
+    caveat: 'Counts those enrolled, whatever their nationality, and says nothing about the quality of what is taught.',
+    higherIs: 'more of the age group enrolled', minCountries: 120,
+  },
+  {
+    id: 'education_spending', provider: 'worldbank', code: 'SE.XPD.TOTL.GD.ZS', label: 'Government education spending', unit: 'pct', dimension: 'culture',
+    definition: 'General government spending on education, as a percentage of GDP.',
+    caveat: 'Measures effort, not results. Many countries report only in some years.',
+    higherIs: 'a larger share of GDP spent on education', minCountries: 100,
+  },
+  {
+    id: 'patents_nonresident', provider: 'worldbank', code: 'IP.PAT.NRES', label: 'Patent applications by non-residents', unit: 'count', dimension: 'hard_power',
+    definition: 'Patent applications filed at the country’s patent office by people based abroad.',
+    caveat: 'Shows where foreign firms want protection, which follows market size as much as innovation. Filing habits and fees differ.',
+    higherIs: 'more foreign filings', minCountries: 100,
+  },
+  {
+    id: 'ip_payments', provider: 'worldbank', code: 'BM.GSR.ROYL.CD', label: 'Intellectual-property payments', unit: 'usd', dimension: 'hard_power',
+    definition: 'Charges paid to others for the use of intellectual property (patents, trademarks, copyrights, franchises, media and film rights), current US dollars.',
+    caveat: 'Includes payments between branches of one company, which can move with tax planning. Read it beside receipts, not alone.',
+    higherIs: 'more paid for foreign licences', minCountries: 100,
+  },
+  {
+    id: 'hightech_exports_usd', provider: 'worldbank', code: 'TX.VAL.TECH.CD', label: 'High-technology exports (dollars)', unit: 'usd', dimension: 'hard_power',
+    definition: 'Exports of products with high research intensity (aerospace, computers, pharmaceuticals, instruments), current US dollars.',
+    caveat: 'Re-exports and assembly can raise it without domestic invention. The share of manufactured exports is shown separately.',
+    higherIs: 'more high-tech exports', minCountries: 100,
+  },
+  {
+    id: 'life_expectancy', provider: 'worldbank', code: 'SP.DYN.LE00.IN', label: 'Life expectancy at birth', unit: 'points', dimension: 'political_values',
+    definition: 'Years a newborn would live if today’s death rates held through life.',
+    caveat: 'A result of income, health care and conflict, not a judgement of a political system.',
+    higherIs: 'longer expected lives', minCountries: 180,
+  },
+  {
+    id: 'women_labor_force', provider: 'worldbank', code: 'SL.TLF.CACT.FE.ZS', label: 'Women in the labor force', unit: 'pct', dimension: 'political_values',
+    definition: 'Women aged 15 and over who are working or looking for work, as a percentage of all women that age (modeled ILO estimate).',
+    caveat: 'A modeled estimate. High values can reflect necessity in poor economies as well as opportunity.',
+    higherIs: 'a larger share of women in the labor force', minCountries: 150,
+  },
+  {
+    id: 'health_spending', provider: 'worldbank', code: 'SH.XPD.CHEX.GD.ZS', label: 'Health spending', unit: 'pct', dimension: 'political_values',
+    definition: 'Current health expenditure, public and private, as a percentage of GDP.',
+    caveat: 'Measures how much is spent, not how well. Wealthier countries tend to spend a larger share.',
+    higherIs: 'a larger share of GDP spent on health', minCountries: 150,
   },
   // Human Development Index and its parts (UNDP). Shown to two decimals, which the 'distance' unit already does.
   {

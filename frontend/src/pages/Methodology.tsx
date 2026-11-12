@@ -131,7 +131,7 @@ const SOURCES: SourceRow[] = [
     keys: ['world_bank'],
   },
   {
-    name: 'Country indicators (aid, exchange, knowledge, governance, military)',
+    name: 'Country indicators (aid, exchange, tourism, investment, knowledge, health, governance, military)',
     publisher: 'The World Bank, World Development Indicators and Worldwide Governance Indicators',
     url: 'https://data.worldbank.org/',
     terms: 'Licensed CC BY 4.0; attribution required. Figures are shown as published, with their year; nothing is estimated or combined into a score.',

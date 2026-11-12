@@ -111,7 +111,7 @@ const BULK_JOBS: SizedJob[] = [
 // waits for the next day instead of failing with "too many subrequests".
 const INDICATOR_JOBS: SizedJob[] = [
   { source: 'world_bank', run: refreshWorldBank, typicalRows: 400, fetches: 2 },
-  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 35, fetches: 7 },
+  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 50, fetches: 9 },
   { source: 'un_voting', run: refreshUnVoting, typicalRows: 1, fetches: 2 },
   { source: 'uis_students', run: refreshUisStudents, typicalRows: 2, fetches: 2 },
   { source: 'unhcr', run: refreshUnhcr, typicalRows: 1, fetches: 2 },

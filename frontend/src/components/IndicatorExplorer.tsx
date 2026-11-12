@@ -18,12 +18,17 @@ export function IndicatorExplorer({
   heading,
   blurb,
   codes = ['US', 'CN'],
+  tone = 'soft',
 }: {
   indicators: PowerIndicator[];
   heading: string;
   blurb: string;
   codes?: string[];
+  tone?: 'soft' | 'hard';
 }) {
+  const T = tone === 'hard'
+    ? { bar: 'bg-hard', mark: 'bg-hue-cyan', tint: 'bg-hard-tint', card: 'hover:border-hard', on: 'border-hard bg-hard-tint' }
+    : { bar: 'bg-soft', mark: 'bg-hue-orange', tint: 'bg-soft-tint', card: 'hover:border-soft', on: 'border-soft bg-soft-tint' };
   const shown = useMemo(() => indicators.filter((i) => i.distribution.length > 0), [indicators]);
   const uid = useId();
   const detailRef = useRef<HTMLDivElement>(null);
@@ -57,7 +62,7 @@ export function IndicatorExplorer({
         {nameFor(cc)}
       </button>
       <span className="h-2.5 min-w-0 flex-1 rounded-full bg-hairline" aria-hidden="true">
-        <span className={`block h-2.5 rounded-full ${highlight ? 'bg-hue-orange' : 'bg-soft'}`} style={{ width: width(v) }} />
+        <span className={`block h-2.5 rounded-full ${highlight ? T.mark : T.bar}`} style={{ width: width(v) }} />
       </span>
       <span className="w-24 shrink-0 text-right tabular-nums text-ink">{formatValue(ind.unit, v)}</span>
     </li>
@@ -71,7 +76,7 @@ export function IndicatorExplorer({
       <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-muted">{blurb}</p>
 
       <div ref={detailRef} className="card mt-4 scroll-mt-28 overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline bg-soft-tint px-4 py-3">
+        <div className={`flex flex-wrap items-start justify-between gap-3 border-b border-hairline ${T.tint} px-4 py-3`}>
           <div className="min-w-0">
             <p className="font-display text-lg font-bold leading-tight text-ink">{ind.label}</p>
             <p className="mt-0.5 text-[13px] text-ink-muted">
@@ -161,7 +166,7 @@ export function IndicatorExplorer({
                 type="button"
                 aria-pressed={on}
                 onClick={() => choose(i.id)}
-                className={`card flex h-full w-full min-w-0 flex-col gap-2 p-3 text-left transition-colors hover:border-soft ${on ? 'border-soft bg-soft-tint' : ''}`}
+                className={`card flex h-full w-full min-w-0 flex-col gap-2 p-3 text-left transition-colors ${T.card} ${on ? T.on : ''}`}
               >
                 <span className="line-clamp-2 min-h-[2.5rem] text-[14px] font-semibold leading-snug text-ink">{i.label}</span>
                 <span className="grid grid-cols-2 gap-2">

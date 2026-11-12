@@ -47,6 +47,11 @@ const LEFT_OUT: { measure: string; why: Why; reason: string }[] = [
     reason: 'Published in Pew’s reports as charts. They need careful, checked entry before they can be shown, so they are not here yet.',
   },
   {
+    measure: 'Press freedom',
+    why: 'Licence',
+    reason: "Reporters Without Borders publishes a yearly score for 180 countries as an open CSV, but we could not find a statement of what reuse it allows. Our World in Data republishes it under CC BY, but only to 2021. It stays off the page until RSF's terms are confirmed.",
+  },
+  {
     measure: 'Brand Finance Global Soft Power Index',
     why: 'Licence',
     reason: 'The best-known composite ranking of nations (U.S. 74.9 and China 73.5 in 2026). Its terms say the data may not be used in part or in full for commercial purposes without written permission, so it stays off the page until Brand Finance agrees. The index is also a composite built from weights this site does not control.',
