@@ -3,7 +3,7 @@
 Everything that Claude Code and VS Code cannot do on their own: dashboard settings, account actions, decisions and reviews that need a person.
 Claude keeps this file current. When a new item comes up it is added here, and when you finish one it moves to "Done".
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 ## Do now
 
@@ -16,12 +16,25 @@ Last updated: 2026-11-11
 | 5 | Add an uptime monitor | UptimeRobot (free): check `https://aexterminal.com/api/health` every 5 minutes | Catches the Worker itself being down, which it cannot report about itself. |
 | 6 | Replace the exposed API keys | Anthropic console: revoke old keys. Then `wrangler secret put ANTHROPIC_API_KEY` | Keys pasted into chats should be treated as compromised. |
 
+## API keys and secrets
+
+Keys are never put in the repo or pasted into chat. Set each one in the terminal with `npx wrangler secret put NAME` (it prompts for the value), or in Cloudflare dashboard > Workers & Pages > this Worker > Settings > Variables and Secrets.
+
+| Name | Needed? | Where to get it | What it powers |
+|---|---|---|---|
+| `ANTHROPIC_API_KEY` | Required (already set; replace it, see do-now item 6) | console.anthropic.com > API keys. Use a new key limited to this project and set a spend limit there. | The four calculator steps. The only thing that spends credit. |
+| Cloudflare API token (build) | Only if the build command change (do-now item 2) fails on permissions | Cloudflare dashboard > My Profile > API Tokens: edit the existing Workers Builds token to include "D1: Edit". | Applying migrations on deploy. |
+| `COMTRADE_API_KEY` | Optional, only if you want trade partners on Soft Power. Not built yet; tell Claude to start it. | comtradedeveloper.un.org: free account, subscribe to the free API product, copy the primary key. | Bilateral trade ("top trading partners") |
+| `IATI_API_KEY` | Optional, only for aid by recipient. Not built yet. | iatiregistry.org / the IATI Datastore: free account and key. | Who gives aid to whom |
+
+Nothing else needs a key today: Treasury, Federal Register, eCFR, World Bank, UNHCR, UNDP, OpenAlex and the other feeds are keyless. When a new source needs a key, it is added to this table.
+
 ## Decisions
 
 - Monthly calculator budget: default is $30 (`MONTHLY_BUDGET_USD` in the Worker variables). Tell Claude the number you want.
 - Key and token expiry reminders: set `REMINDER_DATES` to e.g. `anthropic key:2027-01-15,cloudflare token:2027-03-01` to have them listed in the Monday summary.
 
-- Soft Power data that needs a free key (UN Comtrade for bilateral trade; optionally IATI for aid by recipient): say if you want them, then create the free account and run `wrangler secret put <NAME>`. Claude will name the secret. Also ask RSF (rsf.org) in writing what reuse they allow for the Press Freedom Index; if they confirm open reuse, it can be added.
+- Soft Power data that needs a free key: say if you want UN Comtrade or IATI (see the key table above). Also ask RSF (rsf.org) in writing what reuse they allow for the Press Freedom Index; if they confirm open reuse, it can be added.
 
 ## Recurring (when an email or reminder arrives)
 

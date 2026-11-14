@@ -1,0 +1,57 @@
+/* Theme: midnight navy and champagne gold, on a white (light) / near-black (dark) base.
+   Chosen from the design explorations (design-explorations/v4a-midnight-champagne). Loaded after index.css, so these values replace the
+   neutral and accent tokens defined there; the structure (token names, classes) is unchanged. To revert to the previous look, remove the
+   import of this file from main.tsx. */
+:root:not([data-theme='dark']){
+  --color-paper:#ffffff; --color-paper-raised:#ffffff;
+  --color-ink:#101216; --color-ink-muted:#3a3f4a; --color-ink-faint:#5a606c;
+  --color-hairline:#e5e6ea; --color-hairline-strong:#7d8290;
+  --color-accent:#13264a; --color-accent-hover:#0b1a36; --color-accent-soft:#eef0f5;
+  --color-accent-2:#d8c08a; --color-accent-2-ink:#6f5a20; --color-accent-2-soft:#f8f0da;
+  --color-mark:#13264a;
+  --color-hue-indigo:#13264a; --color-hue-indigo-ink:#13264a;
+  --color-hue-blue-ink:#13264a;
+  --color-hue-cyan:#d8c08a; --color-hue-cyan-ink:#6f5a20; --color-soft:#0e7a76; --color-soft-tint:#e2f2f1;
+  --color-hard:#b8480f; --color-hard-tint:#fbece2;
+  --color-hero-bg:#0e1a33; --color-hero-ink:#ffffff; --color-hero-ink-muted:#cfd6e4; --color-hero-ink-faint:#a3adc4;
+  --color-hero-border:rgba(255,255,255,.28); --color-hero-border-strong:rgba(255,255,255,.6); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
+  --color-hero-btn-bg:#d8c08a; --color-hero-btn-text:#10131c; --color-hero-btn-hover:#e8d3a0;
+  --hero-mask-rgb:14,26,51; --hero-glow-rgb:216,192,138; --hero-halo-2:radial-gradient(circle at 80% 84%, rgba(216,192,138,.2) 0%, rgba(216,192,138,0) 52%); --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
+  }
+:root[data-theme='dark']{
+  --color-paper:#0c0d10; --color-paper-raised:#16181d;
+  --color-ink:#f3f4f6; --color-ink-muted:#c0c4ce; --color-ink-faint:#8f95a3;
+  --color-hairline:#25272e; --color-hairline-strong:#4b4f5b;
+  --color-accent:#e8d3a0; --color-accent-hover:#efd085; --color-accent-soft:#2a2312;
+  --color-accent-2:#e8d3a0; --color-accent-2-ink:#e8c875; --color-accent-2-soft:#2a2312;
+  --color-mark:#e6e8ee;
+  --color-hue-indigo:#e8d3a0; --color-hue-indigo-ink:#e8d3a0;
+  --color-hue-blue-ink:#e8d3a0;
+  --color-hue-cyan:#e8d3a0; --color-hue-cyan-ink:#e8d3a0; --color-soft:#3dcfc9; --color-soft-tint:#0d2827;
+  --color-hard:#fb923c; --color-hard-tint:#33200f;
+  --color-hero-bg:#0a1226; --color-hero-ink:#fff; --color-hero-ink-muted:#cfd6e4; --color-hero-ink-faint:#a3adc4;
+  --color-hero-border:rgba(255,255,255,.28); --color-hero-border-strong:rgba(255,255,255,.6); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
+  --color-hero-btn-bg:#e8d3a0; --color-hero-btn-text:#10131c; --color-hero-btn-hover:#efd085;
+  --hero-mask-rgb:10,18,38; --hero-glow-rgb:224,187,98; --hero-halo-2:none; --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
+  }
+:root:not([data-theme='dark']) .stage{--color-hero-bg:#05070d}
+::selection{background:#e8d9ac}
+header.sticky{border-image:none;border-bottom:3px solid #d8c08a}
+footer{background-image:none}
+.edge-glow{background-image:none;background:#d8c08a}
+.page-glow::before{background-image:none}
+.btn-primary{background-image:none;box-shadow:none}
+.card-accent::before{background:var(--glow,var(--color-accent))}
+.card{box-shadow:0 1px 2px rgba(15,17,22,.06);border-color:var(--color-hairline);border-radius:6px}
+.card:hover{border-color:var(--color-hairline-strong)}
+
+div.no-print.border-b{background:#0e1a33;border-color:#0e1a33;--color-ink:#fff;--color-ink-muted:#dbe1ee;--color-ink-faint:#b9c2d6;--color-clear:#4ade80;--color-stop:#ff8478;--color-hairline:#2b3a5e}
+:root[data-theme='dark'] .btn-primary{color:#10131c}
+:root:not([data-theme='dark']) .btn-primary{color:#fff}
+.card-accent::before{background:#d8c08a}
+footer{background:#0e1a33;color:#cfd6e4;--color-ink:#fff;--color-ink-muted:#cfd6e4;--color-mark:#e6c777;--color-hairline:#2b3a5e;border-top:3px solid #d8c08a}
+[role=tablist] [role=tab]{border-radius:2px}
+
+section.bg-hero-bg:not(.stage){background-image:radial-gradient(120% 90% at 85% 0%,#1d3a73 0%,#0e1a33 55%,#0a1226 100%)}
+footer{background-image:linear-gradient(180deg,#0e1a33,#0a1226)}
+.card{border-radius:10px;box-shadow:0 12px 28px -18px rgba(14,26,51,.35)}
