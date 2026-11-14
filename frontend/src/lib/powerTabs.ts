@@ -12,7 +12,7 @@ export type SoftTabId = 'scoreboard' | 'overview' | 'attitudes' | 'culture' | 'v
 
 export const HARD_TABS: TabDef<HardTabId>[] = [
   { id: 'overview', label: 'Overview', hint: 'The short version', border: 'border-ink' },
-  { id: 'trade', label: 'Trade tools', hint: 'Tariffs, export controls and the notices behind them', border: 'border-hue-orange' },
+  { id: 'trade', label: 'Trade tools', hint: 'Tariffs, export controls and the notices behind them', border: 'border-hard' },
   { id: 'sanctions', label: 'Sanctions', hint: 'Browse the OFAC and Commerce/State sanctioned-entity lists by country', border: 'border-hue-violet' },
   { id: 'money', label: 'Money & dollar', hint: "The dollar's reserve share, who holds U.S. debt, and currency moves", border: 'border-hue-indigo' },
   { id: 'military', label: 'Military & alliances', hint: 'NATO, G7, G20, BRICS and USMCA membership, and defense spending', border: 'border-hue-pink' },

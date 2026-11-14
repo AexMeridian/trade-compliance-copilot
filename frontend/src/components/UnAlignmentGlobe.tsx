@@ -84,8 +84,8 @@ export function UnAlignmentGlobe() {
   if (!data || data.years.length === 0) return <p className="text-sm text-ink-faint">{data ? 'The UN voting data has not been loaded yet.' : 'Loading…'}</p>;
 
   return (
-    <div className="card min-w-0 overflow-hidden px-0 pb-4 pt-0">
-      <div className="stage relative isolate bg-hero-bg px-3 pb-4 pt-5 text-hero-ink">
+    <div className="min-w-0">
+      <div className="stage un-stage relative isolate overflow-hidden rounded-2xl px-3 pb-6 pt-6 text-hero-ink sm:px-8">
         <div className="mx-auto w-full max-w-[560px]">
           <Suspense fallback={<div className="mx-auto aspect-square w-full rounded-full border border-hero-border" aria-hidden="true" />}>
             <PulseGlobe
@@ -101,12 +101,9 @@ export function UnAlignmentGlobe() {
             />
           </Suspense>
         </div>
-      </div>
-
-      <div className="px-4 pt-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <label htmlFor="un-year" className="text-sm font-semibold text-ink">
-            Year: <span className="tabular-nums">{year}</span>
+        <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2 border-t border-hero-divider pt-4">
+          <label htmlFor="un-year" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-hero-ink-muted">
+            Year <span className="ml-1 text-lg tracking-normal tabular-nums text-hero-ink">{year}</span>
           </label>
           <input
             id="un-year"
@@ -117,13 +114,15 @@ export function UnAlignmentGlobe() {
             value={idx}
             onChange={(e) => setYearIdx(Number(e.target.value))}
             aria-valuetext={String(year)}
-            className="min-w-[10rem] flex-1 accent-[var(--color-accent)]"
+            className="min-w-[10rem] flex-1 accent-[var(--color-hero-btn-bg)]"
           />
-          <span className="text-xs text-ink-faint">
+          <span className="text-xs tabular-nums text-hero-ink-faint">
             {data.years[0]} to {data.years[data.years.length - 1]}
           </span>
         </div>
+      </div>
 
+      <div className="px-1 pt-5 sm:px-2">
         {view ? (
           <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-ink-muted" aria-live="polite">
             In {year}, of {view.total} other countries with a recorded vote, {view.counts.us + view.counts.leanUs} voted nearer the United States' position, {view.counts.china + view.counts.leanChina}{' '}

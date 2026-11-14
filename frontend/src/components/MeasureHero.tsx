@@ -29,6 +29,7 @@ export function MeasureHero<T extends string>({
   syncing,
   updatedText,
   ready,
+  centered = false,
 }: {
   title: string;
   sub: string;
@@ -44,6 +45,8 @@ export function MeasureHero<T extends string>({
   syncing?: boolean;
   updatedText?: string;
   ready: boolean;
+  /** Vertically centers the figure beside a tall picture (the soft-power globe). */
+  centered?: boolean;
 }) {
   const current = measures.find((m) => m.id === active) ?? measures[0];
   const countries = Object.keys(COUNTRY_LABELS).sort((a, b) => COUNTRY_LABELS[a].localeCompare(COUNTRY_LABELS[b]));
@@ -57,12 +60,13 @@ export function MeasureHero<T extends string>({
           <MeasureSwitcher measures={measures} active={current.id} onChange={onMeasure} label="Measure to show" />
         </div>
 
-        <div id="measure-panel" role="tabpanel" aria-live="polite" className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
+        <div id="measure-panel" role="tabpanel" aria-live="polite" className={`mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12 ${centered ? 'lg:items-center' : ''}`}>
           <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-hero-btn-bg)]">{ready ? current.label : 'Loading'}</p>
             <p className="display text-5xl leading-none tabular-nums sm:text-6xl">{ready ? current.figure : '…'}</p>
             <div className="mt-3 max-w-sm text-[15px] leading-snug text-hero-ink-muted">{ready ? current.caption : 'Loading the latest numbers.'}</div>
           </div>
-          <div className="min-w-0">{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
+          <div className={`min-w-0 ${centered ? 'lg:-mr-12 lg:-mt-10' : ''}`}>{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">

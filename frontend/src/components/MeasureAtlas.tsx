@@ -72,8 +72,8 @@ export function MeasureAtlas({
 
   return (
     <div className="min-w-0">
-      <div className={`stage relative isolate overflow-hidden rounded-sm bg-hero-bg px-2 pb-3 pt-3 text-hero-ink ${compact ? '' : 'sm:px-4'}`}>
-        <div className={`mx-auto w-full ${compact ? 'max-w-[520px]' : 'max-w-[640px]'}`}>
+      <div className="stage globe-open relative isolate text-hero-ink">
+        <div className={`mx-auto w-full ${compact ? 'max-w-[520px]' : 'max-w-[580px]'}`}>
           <Suspense fallback={<div className="mx-auto aspect-square w-full rounded-full border border-hero-border" aria-hidden="true" />}>
             <PulseGlobe
               plain
@@ -89,12 +89,12 @@ export function MeasureAtlas({
           </Suspense>
         </div>
       </div>
-      <details className="mt-2 text-xs text-ink-faint">
-        <summary className="cursor-pointer font-semibold hover:text-ink">The same numbers as a table ({entries.length} countries)</summary>
-        <div className="mt-2 max-h-64 overflow-auto border border-hairline">
+      <details className="mt-3 text-xs text-hero-ink-faint">
+        <summary className="cursor-pointer font-semibold hover:text-hero-ink">The same numbers as a table ({entries.length} countries)</summary>
+        <div className="mt-2 max-h-64 overflow-auto border border-hero-border bg-hero-card-bg">
           <table className="w-full text-left text-[13px]">
             <caption className="sr-only">{measure.label}, by country</caption>
-            <thead className="sticky top-0 bg-paper-raised text-ink-faint">
+            <thead className="sticky top-0 bg-hero-bg text-hero-ink-faint">
               <tr>
                 <th scope="col" className="px-2 py-1 font-semibold">Country</th>
                 <th scope="col" className="px-2 py-1 font-semibold">{measure.label}</th>
@@ -102,9 +102,9 @@ export function MeasureAtlas({
             </thead>
             <tbody>
               {table.map(([cc, v]) => (
-                <tr key={cc} className="border-t border-hairline/60">
-                  <th scope="row" className="px-2 py-1 font-normal text-ink-muted">{nameFor(cc)}</th>
-                  <td className="px-2 py-1 tabular-nums text-ink">{measure.format(v)}</td>
+                <tr key={cc} className="border-t border-hero-divider">
+                  <th scope="row" className="px-2 py-1 font-normal text-hero-ink-muted">{nameFor(cc)}</th>
+                  <td className="px-2 py-1 tabular-nums text-hero-ink">{measure.format(v)}</td>
                 </tr>
               ))}
             </tbody>

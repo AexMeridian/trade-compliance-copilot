@@ -191,6 +191,7 @@ export function SoftPowerHero({
       card={card}
       primary={{ label: 'See what people say', onClick: onExplore }}
       ready={built.length > 0}
+      centered
     />
   );
 }

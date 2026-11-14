@@ -438,6 +438,13 @@ export function PulseGlobe({
       lit.addColorStop(0.88, '#dce3ec');
       lit.addColorStop(1, '#c6d0dd');
       ctx.fillStyle = lit;
+    } else if (plain && theme === 'dark') {
+      // Open (unboxed) maps: a deep navy sea, a touch lighter toward the upper left, so the sphere belongs to the navy page behind it.
+      const sea = ctx.createRadialGradient(size / 2 - r * 0.35, size / 2 - r * 0.4, r * 0.05, size / 2, size / 2, r * 1.02);
+      sea.addColorStop(0, '#16284f');
+      sea.addColorStop(0.6, '#0c1936');
+      sea.addColorStop(1, '#070e22');
+      ctx.fillStyle = sea;
     } else {
       ctx.fillStyle = palette.ocean;
     }
@@ -649,7 +656,7 @@ export function PulseGlobe({
         ctx.globalAlpha = 1;
       }
     }
-  }, [world, size, projection, graticuleRings, hittable, activeCountry, colorFor, theme, activeArcs]);
+  }, [world, size, projection, graticuleRings, hittable, activeCountry, colorFor, theme, activeArcs, plain]);
 
   // Redraw whenever the data, size or selection changes.
   useEffect(() => draw(), [draw]);
@@ -895,7 +902,7 @@ export function PulseGlobe({
           )}
         </div>
       </div>
-      <p aria-live="polite" className="mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink">
+      <p aria-live="polite" className={plain ? 'mt-3 min-h-[1.5rem] text-center text-[13px] font-medium tracking-wide text-hero-ink-muted' : 'mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink'}>
         {shownMessage ?? (world ? (hint ?? 'Move over a country to see its count. Press it for details. Drag to turn the globe.') : 'Loading the globe…')}
       </p>
       {live && (
@@ -905,7 +912,7 @@ export function PulseGlobe({
         </p>
       )}
       {legend ? (
-        <p className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-hero-ink-faint" aria-hidden="true">
+        <p className={plain ? 'globe-legend mx-auto mt-2 flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-hero-ink-muted' : 'mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-hero-ink-faint'} aria-hidden="true">
           {legend.map((l) => (
             <span key={l.label} className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.swatch }} />
