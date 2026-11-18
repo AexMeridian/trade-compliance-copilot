@@ -66,7 +66,7 @@ export function MeasureHero<T extends string>({
             <p className="display text-5xl leading-none tabular-nums sm:text-6xl">{ready ? current.figure : '…'}</p>
             <div className="mt-3 max-w-sm text-[15px] leading-snug text-hero-ink-muted">{ready ? current.caption : 'Loading the latest numbers.'}</div>
           </div>
-          <div className={`min-w-0 ${centered ? 'lg:-mr-12 lg:-mt-10' : ''}`}>{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
+          <div className={`min-w-0 ${centered ? 'lg:-mr-12' : ''}`}>{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">

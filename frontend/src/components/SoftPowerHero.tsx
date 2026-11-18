@@ -7,7 +7,7 @@ import { atlasAfricaGap, atlasFromIndicator, atlasOpinionGap } from '../lib/soft
 import { MeasureAtlas, type AtlasMeasure } from './MeasureAtlas';
 import { MeasureHero, type HeroMeasure } from './MeasureHero';
 
-type MeasureId = 'opinion' | 'africa' | 'aid' | 'women' | 'nobel' | 'migrants';
+type MeasureId = 'opinion' | 'africa' | 'aid' | 'students' | 'tourists' | 'migrants';
 
 const find = (indicators: PowerIndicator[], id: string) => indicators.find((i) => i.id === id && i.distribution.length > 0);
 
@@ -65,7 +65,7 @@ export function SoftPowerHero({
       });
     }
 
-    // Four everyday measures anyone can read: who gives the most aid, how women are represented in parliament, where Nobel Prizes are won, where migrants live.
+    // Four everyday measures anyone can read: who gives the most aid, where students study, which countries tourists visit, where migrants live.
     const aid = find(inds, 'oda_given_usd');
     if (aid) {
       const top = [...aid.distribution].sort((x, y) => y[1] - x[1])[0];
@@ -83,38 +83,37 @@ export function SoftPowerHero({
         body: null,
       });
     }
-    const women = find(inds, 'women_parliament');
-    if (women) {
-      const sorted = [...women.distribution].sort((x, y) => y[1] - x[1]);
-      const usRank = sorted.findIndex(([cc]) => cc === 'US') + 1;
+    const students = find(inds, 'students_inbound');
+    if (students) {
+      const sorted = [...students.distribution].sort((x, y) => y[1] - x[1]);
+      const us = sorted.findIndex(([cc]) => cc === 'US') + 1;
       list.push({
-        id: 'women',
-        label: 'Women in parliament',
-        figure: formatValue(women.unit, sorted[0][1]),
+        id: 'students',
+        label: 'Where students go to study',
+        figure: formatValue(students.unit, sorted[0][1]),
         caption: (
           <>
-            of parliamentary seats are held by women in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the highest share ({women.latestYear}).
-            {usRank ? <> The United States ranks {ordinal(usRank)} of {sorted.length}.</> : null} Inter-Parliamentary Union, via the World Bank.
+            international students studying in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({students.latestYear}).
+            {us ? <> The United States ranks {ordinal(us)} of {sorted.length}.</> : null} UNESCO Institute for Statistics.
           </>
         ),
-        atlas: atlasFromIndicator(women),
+        atlas: atlasFromIndicator(students),
         body: null,
       });
     }
-    const nobel = find(inds, 'nobel_affiliated');
-    if (nobel) {
-      const top = [...nobel.distribution].sort((x, y) => y[1] - x[1])[0];
+    const tourists = find(inds, 'tourist_arrivals');
+    if (tourists) {
+      const sorted = [...tourists.distribution].sort((x, y) => y[1] - x[1]);
       list.push({
-        id: 'nobel',
-        label: 'Where Nobel Prizes are won',
-        figure: formatValue(nobel.unit, top[1]),
+        id: 'tourists',
+        label: 'Most visited countries',
+        figure: formatValue(tourists.unit, sorted[0][1]),
         caption: (
           <>
-            Nobel Prizes won by people working at institutions in <span className="text-hero-ink">{nameFor(top[0])}</span>, the most of any country. Counted by the laureate's institution when the prize
-            was awarded; the Nobel Foundation.
+            international tourist arrivals in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({tourists.latestYear}). World Bank, from the UN Tourism organization.
           </>
         ),
-        atlas: atlasFromIndicator(nobel),
+        atlas: atlasFromIndicator(tourists),
         body: null,
       });
     }
@@ -179,7 +178,7 @@ export function SoftPowerHero({
   return (
     <MeasureHero
       title="What draws people to a country"
-      sub="What people say, who gives aid, who wins Nobel Prizes and where people move: one sourced map at a time. Nothing here is added into a score; a blank is a country nobody asked or counted."
+      sub="What people say, who gives aid, where students study, which countries tourists visit and where people move: one sourced map at a time. Nothing here is added into a score; a blank is a country nobody asked or counted."
       measures={measures}
       active={current?.id ?? 'opinion'}
       onMeasure={(id) => {

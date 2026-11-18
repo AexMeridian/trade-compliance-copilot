@@ -78,27 +78,27 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
       <StatTile key="aid" tone="soft" label="Foreign aid given" figure={formatValue(aid.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} donors (${s.year}).`} visual={spark(aid, 'US')} onClick={() => go('foreign')} />,
     );
   }
-  const women = byId(inds, 'women_parliament');
-  if (women?.standings.US) {
-    const s = women.standings.US;
-    const top = [...women.distribution].sort((a, b) => b[1] - a[1])[0];
+  const students = byId(inds, 'students_inbound');
+  if (students?.standings.US) {
+    const s = students.standings.US;
+    const top = [...students.distribution].sort((a, b) => b[1] - a[1])[0];
     tiles.push(
       <StatTile
-        key="women"
+        key="students"
         tone="soft"
-        label="Women in parliament"
-        figure={formatValue(women.unit, s.value)}
-        note={`United States, ${ordinal(s.rank)} of ${s.of}. Highest: ${nameFor(top[0])}, ${formatValue(women.unit, top[1])}.`}
-        visual={spark(women, 'US')}
-        onClick={() => go('values')}
+        label="International students hosted"
+        figure={formatValue(students.unit, s.value)}
+        note={`United States, ${ordinal(s.rank)} of ${s.of}. Most: ${nameFor(top[0])}, ${formatValue(students.unit, top[1])}.`}
+        visual={spark(students, 'US')}
+        onClick={() => go('culture')}
       />,
     );
   }
-  const nobel = byId(inds, 'nobel_affiliated');
-  if (nobel?.standings.US) {
-    const s = nobel.standings.US;
+  const tourists = byId(inds, 'tourist_arrivals');
+  if (tourists?.standings.US) {
+    const s = tourists.standings.US;
     tiles.push(
-      <StatTile key="nobel" tone="soft" label="Nobel Prizes won at its institutions" figure={formatValue(nobel.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} countries.`} onClick={() => go('culture')} />,
+      <StatTile key="tourists" tone="soft" label="Tourist arrivals" figure={formatValue(tourists.unit, s.value)} note={`United States, ${ordinal(s.rank)} of ${s.of} (${s.year}).`} visual={spark(tourists, 'US')} onClick={() => go('culture')} />,
     );
   }
   const migrants = byId(inds, 'migrant_share');

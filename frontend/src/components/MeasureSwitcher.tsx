@@ -16,7 +16,7 @@ export function MeasureSwitcher<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+      className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden"
       onKeyDown={(e) => {
         const i = measures.findIndex((m) => m.id === active);
         let next = i;
