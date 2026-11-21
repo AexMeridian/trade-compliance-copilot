@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-// Phone-width header: Wire and Calculator fit beside the logo, so the other main pages live here instead
-// of being unreachable. Hidden from lg up, where the full nav shows.
+// Phone-width header: the five main pages are in the bottom tab bar (MobileTabBar); this menu holds the reference and legal pages.
+// Hidden from lg up, where the full nav shows.
 const LINKS = [
-  { to: '/hard-power', label: 'Hard Power' },
-  { to: '/soft-power', label: 'Soft Power' },
-  { to: '/about', label: 'About' },
   { to: '/methodology', label: 'Methodology and sources' },
+  { to: '/accessibility', label: 'Accessibility' },
+  { to: '/terms', label: 'Terms of use' },
+  { to: '/privacy', label: 'Privacy' },
 ];
 
 export function MobileMenu() {

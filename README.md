@@ -209,15 +209,15 @@ tests/                    golden-cases.json + the live accuracy runner (test:gol
 |---|---|---|---|
 | `hts_lines` | [USITC HTS exportList API](https://hts.usitc.gov/reststop/exportList) | 1 | Full schedule, 96 chapters, 31,860 lines |
 | `schedule_b_lines` | [Census AES Filer concordance CSV](https://www.census.gov/foreign-trade/aes/documentlibrary/concordance/expaescsv.txt) | 1 | Full schedule, 97 chapters, 9,746 lines |
-| `sdn_entries` / `sdn_aliases` | [OFAC Sanctions List Service](https://sanctionslistservice.ofac.treas.gov) | 1 | Full SDN list, 19,393 entries, 24,628 aliases |
-| `csl_entries` / `csl_aliases` | [trade.gov Consolidated Screening List](https://www.trade.gov/consolidated-screening-list) | 1 | Full CSL minus the SDN sub-list (already covered above), 6,753 entries |
-| `un_sanctions_entries` / `un_sanctions_aliases` | [UN Security Council Consolidated Sanctions List](https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list) | 1 | Full list, ~1,011 individuals/entities, ~2,767 aliases |
-| `uk_sanctions_entries` / `uk_sanctions_aliases` | [UK Sanctions List (OFSI)](https://sanctionslist.fcdo.gov.uk) | 1 | Full list, ~5,134 designations, ~13,500 aliases |
+| `sdn_entries` / `sdn_aliases` | [OFAC Sanctions List Service](https://sanctionslistservice.ofac.treas.gov) | 1 | Full SDN list (entry and alias counts change with each OFAC publication; see /api/pulse/stats for what is loaded). Loaded as a streamed, changed-rows-only update |
+| `csl_entries` / `csl_aliases` | [trade.gov Consolidated Screening List](https://www.trade.gov/consolidated-screening-list) | 1 | Full CSL minus the SDN sub-list (already covered above). Counts: see /api/pulse/stats |
+| `un_sanctions_entries` / `un_sanctions_aliases` | [UN Security Council Consolidated Sanctions List](https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list) | 1 | Full list. Counts: see /api/pulse/stats |
+| `uk_sanctions_entries` / `uk_sanctions_aliases` | [UK Sanctions List (FCDO)](https://sanctionslist.fcdo.gov.uk) | 1 | Full list from `UK-Sanctions-List.xml` (the OFSI Consolidated List closed on 2026-01-28). Counts: see /api/pulse/stats |
 | `gta_interventions` | [Global Trade Alert](https://www.globaltradealert.org) | 2 (CC BY-NC 4.0, third-party, not U.S. government) | Scoped to U.S.-affecting measures by ~14 major trading partners, weekly |
 | `wro_findings` | [CBP Withhold Release Orders & Findings](https://www.cbp.gov/document/stats/withhold-release-orders-findings) | 1 | Full list, Section 307 forced-labor actions |
 | `usmca_rules` | HTSUS General Note 11 / USMCA Annex 4-B, curated | 1 | Chapters 84, 85, 87, 61, 62, 63 — **partial by design**, see below |
-| `country_chart` / `country_chart_coverage` | 15 CFR 738 Supp. 1 / Part 746, curated | 1 | 6 allied destinations + 4 comprehensive embargoes + Russia/Belarus — **deliberately partial**, see below |
-| `eccn_entries` | 15 CFR 774 Supp. 1, curated | 1/3 | 8 representative entries across CCL Categories 1, 3, 4, 5, 6 + EAR99 |
+| `country_chart` / `country_chart_coverage` | 15 CFR 738 Supp. 1 / Part 746, curated | 1 | the official Country Chart loaded from the eCFR (see migration 0030 for its amendment date) plus the Part 746 destinations; counts: /api/pulse/stats |
+| `eccn_entries` | 15 CFR 774 Supp. 1, curated | 1/3 | a handful of entries re-derived from the eCFR (not the whole list, which has roughly 3,000), with Country Chart columns; export results that depend on the rest say "cannot confirm" |
 | `tariff_overlays` | Federal Register (Section 232/301/338 proclamations), curated | 1 | Full breadth for Sec. 301 forced-labor (all 60 named economies); chapter-level approximation for Sec. 338 and Sec. 232 |
 
 Every row also carries `last_updated` and (for tariff overlays) `data_as_of`,
@@ -342,8 +342,8 @@ Cron Triggers defined in `wrangler.jsonc` and dispatched from
 
 There is a single cron trigger. D1's free tier caps writes at 100,000 rows/day
 account-wide, **counting index and full-text-search entries**, and the bulk jobs
-each do a full `DELETE` + full re-`INSERT` of their table (see the safety-design
-note below) — SDN alone is ~44,000 rows. Running them all on one Monday used
+mostly do a full `DELETE` + full re-`INSERT` of their table (SDN now writes only changed entries; see the safety-design
+note below) — a full SDN reload would be ~44,000 rows. Running them all on one Monday used
 to exhaust the quota and block **all** D1 writes app-wide until it reset.
 Now each bulk job is due once a week, and a day only runs due jobs while their
 combined last-known size stays under a 30,000-row budget (always at least one,

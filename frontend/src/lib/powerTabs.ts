@@ -21,13 +21,13 @@ export const HARD_TABS: TabDef<HardTabId>[] = [
 ];
 
 export const SOFT_TABS: TabDef<SoftTabId>[] = [
-  { id: 'scoreboard', label: 'Scoreboard', hint: 'Is U.S. soft power rising or falling, and whose is?', border: 'border-hue-cyan' },
+  { id: 'scoreboard', label: 'Scoreboard', hint: 'Published trend readings on how countries are viewed, one source at a time', border: 'border-hue-cyan' },
   { id: 'overview', label: 'Overview', hint: 'The short version', border: 'border-ink' },
-  { id: 'attitudes', label: 'Attitudes', hint: 'What people in other countries say about the U.S., China and others', border: 'border-hue-cyan' },
+  { id: 'attitudes', label: 'Attitudes', hint: 'What people in other countries say about the U.S. and China, and where other countries are polled', border: 'border-hue-cyan' },
   { id: 'culture', label: 'Culture & exchange', hint: 'Students, tourism, migration, science and knowledge ties', border: 'border-hue-cyan' },
-  { id: 'values', label: 'Political values', hint: 'Governance, rights and democracy indicators', border: 'border-hue-cyan' },
-  { id: 'foreign', label: 'Foreign policy & aid', hint: 'Aid, humanitarian giving, refugees, UN voting and instruments', border: 'border-hue-cyan' },
-  { id: 'compare', label: 'Compare', hint: 'Countries side by side on every soft-power measure', border: 'border-hue-cyan' },
+  { id: 'values', label: 'Political values', hint: 'Governance and gender-equality indicators, and development context', border: 'border-hue-cyan' },
+  { id: 'foreign', label: 'Foreign policy & aid', hint: 'Aid, humanitarian giving, refugees and UN voting', border: 'border-hue-cyan' },
+  { id: 'compare', label: 'Compare', hint: 'Countries side by side on the soft-power measures', border: 'border-hue-cyan' },
   { id: 'method', label: 'Method & gaps', hint: 'Sources, licences, what is not measured and why', border: 'border-ink' },
 ];
 

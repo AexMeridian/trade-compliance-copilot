@@ -43,7 +43,7 @@ export const NEWS_FEEDS: NewsFeed[] = [
 ];
 
 const TRADE_RE =
-  /\b(trade|tariffs?|exports?|imports?|exporters?|importers?|shipping|shipments?|freight|cargo|container ships?|supply chains?|ports?|customs|sanctions?|sanctioned|embargo(?:es)?|WTO|World Trade Organi[sz]ation|semiconductors?|chips? makers?|rare earths?|critical minerals?|foreign investment|trade deficit|trade surplus|blockade|strait of)\b/i;
+  /\b(trade|tariffs?|exports?|imports?|exporters?|importers?|shipping|shipments?|freight|cargo|container ships?|supply chains?|ports?|customs|sanctions?|sanctioned|embargo(?:es)?|WTO|World Trade Organi[sz]ation|semiconductors?|chips? makers?|rare earths?|critical minerals?|foreign investment|trade deficit|trade surplus|blockade)\b/i;
 
 const MARKETS_RE =
   /\b(stock markets?|share prices?|wall street|S&P 500|Nasdaq|Dow Jones|FTSE|Nikkei|Hang Seng|currency|currencies|exchange rates?|the dollar|US dollar|the euro|yuan|renminbi|the yen|the pound|sterling|peso|rupee|central banks?|interest rates?|rate cuts?|rate hikes?|bond yields?|treasury yields?|inflation|oil prices?|crude|OPEC|FOMC|Federal Open Market Committee|monetary policy|economic projections|Bank of (?:England|Japan|Canada)|IMF|International Monetary Fund|recession)\b/i;

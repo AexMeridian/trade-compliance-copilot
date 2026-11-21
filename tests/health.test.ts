@@ -58,6 +58,15 @@ test('a source that has never refreshed is a warning, not an email', () => {
   assert.equal(f?.severity, 'warning');
 });
 
+test('a source that has errored but never succeeded is critical', () => {
+  const f = checkSources([{ source: 'sdn', lastOk: null, errorsSinceOk: 3, lastError: 'HTTP 525' }], now).find((x) => x.key === 'source:sdn');
+  assert.equal(f?.severity, 'critical');
+  assert.match(f!.detail, /HTTP 525/);
+});
+test('every scheduled job has an age limit', () => {
+  for (const s of ['gta', 'world_bank', 'openalex', 'pulse_fx', 'pulse_news', 'pulse_treasury', 'pulse_commodities']) assert.ok(SOURCE_MAX_AGE_DAYS[s] > 0, s);
+});
+
 test('curated data: aging is a warning, stale is critical', () => {
   assert.equal(checkCurated({ sec232: '2026-09-22' }, [], '2026-11-03').length, 0);
   assert.equal(checkCurated({ sec232: '2026-09-22' }, [], '2026-11-20')[0].severity, 'warning');

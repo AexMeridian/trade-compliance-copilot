@@ -12,6 +12,7 @@ import { pulseRoute } from './routes/pulse.js';
 import { scheduled } from './scheduled.js';
 import { ClaudeDailyCapError, ClaudeUnavailableError } from './lib/anthropic.js';
 import { UNAVAILABLE_MESSAGE } from './lib/modelSpend.js';
+import { limitOrAllow, secondsUntilUtcMidnight, withinVisitorQuota } from './lib/abuse.js';
 import { servePage } from './pages.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
@@ -39,15 +40,14 @@ app.use('/api/*', bodyLimit({ maxSize: 32 * 1024, onError: (c) => c.json({ error
 
 // Baseline hardening headers on every API response (static pages get theirs
 // from frontend/public/_headers). API responses are JSON/XML, never framed.
-app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: 'same-site', xFrameOptions: 'DENY', referrerPolicy: 'no-referrer' }));
+app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: 'same-site', xFrameOptions: 'DENY', referrerPolicy: 'no-referrer', strictTransportSecurity: 'max-age=31536000; includeSubDomains' }));
 
 // The Pulse read API is public and unauthenticated. Per-IP cap so one client
 // can't run the site out of its Workers request quota or hammer D1; a real
 // reader makes a handful of calls per visit, far under this.
 app.use('/api/pulse/*', async (c, next) => {
   const key = c.req.header('cf-connecting-ip') ?? 'unknown';
-  const { success } = await c.env.PULSE_RATE_LIMITER.limit({ key });
-  if (!success) {
+  if (!(await limitOrAllow(c.env.PULSE_RATE_LIMITER, key))) {
     c.header('Retry-After', '30');
     return c.json({ error: 'Too many requests. Please wait a moment and try again.' }, 429);
   }
@@ -131,11 +131,23 @@ const CLAUDE_CALLING_SUFFIXES = ['/classification', '/origin', '/screening', '/d
 // (claimClaudeCall in lib/anthropic.ts), after the case and the request body have been checked, so invalid requests cannot use
 // it up and a multi-party screening counts once per call it really makes.
 app.use('/api/cases/*', async (c, next) => {
+  // Case links are bearer links: reading them is capped per visitor too, so ids cannot be scanned quickly.
+  if (c.req.method === 'GET') {
+    if (!(await limitOrAllow(c.env.PULSE_RATE_LIMITER, `cases:${c.req.header('cf-connecting-ip') ?? 'unknown'}`))) {
+      c.header('Retry-After', '30');
+      return c.json({ error: 'Too many requests. Please wait a moment and try again.' }, 429);
+    }
+  }
   if (c.req.method === 'POST' && CLAUDE_CALLING_SUFFIXES.some((s) => c.req.path.endsWith(s))) {
     const key = c.req.header('cf-connecting-ip') ?? 'unknown';
-    const { success } = await c.env.CLAUDE_RATE_LIMITER.limit({ key });
-    if (!success) {
+    if (!(await limitOrAllow(c.env.CLAUDE_RATE_LIMITER, key))) {
+      c.header('Retry-After', '60');
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
+    }
+    // One visitor cannot use up the shared daily cap: each gets a daily allowance (the owner's DEMO_TOKEN skips it).
+    if (!(await withinVisitorQuota(c.env, key, c.req.header('x-demo-token')))) {
+      c.header('Retry-After', String(secondsUntilUtcMidnight()));
+      return c.json({ error: 'You have reached the daily limit for AI-assisted checks from this connection. It resets at midnight UTC.' }, 429);
     }
     // The shared example cases are read-only: re-running a step on one would overwrite it for every visitor.
     const caseId = c.req.path.split('/')[3] ?? '';
@@ -151,8 +163,7 @@ app.use('/api/cases/*', async (c, next) => {
 // a citable snapshot. A modest per-IP cap keeps a bot from burning the database's daily write allowance.
 const limitWrites: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   if (c.req.method === 'POST') {
-    const { success } = await c.env.WRITE_RATE_LIMITER.limit({ key: c.req.header('cf-connecting-ip') ?? 'unknown' });
-    if (!success) {
+    if (!(await limitOrAllow(c.env.WRITE_RATE_LIMITER, c.req.header('cf-connecting-ip') ?? 'unknown'))) {
       c.header('Retry-After', '60');
       return c.json({ error: 'Too many requests. Please wait a minute and try again.' }, 429);
     }

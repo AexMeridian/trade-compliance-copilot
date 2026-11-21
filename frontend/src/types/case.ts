@@ -26,6 +26,7 @@ export interface ClassificationCandidate {
   code: string;
   description: string;
   score: number;
+  reason?: string;
 }
 
 export interface ClassificationResult {
@@ -97,6 +98,8 @@ export interface ScreeningResult {
   hard_stop_triggered: boolean;
   screened_at: string | null;
   deemed_export_flagged: boolean;
+  list_freshness?: { source: string; label: string; state: 'ok' | 'stale' | 'not_loaded'; as_of: string | null; age_days: number | null; has_rows: boolean; last_error: string | null }[];
+  freshness_caveat?: string | null;
 }
 
 export interface DutyStackLine {
@@ -117,14 +120,17 @@ export interface DeterminationResult {
   duty_stack: DutyStackLine[] | null;
   landed_cost_estimate_pct: number | null;
   declared_value_usd: number | null;
-  landed_cost_usd: number | null;
+  estimated_duty_usd?: number | null;
+  entry_date?: string | null;
+  transport_mode?: "ocean" | "air" | "land" | "unknown" | null;
+  landed_cost_usd: number | null; // older cases only
   de_minimis_eligible: boolean | null;
   de_minimis_note: string | null;
   entry_fees?: { label: string; amount_usd: number | null; basis: string }[] | null;
   destination_country: string | null;
   eccn: string | null;
   reasons_for_control: string[] | null;
-  license_requirement: 'NLR' | 'License Required' | 'License Exception May Apply' | 'Insufficient Data' | null;
+  license_requirement: 'NLR' | 'License Required' | 'Possible exception: verify' | 'Insufficient Data' | null;
   license_exception_candidates: string[] | null;
   denied_party_override: boolean;
   reasoning: ReasoningTrace | null;

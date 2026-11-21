@@ -96,15 +96,18 @@ test('placement between China (0) and the United States (1) is linear and not cl
   assert.equal(positionBetween(1, 2, 2), 0.5); // the two powers at the same spot: no division by zero
 });
 
-test('alignment bands: five groups with the edges falling where the labels say', () => {
-  assert.equal(alignmentBand(-0.3), 'china');
+test('alignment bands: seven groups, with countries past either power labelled as beyond it, not at its end', () => {
+  assert.equal(alignmentBand(-0.3), 'beyondChina');
+  assert.equal(alignmentBand(0), 'china');
   assert.equal(alignmentBand(0.19), 'china');
   assert.equal(alignmentBand(0.2), 'leanChina');
   assert.equal(alignmentBand(0.5), 'middle');
   assert.equal(alignmentBand(0.6), 'middle');
   assert.equal(alignmentBand(0.61), 'leanUs');
   assert.equal(alignmentBand(0.8), 'leanUs');
-  assert.equal(alignmentBand(1.4), 'us');
+  assert.equal(alignmentBand(1), 'us');
+  assert.equal(alignmentBand(1.01), 'beyondUs');
+  assert.equal(alignmentBand(1.4), 'beyondUs');
 });
 
 test('Afrobarometer shares are valid, dated, and reproduce the stored medians; China matches the published 62%', () => {

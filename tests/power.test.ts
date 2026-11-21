@@ -3,8 +3,8 @@
 
 import assert from 'node:assert/strict';
 import { parseCountryList, parseSeries } from '../src/lib/refresh/powerIndicators.js';
-import { buildIndicatorView, normalizeCountries, parseStored, STALE_YEARS } from '../src/lib/power/compute.js';
-import { INDICATORS, INDICATOR_IDS } from '../src/lib/power/indicators.js';
+import { buildIndicatorView, HARD_POWER_STALE_YEARS, normalizeCountries, parseStored, STALE_YEARS } from '../src/lib/power/compute.js';
+import { INDICATORS, INDICATOR_IDS, sourceFor } from '../src/lib/power/indicators.js';
 
 let failures = 0;
 function test(name: string, fn: () => void) {
@@ -111,6 +111,39 @@ test('country list normalization is case-insensitive, deduped, sorted and capped
   assert.deepEqual(normalizeCountries('AA,BB,CC,DD,EE'), ['AA', 'BB', 'CC', 'DD']);
   assert.deepEqual(normalizeCountries('USA,1,,<script>,U S'), []);
   assert.deepEqual(normalizeCountries(undefined), []);
+});
+
+const hardDef = INDICATORS.find((i) => i.id === 'gdp_usd')!;
+test('hard-power ranks use a one-year window, and the year of each ranked figure is reported', () => {
+  assert.equal(HARD_POWER_STALE_YEARS, 1);
+  const view = buildIndicatorView(hardDef, { A1: [[2025, 10]], B1: [[2024, 30]], OLD: [[2022, 99]] }, ['A1', 'B1', 'OLD']);
+  assert.equal(view.standings.OLD, null);
+  assert.equal(view.standings.B1?.rank, 1);
+  assert.equal(view.standings.B1?.of, 2);
+  assert.deepEqual(view.years, { A1: 2025, B1: 2024 });
+});
+
+test('hard-power ranks leave out dependencies, so "of N" counts economies', () => {
+  const view = buildIndicatorView(hardDef, { US: [[2025, 5]], GI: [[2025, 50]], SX: [[2025, 40]], CN: [[2025, 9]] }, ['GI', 'CN']);
+  assert.equal(view.standings.GI, null);
+  assert.equal(view.standings.CN?.of, 2);
+  assert.deepEqual(view.distribution.map(([cc]) => cc), ['US', 'CN']);
+});
+
+test('a series that has ended is not ranked at all and says when it ended', () => {
+  const tourism = INDICATORS.find((i) => i.id === 'tourism_receipts')!;
+  assert.equal(tourism.endedYear, 2020);
+  const view = buildIndicatorView(tourism, { US: [[2020, 84]], FR: [[2020, 20]] }, ['US']);
+  assert.equal(view.endedYear, 2020);
+  assert.equal(view.standings.US, null);
+  assert.equal(view.distribution.length, 0);
+});
+
+test('military spending credits SIPRI as its source', () => {
+  for (const id of ['military_usd', 'military_gdp']) {
+    const d = INDICATORS.find((i) => i.id === id)!;
+    assert.match(sourceFor(d).name, /SIPRI/);
+  }
 });
 
 if (failures) {

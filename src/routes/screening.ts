@@ -3,6 +3,8 @@ import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { searchPartyCandidates, getSdnEntry, getCslEntry, getUnEntry, getUkEntry } from '../lib/db.js';
 import { rankCandidates } from '../lib/fuzzyMatch.js';
+import { loadListFreshness, freshnessCaveat } from '../lib/listFreshness.js';
+import { listKind, floorVerdict, decideSeverity, SDN_FLOOR_NOTE } from '../lib/screeningPolicy.js';
 import { normalizeNameString } from '../lib/normalize.js';
 import { lookupOwnership } from '../lib/gleif.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
@@ -199,7 +201,7 @@ screeningRoute.post('/:id/screening', async (c) => {
         tool: buildScreeningTool(enriched.map((e) => e.candidate_ref)),
       });
     } catch (err) {
-      if (err instanceof ClaudeGroundingError) throw new PartyScreeningFailure(`Screening engine error: ${err.message}`);
+      if (err instanceof ClaudeGroundingError) { console.error('screening grounding error:', err.message); throw new PartyScreeningFailure('The screening step could not produce a verified answer. Please try again.'); }
       throw err;
     }
 
@@ -214,6 +216,7 @@ screeningRoute.post('/:id/screening', async (c) => {
             : e.source === 'UN'
               ? `UN Security Council (${e.entity_type_or_source_list ?? 'Consolidated List'})`
               : `UK Sanctions List (${e.entity_type_or_source_list ?? 'OFSI'})`;
+      const floor = floorVerdict(e.source, e.match_score, assessment?.verdict ?? 'inconclusive');
       return {
         matched_entity_id: e.entity_id,
         source: e.source,
@@ -224,8 +227,10 @@ screeningRoute.post('/:id/screening', async (c) => {
         jaro_winkler_score: e.jaro_winkler_score,
         matched_via: e.matched_via,
         matched_fields: assessment?.matched_fields ?? [],
-        verdict: assessment?.verdict ?? 'inconclusive',
-        risk_memo: assessment?.risk_memo ?? 'Model did not return an assessment for this candidate; treat as inconclusive pending manual review.',
+        verdict: floor.verdict,
+        risk_memo: floor.floored
+          ? `${SDN_FLOOR_NOTE} Model view: ${assessment?.risk_memo ?? ''}`.trim()
+          : (assessment?.risk_memo ?? 'Model did not return an assessment for this candidate; treat as inconclusive pending manual review.'),
       };
     });
 
@@ -257,12 +262,16 @@ screeningRoute.post('/:id/screening', async (c) => {
   // from dealing with them, on an import as much as an export -- so unlike the
   // export-control lists above, direction doesn't soften it.
   const sdnHit = trueMatches.some((m) => m.source === 'SDN');
-  const isHardStop = (caseFile.direction === 'export' && (hardStopHit || unHit)) || sdnHit;
-  const severity: 'none' | 'caution' | 'hard_stop' = isHardStop
-    ? 'hard_stop'
-    : trueMatches.length > 0 || anyInconclusive
-      ? 'caution'
-      : 'none';
+  // Policy lives in src/lib/screeningPolicy.ts. Lists that are stale, empty or failing to refresh keep the result at caution at least,
+  // so "No matches" never stands alone against an old or missing copy.
+  const listFreshness = await loadListFreshness(c.env);
+  const caveat = freshnessCaveat(listFreshness);
+  const trueKinds = trueMatches.map((m) => listKind(m.source, m.matched_list));
+  const fseHit = trueKinds.includes('fse');
+  const debarredHit = trueKinds.includes('itar_debarred');
+  const uvlHit = trueKinds.includes('uvl');
+  const captaHit = trueKinds.includes('capta');
+  const { severity, hardStop: isHardStop } = decideSeverity({ direction: caseFile.direction, trueKinds, anyInconclusive, listsNotCurrent: caveat !== null });
 
   caseFile.screening = {
     status: 'complete',
@@ -271,7 +280,33 @@ screeningRoute.post('/:id/screening', async (c) => {
     hard_stop_triggered: isHardStop,
     screened_at: new Date().toISOString(),
     deemed_export_flagged: body.deemed_export_flag === true,
+    list_freshness: listFreshness,
+    freshness_caveat: caveat,
   };
+
+  if (caveat) caseFile.open_issues.push(`Screening: ${caveat}`);
+  if (fseHit) {
+    caseFile.open_issues.push(
+      'Screening: HARD STOP. True match against the OFAC Foreign Sanctions Evaders (FSE) list. U.S. persons are prohibited from transactions with FSEs in either direction. Do not proceed without OFAC counsel.'
+    );
+  }
+  if (debarredHit) {
+    caseFile.open_issues.push(
+      caseFile.direction === 'export'
+        ? 'Screening: HARD STOP. True match against the State Department ITAR/AECA debarred list on an export transaction. Debarred parties may not take part in exports of defense articles or services; do not proceed without State Department (DDTC) guidance.'
+        : 'Screening: a true match against the State Department ITAR/AECA debarred list was found. Debarment mainly restricts export activity, but warrants compliance review for an import transaction.'
+    );
+  }
+  if (uvlHit) {
+    caseFile.open_issues.push(
+      'Screening: a true match against the BIS Unverified List (UVL). Under 15 CFR 744.15 no license exceptions may be used for exports to a UVL party, and a UVL statement is required before export. Treat as a caution that changes the paperwork; confirm the current entry with BIS.'
+    );
+  }
+  if (captaHit) {
+    caseFile.open_issues.push(
+      'Screening: a true match against the OFAC CAPTA list (correspondent and payable-through account sanctions). The restrictions target U.S. financial institutions\' accounts for the listed foreign bank, so this is a payment-routing caution rather than a goods prohibition. Confirm the exact prohibition with OFAC.'
+    );
+  }
 
   if (sdnHit) {
     caseFile.open_issues.push(
@@ -283,8 +318,15 @@ screeningRoute.post('/:id/screening', async (c) => {
       'Screening: a true match against the BIS Entity List/Denied Persons List was found. This list is primarily an export control, but still warrants compliance review for an import transaction (e.g. related-party or reexport risk).'
     );
   }
-  if (hardStopHit && isHardStop) {
-    caseFile.open_issues.push('Screening: HARD STOP. True match against BIS Entity List/Denied Persons List on an export transaction. License-determinative; see Module 4.');
+  if (hardStopHit && isHardStop && caseFile.direction === 'export') {
+    caseFile.open_issues.push(
+      'Screening: HARD STOP. True match against BIS Entity List/Denied Persons List on an export transaction. Entity List entries each carry their own license requirement and policy (for some, not every item subject to the EAR; see the entry\'s Federal Register notice), so confirm the entry\'s scope. Treat it as license-required until BIS confirms otherwise; see Module 4.'
+    );
+  }
+  if (hardStopHit || meuHit) {
+    caseFile.open_issues.push(
+      'Screening: BIS\'s Affiliates Rule would extend Entity List and MEU restrictions to entities 50 percent or more owned by listed parties. As last reported it is suspended until 2027-01-10: verify the current status with BIS. OFAC\'s separate 50 percent rule for SDNs is not suspended.'
+    );
   }
   if (unHit && caseFile.direction === 'import') {
     caseFile.open_issues.push(

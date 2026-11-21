@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { searchHts, searchScheduleB, getCrossReferenceForHts, getCrossReferenceForScheduleB, attachHtsAncestors } from '../lib/db.js';
+import { shownCandidates } from '../lib/candidateList.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import {
   CLASSIFICATION_SYSTEM_PROMPT,
@@ -30,6 +31,7 @@ classificationRoute.post('/:id/classification', async (c) => {
 
   const direction = caseFile.direction;
   const candidates = direction === 'import' ? await searchHts(c.env, productDescription) : await searchScheduleB(c.env, productDescription);
+  const allCandidates = candidates.map((cand) => ({ code: 'htsno' in cand ? cand.htsno : cand.code, description: cand.description, score: cand.score }));
   const candidateCodes = candidates.map((cand) => ('htsno' in cand ? cand.htsno : cand.code));
 
   await logCaseEvent(c.env, caseId, 'classification', 'candidate_set', { productDescription, candidateCodes });
@@ -72,7 +74,8 @@ classificationRoute.post('/:id/classification', async (c) => {
     });
   } catch (err) {
     if (err instanceof ClaudeGroundingError) {
-      return c.json({ error: `Classification engine could not ground an answer: ${err.message}` }, 502);
+      console.error('classification grounding error:', err.message);
+      return c.json({ error: 'The classification engine could not produce a verified answer. Please try again.' }, 502);
     }
     throw err;
   }
@@ -87,11 +90,7 @@ classificationRoute.post('/:id/classification', async (c) => {
       status: 'blocked',
       direction,
       product_description: productDescription,
-      candidates_considered: candidates.map((cand) => ({
-        code: 'htsno' in cand ? cand.htsno : cand.code,
-        description: cand.description,
-        score: cand.score,
-      })),
+      candidates_considered: shownCandidates(allCandidates, null),
       selected_code: null,
       hs6: null,
       cross_reference_code: null,
@@ -126,11 +125,7 @@ classificationRoute.post('/:id/classification', async (c) => {
     status: 'complete',
     direction,
     product_description: productDescription,
-    candidates_considered: candidates.map((cand) => ({
-      code: 'htsno' in cand ? cand.htsno : cand.code,
-      description: cand.description,
-      score: cand.score,
-    })),
+    candidates_considered: shownCandidates(allCandidates, output.selected_code, ambiguousAlternatives),
     selected_code: output.selected_code,
     hs6,
     cross_reference_code: crossRefs[0] ?? null,

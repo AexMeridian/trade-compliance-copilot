@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { OpinionResponse, PowerIndicator } from '../lib/api';
 import { formatValue, ordinal } from '../lib/powerFormat';
 import { nameFor } from '../lib/powerCountries';
-import { atlasAfricaGap, atlasFromIndicator, atlasOpinionGap } from '../lib/softPowerMeasures';
+import { atlasAfricaGap, atlasFromIndicator, atlasOpinionGap, commonCountryMedians } from '../lib/softPowerMeasures';
 import { MeasureAtlas, type AtlasMeasure } from './MeasureAtlas';
 import { MeasureHero, type HeroMeasure } from './MeasureHero';
 
@@ -32,17 +32,16 @@ export function SoftPowerHero({
     if (opinion) {
       const year = Math.max(...opinion.surveys.map((s) => s.year));
       const gap = atlasOpinionGap(opinion, year);
-      const us = opinion.surveys.find((s) => s.subject === 'US' && s.year === year);
-      const cn = opinion.surveys.find((s) => s.subject === 'CN' && s.year === year);
-      if (gap && us && cn) {
+      const med = commonCountryMedians(opinion, year);
+      if (gap && med) {
         list.push({
           id: 'opinion',
           label: 'Views of the U.S. and China',
-          figure: `${us.publishedMedian}% vs ${cn.publishedMedian}%`,
+          figure: `${med.us}% vs ${med.cn}%`,
           caption: (
             <>
-              median share with a favorable view of the U.S. (first number) and of China, in {Object.keys(gap.values).length} countries Pew polled in spring {year}. Countries are shaded by which
-              is ahead. Where Pew did not poll, there is no reading.
+              median share with a favorable view of the U.S. (first number) and of China, across the {med.n} countries Pew polled about both in {year}. This is a median of countries, each counted once, not
+              the world's opinion; Pew did not poll most of the world. Countries are shaded by which is ahead; where Pew did not poll, there is no reading.
             </>
           ),
           atlas: gap,
@@ -52,12 +51,12 @@ export function SoftPowerHero({
       const africa = atlasAfricaGap(opinion.africa);
       list.push({
         id: 'africa',
-        label: 'Africa: whose influence is positive',
+        label: 'Africa: influence rated positive',
         figure: `${opinion.africa.medianPositive.us}% vs ${opinion.africa.medianPositive.cn}%`,
         caption: (
           <>
             median share of adults, across {Object.keys(africa.values).length} African countries, who rate the influence of the U.S. (first number) and of China on their country as positive.
-            Afrobarometer, 2024 to 2025.
+            An unweighted median of countries, not of people. Afrobarometer Round 10, 2024 to 2025 (fieldwork straddles the January 2025 U.S. aid freeze).
           </>
         ),
         atlas: africa,
@@ -66,17 +65,20 @@ export function SoftPowerHero({
     }
 
     // Four everyday measures anyone can read: who gives the most aid, where students study, which countries tourists visit, where migrants live.
-    const aid = find(inds, 'oda_given_usd');
+    // Aid as a share of income is the default: dollar totals mostly redraw the size of the economy. Falls back to dollars if the share series is absent.
+    const aid = find(inds, 'oda_given_gni') ?? find(inds, 'oda_given_usd');
     if (aid) {
       const top = [...aid.distribution].sort((x, y) => y[1] - x[1])[0];
+      const share = aid.id === 'oda_given_gni';
       list.push({
         id: 'aid',
-        label: 'Who gives the most aid',
+        label: 'Aid given by donor countries',
         figure: formatValue(aid.unit, top[1]),
         caption: (
           <>
-            in official development aid from <span className="text-hero-ink">{nameFor(top[0])}</span>, the most of any country ({aid.latestYear}). Aid reported by {aid.distribution.length} donor countries, in
-            dollars; the World Bank.
+            {share ? 'of national income given as official development aid by ' : 'in official development aid from '}
+            <span className="text-hero-ink">{nameFor(top[0])}</span>, the highest among the {aid.distribution.length} donor countries in this series ({aid.latestYear}). Only members of the OECD's Development Assistance Committee
+            report to it, so China, the Gulf states and India are blank here, not zero. The World Bank.
           </>
         ),
         atlas: atlasFromIndicator(aid),
@@ -93,7 +95,7 @@ export function SoftPowerHero({
         figure: formatValue(students.unit, sorted[0][1]),
         caption: (
           <>
-            international students studying in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({students.latestYear}).
+            international students studying in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({students.latestYear}). A count, so it also tracks size, language and neighbors.
             {us ? <> The United States ranks {ordinal(us)} of {sorted.length}.</> : null} UNESCO Institute for Statistics.
           </>
         ),
@@ -110,7 +112,7 @@ export function SoftPowerHero({
         figure: formatValue(tourists.unit, sorted[0][1]),
         caption: (
           <>
-            international tourist arrivals in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({tourists.latestYear}). World Bank, from the UN Tourism organization.
+            international tourist arrivals in <span className="text-hero-ink">{nameFor(sorted[0][0])}</span>, the most of any country ({tourists.latestYear}); a count that tracks geography and price as much as appeal. World Bank, from the UN Tourism organization.
           </>
         ),
         atlas: atlasFromIndicator(tourists),
@@ -177,8 +179,8 @@ export function SoftPowerHero({
 
   return (
     <MeasureHero
-      title="What draws people to a country"
-      sub="What people say, who gives aid, where students study, which countries tourists visit and where people move: one sourced map at a time. Nothing here is added into a score; a blank is a country nobody asked or counted."
+      title="Footprints and reach"
+      sub="What people say, who gives aid, where students study, which countries tourists visit and where people move: footprints of reach, not proof of attraction. One sourced map at a time, never added into a score; a blank is a country nobody asked or counted, not a zero."
       measures={measures}
       active={current?.id ?? 'opinion'}
       onMeasure={(id) => {

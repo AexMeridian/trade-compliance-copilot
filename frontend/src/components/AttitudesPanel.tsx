@@ -225,7 +225,8 @@ export function AttitudesPanel({ data, year, onYear, codes, showTable }: { data:
               {cn.publishedMedian}% toward China across {cn.countriesInMedian} countries
             </>
           )}
-          . The China figure also counts Americans' own view of China, and the two surveys do not poll exactly the same countries, so do not subtract one from the other.
+          . These are unweighted medians of countries (each counts once, whatever its population), not the world's opinion; Pew did not poll most countries. The China figure also counts Americans' own view of China, and the
+          two surveys do not poll exactly the same countries, so do not subtract one from the other. Differences of a few points are within Pew's margin of error. Pew's country tables are reproduced here as excerpts with attribution; Pew is not responsible for how they are used.
         </p>
         <p className="mt-1.5 text-xs text-ink-faint">{data.disclaimer}</p>
       </div>

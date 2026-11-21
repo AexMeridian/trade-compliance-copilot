@@ -15,7 +15,8 @@ export interface AtlasClass {
 export const SEQUENTIAL_RAMP = ['#134e5e', '#14788d', '#1aa6b9', '#5fd0dd', '#c8f2f6'];
 // Orange <-> blue with a neutral gray middle (the same pair the UN-voting map uses): left side first.
 export const DIVERGING_RAMP = ['#f97316', '#fdba74', '#a8a29e', '#93c5fd', '#3b82f6'];
-export const NO_DATA_COLOR = '#2b3340';
+// Lighter than the dark ocean (#0c1936 to #070e22) so countries with no reading stay visible on the stage; still distinct from every ramp step.
+export const NO_DATA_COLOR = '#4b5567';
 
 export interface Banding {
   /** Class index 0..4 for a value. */

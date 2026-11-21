@@ -26,6 +26,7 @@ export interface ClassificationCandidate {
   code: string;
   description: string;
   score: number;
+  reason?: string; // why this candidate is listed
 }
 
 export interface ClassificationResult {
@@ -106,6 +107,9 @@ export interface ScreeningResult {
   hard_stop_triggered: boolean; // export direction + Entity List/Denied Persons true_match
   screened_at: string | null; // ISO timestamp of this screening run, so a case can flag itself stale
   deemed_export_flagged: boolean; // disclosed by the user: tech may be shared with a foreign national employee
+  /** Age of each sanctions list when this screening ran; a list that was stale or empty means "No matches" is not a clean result. */
+  list_freshness?: { source: string; label: string; state: 'ok' | 'stale' | 'not_loaded'; as_of: string | null; age_days: number | null; has_rows: boolean; last_error: string | null }[];
+  freshness_caveat?: string | null;
 }
 
 export interface DutyStackLine {
@@ -132,7 +136,12 @@ export interface DeterminationResult {
   // was itself null (an unparseable duty line), same "can't compute, don't
   // guess" rule as landed_cost_estimate_pct.
   declared_value_usd: number | null;
-  landed_cost_usd: number | null; // declared_value_usd + duty, not duty alone
+  // Duty only (declared value times the total rate); excludes the MPF, HMF, freight and insurance. Absent on cases run before this field existed.
+  estimated_duty_usd?: number | null;
+  entry_date?: string | null; // date of entry the rates and fees were applied for, YYYY-MM-DD
+  transport_mode?: "ocean" | "air" | "land" | "unknown" | null;
+  // Older cases only: declared value plus duty. No longer written (always null): it left out fees and freight, so it was not a landed cost.
+  landed_cost_usd: number | null;
   // Section 321 de minimis (19 CFR 10.151): true/false reflects ONLY the $800
   // statutory threshold, which this app can check with certainty -- it is
   // deliberately NOT a full eligibility determination, since antidumping/
@@ -150,7 +159,7 @@ export interface DeterminationResult {
   destination_country: string | null;
   eccn: string | null;
   reasons_for_control: string[] | null;
-  license_requirement: 'NLR' | 'License Required' | 'License Exception May Apply' | 'Insufficient Data' | null;
+  license_requirement: 'NLR' | 'License Required' | 'Possible exception: verify' | 'Insufficient Data' | null;
   license_exception_candidates: string[] | null;
   denied_party_override: boolean;
   reasoning: ReasoningTrace | null;

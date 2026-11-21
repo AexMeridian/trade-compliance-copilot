@@ -33,6 +33,29 @@ originRoute.post('/:id/origin', async (c) => {
   const rule = await findUsmcaRule(c.env, code);
   await logCaseEvent(c.env, caseId, 'origin', 'candidate_set', { code, rule });
 
+  // USMCA is not claimable for goods made outside the United States, Canada and Mexico, so there is nothing to look up or flag: skip the
+  // step instead of listing a missing-rule gap that does not matter for this origin.
+  if (!['US', 'CA', 'MX'].includes(finalAssemblyCountry)) {
+    caseFile.origin = {
+      status: 'complete',
+      applicable_rule: rule ? { rule_id: rule.id, rule_type: rule.rule_type, citation: rule.citation } : null,
+      components: body.components,
+      final_assembly_country: finalAssemblyCountry,
+      tariff_shift_met: null,
+      rvc_calculated_pct: null,
+      rvc_threshold_pct: rule ? rule.rvc_threshold_pct : null,
+      qualifies: false,
+      reasoning: {
+        summary: `USMCA does not apply: final production is in ${finalAssemblyCountry}, outside the United States, Canada and Mexico, so the goods cannot qualify for USMCA preferential treatment.`,
+        steps: ['USMCA origin requires the good to be produced in the territory of the parties. This step was skipped for this origin.'],
+        cited_sources: rule ? [{ source_url: rule.source_url, source_tier: rule.source_tier as 1 | 2 | 3, last_updated: rule.last_updated }] : [],
+        confidence: 'high',
+      },
+    };
+    await saveCaseFile(c.env, caseFile);
+    return c.json({ origin: caseFile.origin });
+  }
+
   if (!rule) {
     caseFile.origin = {
       status: 'complete',
@@ -115,7 +138,7 @@ originRoute.post('/:id/origin', async (c) => {
       tool: buildOriginTool(),
     });
   } catch (err) {
-    if (err instanceof ClaudeGroundingError) return c.json({ error: `Origin engine error: ${err.message}` }, 502);
+    if (err instanceof ClaudeGroundingError) { console.error('origin grounding error:', err.message); return c.json({ error: 'The origin step could not produce a verified answer. Please try again.' }, 502); }
     throw err;
   }
 

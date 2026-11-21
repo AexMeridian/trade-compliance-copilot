@@ -27,7 +27,16 @@ const SERIES_ID = 'COFER:USD_SHARE';
 // ignores `startPeriod` for this dataflow and always returns full history
 // back to 1999 (verified live) -- ~110 rows, small enough that there's no
 // reason to fight it, so this just takes what it's given.
-const DATA_URL = 'https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.STA/COFER/7.0.1/G001.AFXRA.CI_USD.SHRO_PT.Q?format=csv';
+const dataUrl = (currency: string) => `https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.STA/COFER/7.0.1/G001.AFXRA.${currency}.SHRO_PT.Q?format=csv`;
+const DATA_URL = dataUrl('CI_USD');
+
+// The euro and renminbi shares from the same IMF table (verified live: CI_EUR from 1999, CI_CNY from 2016), so "is the dollar being
+// replaced" can be read against what the share went to. They are not shown as tiles; the chart reads them from /cofer.
+export const COFER_OTHER = [
+  { currency: 'CI_EUR', id: 'COFER:EUR_SHARE', label: "Euro's share of world FX reserves" },
+  { currency: 'CI_CNY', id: 'COFER:CNY_SHARE', label: "Renminbi's share of world FX reserves" },
+] as const;
+const otherMeta = (o: (typeof COFER_OTHER)[number]): MarketMeta => ({ ...COFER_META, id: o.id, label: o.label });
 
 export const COFER_META: MarketMeta = {
   id: SERIES_ID,
@@ -46,6 +55,26 @@ function quarterToDate(period: string): string | null {
   return `${m[1]}-${month}-01`;
 }
 
+/** Parses the IMF SDMX CSV into rows for one series; anything unparseable is skipped rather than guessed. */
+export function parseCoferCsv(text: string, id: string): { id: string; date: string; value: number }[] {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) throw new Error('IMF COFER returned no rows');
+  const header = lines[0].split(',');
+  const timeCol = header.indexOf('TIME_PERIOD');
+  const valueCol = header.indexOf('OBS_VALUE');
+  if (timeCol === -1 || valueCol === -1) throw new Error('IMF COFER CSV shape changed -- expected TIME_PERIOD and OBS_VALUE columns');
+  const rows: { id: string; date: string; value: number }[] = [];
+  for (const line of lines.slice(1)) {
+    const cols = line.split(',');
+    const date = quarterToDate(cols[timeCol]);
+    const raw = (cols[valueCol] ?? '').trim();
+    const value = raw === '' ? NaN : Number(raw); // an empty cell is not a zero
+    if (!date || !Number.isFinite(value)) continue;
+    rows.push({ id, date, value });
+  }
+  return rows;
+}
+
 export async function refreshCofer(env: Env): Promise<RefreshResult> {
   const res = await fetch(DATA_URL, {
     headers: { Accept: 'application/vnd.sdmx.data+csv' },
@@ -53,24 +82,23 @@ export async function refreshCofer(env: Env): Promise<RefreshResult> {
   });
   if (!res.ok) throw new Error(`IMF COFER fetch failed: HTTP ${res.status}`);
   const text = await res.text();
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) throw new Error('IMF COFER returned no rows');
-
-  const header = lines[0].split(',');
-  const timeCol = header.indexOf('TIME_PERIOD');
-  const valueCol = header.indexOf('OBS_VALUE');
-  if (timeCol === -1 || valueCol === -1) throw new Error('IMF COFER CSV shape changed -- expected TIME_PERIOD and OBS_VALUE columns');
-
-  const rows: { id: string; date: string; value: number }[] = [];
-  for (const line of lines.slice(1)) {
-    const cols = line.split(',');
-    const date = quarterToDate(cols[timeCol]);
-    const value = Number(cols[valueCol]);
-    if (!date || !Number.isFinite(value)) continue; // skip anything unparseable rather than guess
-    rows.push({ id: SERIES_ID, date, value });
-  }
+  const rows = parseCoferCsv(text, SERIES_ID);
   if (rows.length === 0) throw new Error('IMF COFER returned no usable observations');
 
   await writeSeries(env, [COFER_META], rows);
-  return { source: 'pulse_cofer', rows: rows.length };
+  // The euro and renminbi lines are a bonus: if either fetch fails, the dollar series above is already stored and the run still succeeds.
+  let extra = 0;
+  for (const o of COFER_OTHER) {
+    try {
+      const r = await fetch(dataUrl(o.currency), { headers: { Accept: 'application/vnd.sdmx.data+csv' }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      if (!r.ok) continue;
+      const more = parseCoferCsv(await r.text(), o.id);
+      if (more.length === 0) continue;
+      await writeSeries(env, [otherMeta(o)], more);
+      extra += more.length;
+    } catch {
+      /* optional series */
+    }
+  }
+  return { source: 'pulse_cofer', rows: rows.length + extra };
 }

@@ -6,6 +6,7 @@ import { RankedBars, type BarRow } from './RankedBars';
 import { PulseDelta } from './PulseDelta';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
+import { quarterLabel } from '../lib/powerFormat';
 import { getSanctionCounts, type NatoDefenseCountry, type SanctionCounts } from '../lib/api';
 import { PowerCoferChart } from './PowerCoferChart';
 import { PulseCurrencyMovers } from './PulseCharts';
@@ -108,7 +109,7 @@ export function HardPowerHero({
         'The sanctions lists could not be counted just now.'
       ) : (
         <>
-          People and companies on the U.S. (OFAC, Commerce and State), UN and UK sanctions lists
+          Listings on the OFAC, Commerce/State, UN and UK lists (a party on several lists counts once on each; Commerce/State entries are export-control listings, not sanctions)
           {sanctionRows[0] ? (
             <>
               . <span className="text-hero-ink">{sanctionRows[0].label}</span> has the most, {sanctionRows[0].text}.
@@ -116,7 +117,7 @@ export function HardPowerHero({
           ) : (
             '.'
           )}{' '}
-          Counted by the country in each listed address, so it is a text match, not a legal finding.
+          Counted by the country in each listed address, so it is a text match, not a legal finding. Hong Kong is counted apart from mainland China.
         </>
       ),
       body: sanctionsFailed ? (
@@ -129,13 +130,13 @@ export function HardPowerHero({
     },
     {
       id: 'tariff',
-      label: 'Extra tariffs',
+      label: 'Forced-labor tariff',
       figure: tariffRows.length > 0 ? String(tariffRows.length) : 'None',
       caption:
         tariffRows.length > 0 ? (
           <>
-            countries and economies face an extra U.S. tariff on nearly all their goods, on top of the normal rate (the Section 301 forced-labor determination
-            {forcedLaborDate ? `, data as of ${forcedLaborDate}` : ''}).
+            countries and economies face an extra U.S. tariff on nearly all their goods under one action, the 2026 Section 301 forced-labor determination
+            {forcedLaborDate ? ` (data as of ${forcedLaborDate})` : ''}. China's 2018-onward Section 301 duties, Section 232 and antidumping duties are not in these rates.
             {canadaExtra && ` Canada also faces ${canadaExtra.ratePct}% on ${canadaExtra.note}.`}
           </>
         ) : (
@@ -181,7 +182,7 @@ export function HardPowerHero({
               (<PulseDelta change={summary.trendPct} text={`${Math.abs(summary.trendPct)}%`} className="font-semibold" /> on the 30 days before)
             </>
           )}
-          . A notice can name several countries.
+          . This counts Federal Register documents, including corrections and comment periods, and a notice can name several countries.
         </>
       ) : null,
       body: <RankedBars rows={noticeRows} activeCountry={activeCountry} onSelect={onCountry} />,
@@ -193,8 +194,8 @@ export function HardPowerHero({
       caption:
         coferLatest && coferFirst ? (
           <>
-            of the world's central-bank foreign-currency reserves are held in U.S. dollars, down from{' '}
-            <span className="text-hero-ink">{coferFirst[1].toFixed(0)}%</span> in {coferFirst[0].slice(0, 4)}. Source: the IMF, updated quarterly.
+            of allocated central-bank foreign-currency reserves are reported in U.S. dollars ({quarterLabel(coferLatest[0])}), down from{' '}
+            <span className="text-hero-ink">{coferFirst[1].toFixed(0)}%</span> in {coferFirst[0].slice(0, 4)}. At market exchange rates, so a weaker dollar lowers the share without any selling. Source: IMF COFER.
           </>
         ) : (
           'The IMF reserve data is not available right now.'
@@ -207,7 +208,7 @@ export function HardPowerHero({
       figure: usDefense ? usDefense.text : 'n/a',
       caption: usDefense ? (
         <>
-          of the U.S. economy goes to defense ({usDefense.label.match(/\((\d{4})\)/)?.[1]}), shown against the allies NATO publishes figures for. NATO's own target is 2%. These are
+          of the U.S. economy goes to defense ({usDefense.label.match(/\((\d{4})\)/)?.[1]}), shown against the {defenseRows.length - 1} other NATO allies stored here (not all 32). The older target is 2%; the 2025 commitment is 3.5% core plus 1.5% related by 2035. These are
           NATO's estimates, refreshed about once a year.
         </>
       ) : (
@@ -254,7 +255,7 @@ export function HardPowerHero({
   return (
     <MeasureHero
       title="The hard tools of U.S. power"
-      sub="Sanctions, tariffs, the dollar and defense spending: what the U.S. can compel or withhold, with the sources. Pick a measure, then open any country."
+      sub="Sanctions, tariffs, the dollar and defense spending: what the U.S. can compel or withhold, with the sources. U.S. tools only: other countries' instruments, such as China's export controls on rare earths or its Unreliable Entity List, are not shown. Pick a measure, then open any country."
       measures={measures}
       active={measure}
       onMeasure={setMeasure}

@@ -33,7 +33,7 @@ export function StatTile({
       <span className={`absolute inset-x-0 top-0 h-1 ${t.bar}`} aria-hidden="true" />
       <span className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-transparent to-accent-2" aria-hidden="true" />
       <span className="text-[13px] font-semibold text-ink-muted">{label}</span>
-      <span className={`display mt-2 block text-[34px] leading-none tabular-nums ${t.ink} sm:text-[38px]`}>
+      <span className={`display mt-2 block text-[34px] leading-none tabular-nums text-ink sm:text-[38px]`}>
         {figure}
       </span>
       {note && <span className="mt-2 block text-[13px] leading-snug text-ink-muted">{note}</span>}

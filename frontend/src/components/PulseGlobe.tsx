@@ -4,6 +4,7 @@ import type { Feature, FeatureCollection, Geometry, Position } from 'geojson';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { WORLD_CODE_TO_ID, WORLD_ID_TO_CODE } from '../lib/worldCountries';
 import type { Theme } from '../lib/theme';
+import { motionPaused } from '../lib/motion';
 import { useLiveArcs } from '../lib/useLiveArcs';
 
 // A wireframe, dotted globe you can turn and press. Every country is
@@ -438,8 +439,8 @@ export function PulseGlobe({
       lit.addColorStop(0.88, '#dce3ec');
       lit.addColorStop(1, '#c6d0dd');
       ctx.fillStyle = lit;
-    } else if (plain && theme === 'dark') {
-      // Open (unboxed) maps: a deep navy sea, a touch lighter toward the upper left, so the sphere belongs to the navy page behind it.
+    } else if (theme === 'dark') {
+      // A deep navy sea on every globe (home included), a touch lighter toward the upper left, so the sphere belongs to the navy page behind it.
       const sea = ctx.createRadialGradient(size / 2 - r * 0.35, size / 2 - r * 0.4, r * 0.05, size / 2, size / 2, r * 1.02);
       sea.addColorStop(0, '#16284f');
       sea.addColorStop(0.6, '#0c1936');
@@ -682,7 +683,7 @@ export function PulseGlobe({
     const io = el ? new IntersectionObserver(([entry]) => { onScreenRef.current = entry.isIntersecting; }) : null;
     if (el && io) io.observe(el);
     const tick = (now: number) => {
-      if (document.hidden || !onScreenRef.current) {
+      if (document.hidden || !onScreenRef.current || motionPaused()) {
         last = now;
         raf = requestAnimationFrame(tick);
         return;
@@ -903,12 +904,12 @@ export function PulseGlobe({
         </div>
       </div>
       <p aria-live="polite" className={plain ? 'mt-3 min-h-[1.5rem] text-center text-[13px] font-medium tracking-wide text-hero-ink-muted' : 'mt-2 min-h-[1.5rem] text-center text-sm font-medium text-hero-ink'}>
-        {shownMessage ?? (world ? (hint ?? 'Move over a country to see its count. Press it for details. Drag to turn the globe.') : 'Loading the globe…')}
+        {shownMessage ?? (world ? (hint ?? (window.matchMedia('(pointer: coarse)').matches ? 'Tap a country to see its count and open details. Drag to turn the globe.' : 'Move over a country to see its count. Press it for details. Drag to turn the globe.')) : 'Loading the globe…')}
       </p>
       {live && (
         <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-hero-ink-faint" title="Counts refresh about every five minutes while this page is open">
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-clear" aria-hidden="true" />
-          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Hover or press an arc for the latest notices.
+          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. {window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover or press'} an arc for the latest notices.
         </p>
       )}
       {legend ? (
@@ -922,13 +923,13 @@ export function PulseGlobe({
         </p>
       ) : (
         <p className="mt-1 flex items-center justify-center gap-2 text-xs text-hero-ink-faint" aria-hidden="true">
-          Fewer
+          Fewer notices
           <span className="flex gap-1">
             {PALETTES[theme].ramp.map((c) => (
               <span key={c} className="h-2.5 w-4 rounded-sm" style={{ background: c }} />
             ))}
           </span>
-          notices
+          More
         </p>
       )}
     </div>

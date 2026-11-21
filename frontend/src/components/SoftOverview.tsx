@@ -4,7 +4,7 @@ import type { OpinionResponse, PowerIndicator } from '../lib/api';
 import { formatValue, ordinal } from '../lib/powerFormat';
 import { nameFor } from '../lib/powerCountries';
 import type { SoftTabId } from '../lib/powerTabs';
-import { surveysFor } from './AttitudesPanel';
+import { commonCountryMedians } from '../lib/softPowerMeasures';
 import { RankLadder } from './RankLadder';
 import { Sparkline } from './Sparkline';
 import { MiniBars, StatTile } from './StatTile';
@@ -42,16 +42,16 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
 
   if (opinion) {
     const year = Math.max(...opinion.surveys.map((s) => s.year));
-    const { us, cn } = surveysFor(opinion, year);
-    if (us && cn) {
+    const med = commonCountryMedians(opinion, year);
+    if (med) {
       tiles.push(
         <StatTile
           key="pew"
           tone="soft"
           label={`Favorable view, Pew ${year} median`}
-          figure={`${us.publishedMedian}% vs ${cn.publishedMedian}%`}
-          note="The U.S. (first) and China across the countries polled."
-          visual={<MiniBars tone="soft" rows={[{ label: 'U.S.', pct: us.publishedMedian, text: `${us.publishedMedian}%` }, { label: 'China', pct: cn.publishedMedian, text: `${cn.publishedMedian}%` }]} />}
+          figure={`${med.us}% vs ${med.cn}%`}
+          note={`The U.S. (first) and China: median of the ${med.n} countries Pew polled about both, each counted once. Not the world.`}
+          visual={<MiniBars tone="soft" rows={[{ label: 'U.S.', pct: med.us, text: `${med.us}%` }, { label: 'China', pct: med.cn, text: `${med.cn}%` }]} />}
           onClick={() => go('attitudes')}
         />,
       );
@@ -63,7 +63,7 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
         tone="soft"
         label="Africa: influence rated positive"
         figure={`${a.us}% vs ${a.cn}%`}
-        note="The U.S. (first) and China, median of 38 countries."
+        note="The U.S. (first) and China: unweighted median of 38 African countries (Round 10 straddles the January 2025 aid freeze)."
         visual={<MiniBars tone="soft" rows={[{ label: 'U.S.', pct: a.us, text: `${a.us}%` }, { label: 'China', pct: a.cn, text: `${a.cn}%` }]} />}
         onClick={() => go('attitudes')}
       />,
@@ -122,7 +122,7 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
         <section className="card p-4 sm:p-5">
           <h2 className="font-display text-xl font-bold text-ink">Where the U.S. and China stand</h2>
           <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-muted">
-            Each row is one measure, and the marker is the country's rank among all countries with a reading. Rows are never added up. Open any measure for its map, ranking and caveats.
+            Each row is one measure, and the marker is the country's rank among all countries with a reading. Several rows are absolute counts (students, articles, tourists, aid dollars), so they partly track country size. Rows are never added up. Open any measure for its map, ranking and caveats.
           </p>
           <div className="mt-4">
             <RankLadder indicators={ladder} codes={['US', 'CN']} />
@@ -142,12 +142,12 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
         </summary>
         <div className="mt-2 max-w-3xl pl-4 leading-relaxed">
           <p>
-            Soft power is the ability to get others to want what you want through attraction rather than payment or force. Scholars say it rests on three things: a country's culture where it appeals to
+            Soft power is the ability to get others to want what you want through attraction rather than payment or force. Joseph Nye, who coined the term (<em>Soft Power</em>, 2004), argues it rests on three things: a country's culture where it appeals to
             others, its political values when it lives up to them, and its foreign policy when others see it as legitimate. Surveys of what people actually think are the best test, so they come first here,
             and what a country has is shown apart from what people say about it.
           </p>
           <p className="mt-2">
-            There is no combined score: indices that add these up hide their weights. For the coercive side (sanctions, tariffs, the dollar, defense), see{' '}
+            There is no combined score: soft power is relational (attraction for one audience, on one issue), so a single number hides who is attracted and to what, and any weights are a judgment call. For the coercive side (sanctions, tariffs, the dollar, defense), see{' '}
             <Link to="/hard-power" className="text-accent hover:underline">
               Hard Power
             </Link>

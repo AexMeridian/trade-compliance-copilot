@@ -7,17 +7,27 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   live:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for the deploy to finish
-        run: sleep 240
       - name: Check the live site
         run: |
           set -u
           BASE=https://aexterminal.com
+          # Poll instead of a fixed sleep: wait (up to 10 minutes) for the new deploy to answer healthy.
+          ok=0
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BASE/api/health" || echo 000)
+            echo "attempt $i: /api/health -> $code"
+            if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep 30
+          done
           fail=0
+          if [ "$ok" != "1" ]; then fail=1; fi
           for path in /api/health /api/pulse/data-status / /calculator /methodology; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BASE$path" || echo 000)
             echo "$path -> $code"
@@ -27,6 +37,7 @@ jobs:
           body=$(curl -s --max-time 30 "$BASE/api/pulse/data-status")
           echo "$body" | head -c 600; echo
           if echo "$body" | grep -q '"ok":false'; then
-            echo "::warning::health summary reports ok:false (see critical keys above)"
+            echo "::error::health summary reports critical problems (see the critical keys above)"
+            fail=1
           fi
           exit $fail

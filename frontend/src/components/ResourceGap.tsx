@@ -13,8 +13,7 @@ function describe(rho: number): string {
   return a < 0.25 ? 'no clear relationship' : `${strength} ${rho > 0 ? 'positive' : 'negative'} relationship`;
 }
 
-// The question practitioners ask of every soft-power index: do the things a country has (wealth, good governance, aid, trade)
-// turn into goodwill? Each polled country is one point: what it has on the horizontal axis, how favorably its people view the
+// A context check, not a test of a power's resources: each polled country is one point, with that country's OWN wealth, governance or size on the horizontal axis and how favorably its people view the
 // United States or China on the vertical. The rank correlation is reported plainly and described, never turned into a score.
 export function ResourceGap({ indicators, opinion, year, codes }: { indicators: PowerIndicator[]; opinion: OpinionResponse; year: number; codes: string[] }) {
   const resources = useMemo<Resource[]>(() => {
@@ -54,9 +53,10 @@ export function ResourceGap({ indicators, opinion, year, codes }: { indicators: 
 
   return (
     <div className="card min-w-0 px-4 pb-4 pt-4">
-      <h3 className="text-[15px] font-semibold text-ink">Do resources turn into goodwill?</h3>
+      <h3 className="text-[15px] font-semibold text-ink">What goes with views of {subjectName} across the countries polled?</h3>
       <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-muted">
-        Each dot is a country Pew polled in {year}. Across, what the country has; up, the share of its people with a favorable view of {subjectName}.
+        Each dot is a country Pew polled in {year}. Across, the <em>polled country's own</em> wealth, governance or size (not {subjectName}'s resources); up, the share of its people with a favorable view of {subjectName}. Income, governance and trade measures
+        are context for the audience, shown to see what views line up with, not a test of whether a power's resources buy goodwill.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <label className="flex items-center gap-1.5">
@@ -130,7 +130,7 @@ export function ResourceGap({ indicators, opinion, year, codes }: { indicators: 
             ) : (
               <>
                 Across these {points.length} countries the rank correlation (Spearman) is <span className="font-semibold text-ink tabular-nums">{rho.toFixed(2)}</span>:{' '}
-                {describe(rho)}. It describes the countries Pew polled, mostly large or well-known ones, and does not show that one thing causes the other.
+                {describe(rho)}. It describes only the countries Pew polled, mostly large or well-known ones. With {points.length} countries it is a rough guide: a few countries moving would change it a lot, and it does not show that one thing causes the other.
               </>
             )}
           </p>

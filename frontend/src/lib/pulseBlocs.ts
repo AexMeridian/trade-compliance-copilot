@@ -45,7 +45,7 @@ export const BLOC_FULL_NAMES: Record<Bloc, string> = {
   NATO: 'North Atlantic Treaty Organization',
   G7: 'Group of Seven',
   G20: 'Group of Twenty',
-  BRICS: 'Brazil, Russia, India, China, South Africa and later members',
+  BRICS: 'Brazil, Russia, India, China and South Africa, plus the 2024-25 additions (Egypt, Ethiopia, Iran, UAE, Saudi Arabia, Indonesia)',
   USMCA: 'United States-Mexico-Canada Agreement',
 };
 
@@ -54,7 +54,7 @@ export const BLOC_MEMBERS: Record<Bloc, string[]> = {
     'AL', 'BE', 'BG', 'CA', 'HR', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IT', 'LV', 'LT', 'LU', 'ME',
     'NL', 'MK', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'TR', 'GB',
   ],
-  G7: ['CA', 'FR', 'DE', 'IT', 'JP', 'GB', 'EU'],
+  G7: ['CA', 'FR', 'DE', 'IT', 'JP', 'GB'], // the EU takes part in summits but is not a member, so it is not listed
   G20: ['AR', 'AU', 'BR', 'CA', 'CN', 'FR', 'DE', 'IN', 'ID', 'IT', 'JP', 'MX', 'RU', 'SA', 'ZA', 'KR', 'TR', 'GB', 'EU'],
   BRICS: ['BR', 'RU', 'IN', 'CN', 'ZA', 'EG', 'ET', 'IR', 'AE', 'SA', 'ID'],
   USMCA: ['CA', 'MX'],

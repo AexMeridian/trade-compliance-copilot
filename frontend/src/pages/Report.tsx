@@ -19,8 +19,8 @@ import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 
 const SCREENING_PLAIN = { none: 'No matches', caution: 'Needs a closer look', hard_stop: 'Blocked party found' } as const;
 const SCREENING_TONE: Record<keyof typeof SCREENING_PLAIN, Tone> = { none: 'clear', caution: 'review', hard_stop: 'stop' };
-const LICENSE_TONE: Record<string, Tone> = { NLR: 'clear', 'License Required': 'stop', 'License Exception May Apply': 'review', 'Insufficient Data': 'review' };
-const VERDICT_WORD: Record<string, string> = { true_match: 'True match', false_positive: 'Cleared (false positive)', inconclusive: 'Inconclusive' };
+const LICENSE_TONE: Record<string, Tone> = { NLR: 'clear', 'License Required': 'stop', 'Possible exception: verify': 'review', 'Insufficient Data': 'review' };
+const VERDICT_WORD: Record<string, string> = { true_match: 'True match', false_positive: 'Dismissed as not the same party', inconclusive: 'Inconclusive' };
 
 function MatchRow({ m }: { m: PartyMatch }) {
   const tone = m.verdict === 'true_match' ? 'text-stop' : m.verdict === 'inconclusive' ? 'text-review' : 'text-ink-faint';
@@ -212,7 +212,7 @@ export function Report() {
           </button>
         }
       >
-        <ListsAsOf />
+        <ListsAsOf freshness={cf.screening.list_freshness} />
         {cf.screening.screened_at && (
           <p className="text-xs text-ink-faint">Screened {agoText(cf.screening.screened_at)}. Watchlists change; re-screen before acting on an older result.</p>
         )}
@@ -228,7 +228,7 @@ export function Report() {
                     {p.input_name}
                   </p>
                   <span className="text-xs text-ink-faint">
-                    {p.matches.length === 0 ? 'No candidate matches' : act.length === 0 ? `${cleared.length} possible match${cleared.length === 1 ? '' : 'es'}, all cleared` : `${act.length} need${act.length === 1 ? 's' : ''} attention`}
+                    {p.matches.length === 0 ? 'No candidate matches' : act.length === 0 ? `${cleared.length} possible match${cleared.length === 1 ? '' : 'es'}, all dismissed as not the same party` : `${act.length} need${act.length === 1 ? 's' : ''} attention`}
                   </span>
                 </div>
                 {p.ownership && <OwnershipNote hint={p.ownership} />}
@@ -236,7 +236,7 @@ export function Report() {
                 {cleared.length > 0 && (
                   <details className="mt-1.5">
                     <summary className="cursor-pointer text-xs font-medium text-ink-muted hover:text-ink">
-                      Show {cleared.length} cleared match{cleared.length === 1 ? '' : 'es'} and why
+                      Show {cleared.length} dismissed match{cleared.length === 1 ? '' : 'es'} and why
                     </summary>
                     <div className="mt-1 divide-y divide-hairline">{cleared.map((m, j) => <MatchRow key={j} m={m} />)}</div>
                   </details>
@@ -261,7 +261,8 @@ export function Report() {
               totalPct={det.landed_cost_estimate_pct}
               htsCode={cls.selected_code}
               declaredValueUsd={det.declared_value_usd}
-              landedCostUsd={det.landed_cost_usd}
+              estimatedDutyUsd={det.estimated_duty_usd ?? null}
+              entryDate={det.entry_date ?? null}
               deMinimisNote={det.de_minimis_note}
               entryFees={det.entry_fees}
             />
@@ -302,8 +303,8 @@ export function Report() {
       )}
 
       <p className="mt-12 max-w-prose border-t border-hairline pt-4 text-xs text-ink-faint">
-        Trade compliance determinations depend on facts not captured here. Consult a licensed customs broker or trade attorney before relying on this for an
-        actual transaction.
+        Trade compliance determinations depend on facts not captured here. This is not a binding ruling: request a CBP ruling under 19 CFR Part 177 for
+        certainty, and consult a licensed customs broker or trade attorney before relying on this for an actual transaction.
       </p>
       <div className="no-print mt-4 flex max-w-prose flex-wrap items-center gap-3 text-xs text-ink-faint">
         <span>This case is kept for 30 days and then deleted automatically. Anyone with the link can open it.</span>

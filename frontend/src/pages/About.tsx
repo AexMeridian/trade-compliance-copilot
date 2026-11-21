@@ -15,12 +15,6 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
     coverageKey: 'federal_register',
   },
   {
-    name: 'Yahoo Finance (currently switched off)',
-    used: 'Stock indexes, company shares, oil, natural gas, gold, copper, the 10-year Treasury yield and the dollar index.',
-    terms: 'Not shown while the terms of this unofficial source are reviewed. Nothing on the site depends on it.',
-    coverageKey: 'yahoo_finance',
-  },
-  {
     name: 'European Central Bank, via Frankfurter (frankfurter.dev)',
     used: 'Currency exchange rates against the U.S. dollar.',
     terms: "The ECB's daily reference rates, published once each business day.",
@@ -159,10 +153,11 @@ export function About() {
         <Link to="/calculator" className="text-accent">
           Compliance calculator
         </Link>{' '}
-        is a different tool. It uses an AI model to help work through a shipment and shows its sources. One part of it is not AI at all: party screening
-        matches a name against watchlists with a deterministic two-stage algorithm (a fast word-order-independent pre-filter, then a character-similarity
-        score called Jaro-Winkler), and shows both numbers next to each candidate so you can see why a match was or wasn't flagged, not just a single
-        unexplained score.
+        is a different tool. It uses an AI model to help work through a shipment and shows its sources. Party screening finds candidate matches with a deterministic two-stage
+        algorithm (a fast word-order-independent pre-filter, then a character-similarity score called Jaro-Winkler) and shows both numbers next to each
+        candidate. A language model then judges each candidate as a true match, a false positive or inconclusive from the name and listed details only,
+        and that judgment can be wrong: a near-identical name on the OFAC list is never dismissed automatically. Each result shows how old every list copy is
+        and flags any list that is stale or empty.
       </p>
 
       <H>Follow along</H>

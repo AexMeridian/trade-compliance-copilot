@@ -29,7 +29,7 @@ const QA: [string, string][] = [
   ],
   [
     "Does the dollar's falling reserve share mean the dollar is being replaced?",
-    'No single figure supports that claim. Central banks, in aggregate, hold a smaller share of their reserves in dollars than in 1999: a real, slow-moving trend, not a prediction about what replaces it or how fast.',
+    'No single figure supports that claim. The reported share of allocated reserves held in dollars, at market exchange rates, is lower than in 1999 (the year the euro began). Part of any quarter’s move is valuation: when the dollar weakens, dollar assets are worth less against other currencies even if no central bank sold anything. It is a slow-moving trend, not a prediction about what replaces the dollar or how fast.',
   ],
   [
     'Where is culture, opinion and aid?',
@@ -37,7 +37,7 @@ const QA: [string, string][] = [
   ],
   [
     'Does it use AI?',
-    `No. Every number and grouping here comes from fixed rules and public reference data, the same as ${SITE.name}: no model call, no summarization, no scoring.`,
+    `No. Every number and grouping on this page comes from fixed rules and public reference data: no model call, no summarization, no scoring. (The name-screening tool elsewhere on ${SITE.name} does use a model for name-match calls; see Methodology.)`,
   ],
 ];
 
@@ -99,7 +99,7 @@ export function HardPowerGuide() {
           ))}
         </ul>
         <p className="mt-3">
-          BRICS is shown with its original five founding members (2010); the 2024 expansion is left out to avoid disputed or partial membership. A country can belong to more than one group, and the
+          BRICS is shown with its eleven current members as listed by the BRICS presidency: the five founders (Brazil, Russia, India, China, South Africa), the 2024 additions (Egypt, Ethiopia, Iran, the UAE and Saudi Arabia, whose own participation has been described differently over time) and Indonesia (January 2025). "Partner countries" are shown separately because they are not members. The EU takes part in G7 summits but is not a G7 member, so it is not listed there. A country can belong to more than one group, and the
           globe shows one color per country (its most specific group) as a display simplification.
         </p>
       </Section>

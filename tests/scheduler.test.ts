@@ -19,7 +19,7 @@ async function test(name: string, fn: () => Promise<void>) {
 
 const NOW = Date.parse('2026-10-07T05:00:00Z');
 const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
-const envWith = (log: { source: string; biggest: number | null; last_ok: string | null }[]) =>
+const envWith = (log: { source: string; biggest: number | null; last_ok: string | null; fails?: number }[]) =>
   ({ DB: { prepare: () => ({ all: async () => ({ results: log }) }) } }) as unknown as Env;
 
 await test('a fresh install runs the first (biggest, highest-priority) job alone', async () => {
@@ -77,6 +77,20 @@ await test('indicator jobs that ran this week are not picked again', async () =>
 await test('no indicator job is in the heavy reference-table group', async () => {
   const picked = await pickDueBulkJobs(envWith([]), NOW);
   assert.ok(!picked.some((j) => ['power_indicators', 'un_voting', 'uis_students', 'unhcr', 'nobel', 'fts', 'world_bank', 'undp_hdr', 'openalex'].includes(j.source)));
+});
+
+await test('a persistently failing first job does not starve the others', async () => {
+  const picked = await pickDueBulkJobs(envWith([{ source: 'sdn', biggest: null, last_ok: null, fails: 12 }]), NOW);
+  assert.notEqual(picked[0].source, 'sdn', 'a healthy due job must run before the failing one');
+  assert.ok(picked.length > 1, 'the day still runs several due jobs');
+  const at = picked.findIndex((j) => j.source === 'sdn');
+  assert.ok(at === -1 || at === picked.length - 1, 'a failing sdn goes last (or waits), never ahead of healthy jobs');
+});
+
+await test('a failing job still runs when nothing else is due', async () => {
+  const others = ['csl', 'un_sanctions', 'uk_sanctions', 'gta', 'wro_findings', 'hts', 'schedule_b', 'xref'].map((source) => ({ source, biggest: 1000, last_ok: daysAgo(1) }));
+  const picked = await pickDueBulkJobs(envWith([{ source: 'sdn', biggest: null, last_ok: null, fails: 5 }, ...others]), NOW);
+  assert.deepEqual(picked.map((j) => j.source), ['sdn']);
 });
 
 if (failures) {

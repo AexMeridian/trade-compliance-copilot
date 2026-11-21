@@ -8,6 +8,9 @@ export interface Env {
   /** Per visitor, counts only requests the edge cache could not answer (see lib/edgeCache.ts). */
   MISS_RATE_LIMITER: RateLimit;
   WRITE_RATE_LIMITER: RateLimit;
+  CLAUDE_IP_DAILY?: string; // max model-calling requests per visitor (hashed IP) per UTC day (default 40)
+  DEMO_TOKEN?: string; // optional owner secret: a request sending it in the X-Demo-Token header skips the per-visitor daily quota
+  SYNC_TOKEN?: string; // secret for POST /api/pulse/sync (X-Sync-Token header); unset means the route refuses everyone
   CLAUDE_DAILY_CAP?: string; // max Claude-calling requests per UTC day across all visitors (default 300)
   ALERT_EMAIL?: SendEmail; // Email Routing send_email binding; unset until the owner finishes the one-time setup (docs/OPERATIONS.md)
   ALERT_TO?: string;

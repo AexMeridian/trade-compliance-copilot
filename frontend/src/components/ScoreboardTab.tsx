@@ -123,7 +123,7 @@ export function ScoreboardTab({ onOpen }: { onOpen: (tab: 'attitudes' | 'method'
     <div className="flex flex-col gap-8">
       <SectionHeader
         tone="soft"
-        title="Scoreboard: is U.S. soft power rising or falling?"
+        title="Scoreboard: published trend readings"
         description="Independent surveys, one pollster at a time, since each asks different people different questions. Where they agree, that is worth noticing. Where they differ, the table shows by how much."
       />
 

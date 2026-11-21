@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react';
+import { useAfterPaint } from '../lib/motion';
 import { HeroBackdrop } from './HeroBackdrop';
 import type { NewsItem, PulseAction, PulseMarkets, PulseSummary } from '../types/pulse';
 import { PulseCountryCard } from './PulseCountryCard';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { PulseDelta } from './PulseDelta';
-import { timeAgo } from './PulseNews';
 import { friendlyDate, plainSummary } from '../lib/pulsePlain';
 // Loaded on its own so the map library and outlines don't slow the first paint.
 const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
@@ -50,6 +50,8 @@ export function PulseHero({
   syncing: boolean;
   onRefresh: () => void;
 }) {
+  // The globe (map library, outlines and its draw loop) starts after the first paint, so the headline and numbers are what the browser paints first.
+  const globeReady = useAfterPaint();
   const breakdown = summary?.countryBreakdown ?? [];
   const top = breakdown.slice(0, 6);
   const others = Object.keys(COUNTRY_LABELS)
@@ -68,7 +70,7 @@ export function PulseHero({
               Every country named in new U.S. government notices on tariffs, sanctions or export limits.
             </p>
           </div>
-          {summary ? (
+          {summary && globeReady ? (
             <Suspense fallback={<GlobePlaceholder />}>
               <PulseGlobe breakdown={breakdown} activeCountry={activeCountry} onSelect={onCountry} />
             </Suspense>
@@ -147,7 +149,7 @@ export function PulseHero({
        </div>
 
        {!summary && <div className="min-h-[480px] min-w-0 lg:min-h-[560px]" aria-hidden="true" />}
-       {summary && <StageRail summary={summary} activeMeasures={activeMeasures} lead={lead} recent={recent} news={news} onExplore={onExplore} onRefresh={onRefresh} syncing={syncing} updatedText={updatedText} onSeeAll={onSeeAll} />}
+       {summary && <StageRail summary={summary} activeMeasures={activeMeasures} lead={lead} recent={recent} onExplore={onExplore} onRefresh={onRefresh} syncing={syncing} updatedText={updatedText} onSeeAll={onSeeAll} />}
       </div>
     </section>
   );
@@ -163,7 +165,6 @@ function StageRail({
   activeMeasures,
   lead,
   recent,
-  news,
   onExplore,
   onRefresh,
   syncing,
@@ -174,25 +175,22 @@ function StageRail({
   activeMeasures: number | null;
   lead: PulseAction | null;
   recent: PulseAction[];
-  news: NewsItem[];
   onExplore: () => void;
   onRefresh: () => void;
   syncing: boolean;
   updatedText: string;
   onSeeAll: () => void;
 }) {
-  const items: LatestItem[] = [
-    ...recent
-      .filter((a) => a.document_number !== lead?.document_number)
-      .slice(0, 12)
-      .map((a) => ({ key: a.document_number, when: a.publication_date, label: a.agency, title: a.title, href: a.html_url, time: friendlyDate(a.publication_date) })),
-    ...news.slice(0, 12).map((n) => ({ key: n.id, when: n.published_at, label: n.source, title: n.title, href: n.url, time: timeAgo(n.published_at) })),
-  ]
+  // Official notices only. General news belongs under Headlines (which already filters for trade), so the stage never shows the same
+  // story twice or a world-news item under a trade-notice heading.
+  const items: LatestItem[] = recent
+    .filter((a) => a.document_number !== lead?.document_number)
+    .map((a) => ({ key: a.document_number, when: a.publication_date, label: a.agency, title: a.title, href: a.html_url, time: friendlyDate(a.publication_date) }))
     .sort((x, y) => y.when.localeCompare(x.when))
     .slice(0, 5);
 
   return (
-    <aside aria-label="Top story and latest" className="min-w-0 text-left">
+    <aside aria-label="Top story and latest notices" className="min-w-0 text-left">
       {lead && (
         <div className="border-t-2 border-hero-ink pt-3">
           <p className="text-[13px] font-semibold text-hero-ink-faint">Top U.S. trade action</p>
@@ -209,7 +207,7 @@ function StageRail({
       {items.length > 0 && (
         <div className="mt-6 border-t border-hero-divider pt-3">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-sans text-[13px] font-semibold tracking-normal text-hero-ink">Latest</h2>
+            <h2 className="font-sans text-[13px] font-semibold tracking-normal text-hero-ink">Latest official notices</h2>
             <button type="button" onClick={onSeeAll} className="text-[12px] text-hero-ink-faint underline hover:text-hero-ink">
               All U.S. policy
             </button>

@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { UsmcaRuleRow } from '../lib/db.js';
 import type { OriginComponent } from '../types/case.js';
+import { TREAT_AS_DATA_NOTICE, userData } from '../lib/promptData.js';
 
 export const ORIGIN_SYSTEM_PROMPT = `You are a trade compliance analyst determining USMCA (United States-Mexico-Canada Agreement) preferential origin eligibility for a product, per HTSUS General Note 11.
 
@@ -11,7 +12,9 @@ Reason step by step:
 2. If a tariff-shift rule applies, assess whether the non-originating inputs described appear to satisfy the required tariff classification change, given the facts provided. If the facts are insufficient to determine this with confidence, say so explicitly rather than guessing.
 3. If an RVC rule applies, calculate an approximate RVC percentage from the component value_pct figures given (treat any component whose origin_country is US, Canada, or Mexico as originating value; everything else as non-originating), and compare it to the threshold. Show the arithmetic.
 4. State your qualifies determination (true/false), or explicitly say the facts are insufficient to determine (in which case qualifies must be false and you must explain exactly what additional fact would resolve it) -- never guess when data is missing.
-5. Note any real, load-bearing USMCA requirements mentioned in the rule's notes field that this app does not numerically model (e.g. automotive labor value content, steel/aluminum purchasing requirements) as open issues a human analyst must still check.`;
+5. Note any real, load-bearing USMCA requirements mentioned in the rule's notes field that this app does not numerically model (e.g. automotive labor value content, steel/aluminum purchasing requirements) as open issues a human analyst must still check.
+
+${TREAT_AS_DATA_NOTICE}`;
 
 export function buildOriginUserContent(
   code: string,
@@ -20,7 +23,7 @@ export function buildOriginUserContent(
   finalAssemblyCountry: string
 ): string {
   const componentLines = components
-    .map((comp) => `- ${comp.description}: sourced from ${comp.origin_country}, ${comp.value_pct ?? 'unknown'}% of value`)
+    .map((comp) => `- ${userData(comp.description)}: sourced from ${userData(String(comp.origin_country))}, ${comp.value_pct ?? 'unknown'}% of value`)
     .join('\n');
   return `Classified heading: ${code}
 
@@ -33,7 +36,7 @@ Curated USMCA rule for this heading (from General Note 11, do not use any other 
 - citation: ${rule.citation}
 - notes: ${rule.notes ?? '(none)'}
 
-Final assembly country: ${finalAssemblyCountry}
+Final assembly country: ${userData(finalAssemblyCountry)}
 
 Components:
 ${componentLines || '(no components provided)'}`;

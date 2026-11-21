@@ -11,25 +11,56 @@ import { ProvenanceBadge } from './ProvenanceBadge';
 // Layout: the answer first (a total), then one row per duty layer with the
 // rate on the right where the eye lands, the legal basis underneath in
 // smaller type, and boilerplate notes folded away.
+// What the duty total leaves out, shown under every total, including when the verdict is green. Plain list, not a collapsed note.
+const NOT_MODELED = [
+  'Antidumping and countervailing duty orders',
+  'Section 232 derivative products (steel, aluminum and copper content in goods outside chapters 72, 74 and 76) and pending Section 232 actions: robotics, wind turbines, polysilicon, specialty pharmaceuticals',
+  'Section 301 China Lists 1 to 4A',
+  'Section 201 safeguards and entry-level exclusions',
+  'Freight, insurance and other costs, and drawback, foreign-trade zone or bonded-warehouse treatment',
+];
+
+function ModeledScope() {
+  return (
+    <div className="mt-3 border border-hairline bg-paper px-4 py-3">
+      <p className="text-sm font-semibold text-ink">Modeled scope: the HTS rate and the Section 232 (chapters 72, 74, 76 and autos), Section 301 forced-labor and Section 338 layers loaded in this app</p>
+      <p className="mt-2 text-xs font-semibold text-ink-muted">Not evaluated, and not included in the total:</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] leading-snug text-ink-muted">
+        {NOT_MODELED.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-ink-faint">An estimate, not a binding ruling. Request a CBP ruling under 19 CFR Part 177 for certainty.</p>
+    </div>
+  );
+}
+
+// The HTS lines carry the schedule revision text rather than a date of effect; show it as what it is.
+const isDate = (s: string) => /^d{4}-d{2}-d{2}$/.test(s);
+const effectiveLabel = (s: string) => (isDate(s) ? `Effective ${s}` : revisionText(s));
+const revisionText = (s: string) => (isDate(s) ? s : s.replace(/^USITC HTS,?s*/i, 'USITC HTS, ').replace(/^USITC HTS, as retrieved/i, 'USITC HTS, retrieved'));
+
 export function DutyStackTable({
   lines,
   totalPct,
   htsCode,
   declaredValueUsd,
-  landedCostUsd,
+  estimatedDutyUsd,
   deMinimisNote,
   entryFees,
+  entryDate,
 }: {
   lines: DutyStackLine[];
   totalPct: number | null;
   htsCode?: string | null;
   declaredValueUsd?: number | null;
-  landedCostUsd?: number | null;
+  /** Duty only. Older cases stored a "landed cost" (value plus duty); the caller passes null for those. */
+  estimatedDutyUsd?: number | null;
   deMinimisNote?: string | null;
   entryFees?: { label: string; amount_usd: number | null; basis: string }[] | null;
+  entryDate?: string | null;
 }) {
   const revision = lines[0]?.effective_date ?? null;
-  const dutyUsd = declaredValueUsd != null && landedCostUsd != null ? Math.round((landedCostUsd - declaredValueUsd) * 100) / 100 : null;
   const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   return (
     <div>
@@ -43,13 +74,10 @@ export function DutyStackTable({
           )}
         </div>
         <div className="text-sm text-ink-muted sm:text-right">
-          {declaredValueUsd != null && landedCostUsd != null && dutyUsd != null ? (
-            <>
-              <p className="tabular-nums">
-                {usd(dutyUsd)} duty on {usd(declaredValueUsd)}
-              </p>
-              <p className="tabular-nums">{usd(landedCostUsd)} landed cost</p>
-            </>
+          {declaredValueUsd != null && estimatedDutyUsd != null ? (
+            <p className="tabular-nums">
+              {usd(estimatedDutyUsd)} estimated duty on {usd(declaredValueUsd)}
+            </p>
           ) : declaredValueUsd != null ? (
             <p>Dollar amount unavailable: a layer below has a rate this app can't sum.</p>
           ) : totalPct === null ? (
@@ -57,6 +85,8 @@ export function DutyStackTable({
           ) : null}
         </div>
       </div>
+
+      {htsCode && <ModeledScope />}
 
       <ul className="mt-3 divide-y divide-hairline border-y border-hairline">
         {lines.map((line, i) => (
@@ -70,7 +100,7 @@ export function DutyStackTable({
               )}
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                 {line.source && <ProvenanceBadge source={line.source} />}
-                <span className="text-xs tabular-nums text-ink-faint">Effective {line.effective_date}</span>
+                <span className="text-xs tabular-nums text-ink-faint">{effectiveLabel(line.effective_date)}</span>
               </div>
             </div>
             <div className="text-right">
@@ -97,7 +127,11 @@ export function DutyStackTable({
           ))}
         </ul>
       )}
-      {revision && <p className="mt-2 text-xs text-ink-faint">Checked against {revision}. HTS revisions change; re-run this case if it's been a while.</p>}
+      {revision && (
+        <p className="mt-2 text-xs text-ink-faint">
+          Tariff schedule: {revisionText(revision)}. {entryDate ? `Rates and fees are for an entry on ${entryDate}. ` : ''}HTS revisions change; re-run this case if it has been a while.
+        </p>
+      )}
       {deMinimisNote && <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-faint">{deMinimisNote}</p>}
       {/* Gated on htsCode (only passed for a real case's own result, not the
           country page's loop of representative sample headings) so these
@@ -113,6 +147,9 @@ export function DutyStackTable({
               </a>
               . Paste in <span className="tabular-nums text-ink">{htsCode}</span> or your product description to see whether CBP has ruled on something similar. CROSS
               has no bulk search API, so this is a link to search by hand, not an automatic lookup.
+            </p>
+            <p>
+              This is an estimate, not a binding ruling. For certainty, request a ruling from CBP under 19 CFR Part 177.
             </p>
             <p>
               Assumes a standard consumption entry. It does not account for a foreign-trade zone, bonded warehouse or duty-drawback program, each of which can

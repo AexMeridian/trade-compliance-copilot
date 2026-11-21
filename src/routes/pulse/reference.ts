@@ -57,8 +57,8 @@ referenceRoute.get('/sanctions', async (c) => {
   const limit = clampInt(c.req.query('limit'), { default: 50, min: 1, max: 200 });
   const offset = clampInt(c.req.query('offset'), { default: 0, min: 0, max: MAX_OFFSET });
 
-  const sdnWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
-  const cslWhere = countryName ? `WHERE addresses LIKE '%' || ?1 || '%'` : '';
+  const sdnWhere = countryName ? `WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'` : '';
+  const cslWhere = countryName ? `WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'` : '';
   const bind = countryName ? [countryName] : [];
 
   // SDN and CSL are two independent lists (and each list's own rows/total
@@ -147,9 +147,11 @@ referenceRoute.get('/nato-defense', async (c) => {
 // no reason to cap it.
 referenceRoute.get('/cofer', async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT obs_date, value FROM market_series WHERE series_id = 'COFER:USD_SHARE' ORDER BY obs_date`
-  ).all<{ obs_date: string; value: number }>();
-  return c.json({ points: results.map((r) => [r.obs_date, r.value]) });
+    `SELECT series_id, obs_date, value FROM market_series WHERE series_id IN ('COFER:USD_SHARE', 'COFER:EUR_SHARE', 'COFER:CNY_SHARE') ORDER BY series_id, obs_date`
+  ).all<{ series_id: string; obs_date: string; value: number }>();
+  const of = (id: string) => results.filter((r) => r.series_id === id).map((r) => [r.obs_date, r.value]);
+  // `points` stays the dollar series (other pages read it); the euro and renminbi shares ride along when the weekly refresh has stored them.
+  return c.json({ points: of('COFER:USD_SHARE'), eur: of('COFER:EUR_SHARE'), cny: of('COFER:CNY_SHARE') });
 });
 
 referenceRoute.get('/export-control-chart', async (c) => {

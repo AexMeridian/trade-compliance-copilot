@@ -103,13 +103,17 @@ export async function runHealth(env: Env, now = new Date()): Promise<RefreshResu
     env.DB.prepare(`UPDATE alert_state SET status = 'ok', last_seen_at = ?1 WHERE status = 'failing' AND recovery_due = 0 AND key NOT IN (${[...current].map(() => '?').join(',') || "''"})`).bind(nowIso, ...current)
   );
   const critical = findings.filter((f) => f.severity === 'critical').map((f) => f.key);
-  statements.push(
-    env.DB.prepare(
-      `INSERT INTO pulse_feed_state (source_key, last_attempt_at, last_success_at, last_note) VALUES (?1, ?2, ?2, ?3)
-       ON CONFLICT(source_key) DO UPDATE SET last_attempt_at = ?2, last_success_at = ?2, last_note = ?3`
-    ).bind(SUMMARY_KEY, nowIso, JSON.stringify({ ok: critical.length === 0, at: nowIso, critical, pendingNotices: pending.length }))
-  );
-  await env.DB.batch(statements);
+  // The public summary is written on its own, first, so a failure in the alert_state batch (for example a migration not yet applied)
+  // can never freeze it at an old "ok".
+  await env.DB.prepare(
+    `INSERT INTO pulse_feed_state (source_key, last_attempt_at, last_success_at, last_note) VALUES (?1, ?2, ?2, ?3)
+     ON CONFLICT(source_key) DO UPDATE SET last_attempt_at = ?2, last_success_at = ?2, last_note = ?3`
+  ).bind(SUMMARY_KEY, nowIso, JSON.stringify({ ok: critical.length === 0, at: nowIso, critical, pendingNotices: pending.length })).run();
+  try {
+    await env.DB.batch(statements);
+  } catch (err) {
+    console.error('health: could not save alert state:', err instanceof Error ? err.message : String(err));
+  }
 
   if (plan.recovered.length > 0) {
     await sendMail(env, 'Resolved: ' + plan.recovered.join(', '), `These problems have cleared:\n${plan.recovered.map((k) => `- ${k}`).join('\n')}`);

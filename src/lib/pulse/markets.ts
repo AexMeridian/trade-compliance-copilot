@@ -39,7 +39,7 @@ export interface SeriesMeta {
 
 export const FX_META: SeriesMeta[] = FX_QUOTES.map((q) => ({
   id: `FX:${q}`,
-  label: `USD/${q}`,
+  label: `${q} per $`,
   unit: `${q} per 1 USD`,
   source: 'Frankfurter (ECB reference rates)',
   sourceUrl: 'https://frankfurter.dev',

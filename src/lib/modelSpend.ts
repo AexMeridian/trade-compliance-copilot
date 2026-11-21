@@ -20,7 +20,7 @@ export function monthlyBudgetUsd(raw: string | undefined): number {
   return raw !== undefined && Number.isFinite(n) && n > 0 ? n : DEFAULT_MONTHLY_BUDGET_USD;
 }
 
-export type ModelFailure = 'credit' | 'auth' | 'budget';
+export type ModelFailure = 'credit' | 'auth' | 'budget' | 'spend_unknown';
 
 /**
  * Sorts an error from the Anthropic SDK into a reason the owner must act on, or null for anything transient or ordinary (a bad request, a
@@ -38,5 +38,6 @@ export function classifyModelError(err: unknown): ModelFailure | null {
 export const UNAVAILABLE_MESSAGE: Record<ModelFailure, string> = {
   credit: 'The calculator is paused while its AI service account is topped up. The rest of the site is unaffected. Please try again later.',
   auth: 'The calculator is paused because its AI service credentials need attention. The rest of the site is unaffected. Please try again later.',
+  spend_unknown: 'The calculator is paused because its spending safeguards cannot be checked right now. The rest of the site is unaffected. Please try again shortly.',
   budget: 'The calculator has reached its monthly capacity for AI-assisted checks. The rest of the site is unaffected. Please try again next month.',
 };

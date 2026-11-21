@@ -1,6 +1,7 @@
 import type { Env } from '../types/env.js';
 import type { CaseFile, Direction, ModuleStatus } from '../types/case.js';
 import { emptyCaseFile } from '../types/case.js';
+import { repairMojibake } from './textRepair.js';
 
 // Read-whole / write-whole persistence over `cases.case_file` (a single JSON
 // blob). Safe here because this app has no concurrent multi-user editing of a
@@ -45,7 +46,8 @@ export async function getCaseFile(env: Env, id: string): Promise<CaseFile | null
   if (!row) return null;
   // An expired case is treated as gone even before the daily purge removes the row.
   if (!row.is_sample && row.expires_at && row.expires_at < new Date().toISOString()) return null;
-  return JSON.parse(row.case_file) as CaseFile;
+  // Stored text from some older writes had its UTF-8 decoded twice (see textRepair.ts); repair it on the way out.
+  return JSON.parse(repairMojibake(row.case_file)) as CaseFile;
 }
 
 /** Deletes a case and its audit events if (and only if) the token matches. */

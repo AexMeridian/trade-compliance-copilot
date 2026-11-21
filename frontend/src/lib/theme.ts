@@ -35,6 +35,7 @@ export function getCurrentTheme(): Theme {
 function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute('data-theme', theme);
   document.documentElement.style.colorScheme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0c0d10' : '#ffffff');
   window.dispatchEvent(new CustomEvent<Theme>(THEME_CHANGE_EVENT, { detail: theme }));
 }
 

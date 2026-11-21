@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom';
 // small curated rule set, so it is labelled Beta and says plainly what it is not.
 export function BetaBanner() {
   return (
-    <div role="note" className="border-b border-review/30 bg-review-soft px-4 py-2 text-[13px] leading-snug text-review">
+    <div role="note" className="border-b-2 border-accent-2 bg-accent-2-soft px-4 py-2 text-[13px] leading-snug text-accent-2-ink">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="rounded-sm border border-review px-1.5 py-px text-[11px] font-bold tracking-wide">BETA</span>
+        <span className="rounded-sm border border-accent-2-ink px-1.5 py-px text-[12px] font-bold tracking-wide">BETA</span>
         <span>
           This tool uses an AI model and a limited rule set, and can be wrong. It is not legal or customs advice and does not replace OFAC's own{' '}
           <a href="https://sanctionssearch.ofac.treas.gov/" target="_blank" rel="noreferrer" className="font-semibold text-inherit underline">

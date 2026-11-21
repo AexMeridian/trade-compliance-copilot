@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
-import { tallyCountries } from '../../lib/pulse/sanctionCounts.js';
+import { tallyBySource } from '../../lib/pulse/sanctionCounts.js';
 
 // Feeds the Hard Power page's "Sanctioned parties" measure. Reads every row of the four
 // sanctions tables once (about 30,000 rows), so it is cached in this isolate and at the edge
 // for six hours (src/index.ts) -- the lists are reloaded weekly, so nothing fresher exists.
 const TTL_MS = 6 * 60 * 60_000;
-let cache: { at: number; value: Promise<{ asOf: string; total: number; countries: { country: string; count: number }[] }> } | null = null;
+let cache: { at: number; value: Promise<{ asOf: string; total: number; totals: { sdn: number; csl: number; un: number; uk: number }; countries: ReturnType<typeof tallyBySource> }> } | null = null;
 
 async function compute(env: Env) {
   const texts = async (sql: string, pick: (r: Record<string, string | null>) => string) => {
@@ -20,8 +20,10 @@ async function compute(env: Env) {
     texts('SELECT nationality, addresses FROM un_sanctions_entries', (r) => `${r.nationality ?? ''}; ${r.addresses ?? ''}`),
     texts('SELECT addresses FROM uk_sanctions_entries', (r) => r.addresses ?? ''),
   ]);
-  const all = [...sdn, ...csl, ...un, ...uk];
-  return { asOf: new Date().toISOString(), total: all.length, countries: tallyCountries(all).slice(0, 60) };
+  // Kept per list: SDN is OFAC sanctions; CSL is the Commerce/State (non-SDN) export-control and related lists; UN and UK are their own lists.
+  // A party on several lists is counted once on each, so `total` is listings, not distinct parties.
+  const totals = { sdn: sdn.length, csl: csl.length, un: un.length, uk: uk.length };
+  return { asOf: new Date().toISOString(), total: totals.sdn + totals.csl + totals.un + totals.uk, totals, countries: tallyBySource({ sdn, csl, un, uk }).slice(0, 60) };
 }
 
 export const sanctionCountsRoute: PulseApp = new Hono<{ Bindings: Env }>();

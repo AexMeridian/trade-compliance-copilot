@@ -38,9 +38,9 @@ const SOURCES: { name: string; what: string; fresh: string }[] = [
     fresh: 'Checked daily, or press "Check for updates".',
   },
   {
-    name: 'Yahoo Finance',
-    what: 'Stock indexes, company shares, oil, gold, copper, Treasury yield and the dollar index. Currently switched off while the terms of this unofficial source are reviewed, so those tiles are not shown.',
-    fresh: 'Not refreshed while switched off.',
+    name: 'Stock and share quotes (not shown)',
+    what: 'This site does not show stock indexes or company shares, because there is no licensed free source for them. Commodity figures come from the IMF (monthly averages) and exchange rates from the ECB.',
+    fresh: 'Not applicable.',
   },
   { name: 'European Central Bank (via Frankfurter)', what: 'Currency exchange rates against the U.S. dollar.', fresh: 'Published once each business day.' },
   {

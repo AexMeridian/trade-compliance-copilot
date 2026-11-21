@@ -24,6 +24,9 @@ import { SOFT_TABS, softTabFrom, type SoftTabId } from '../lib/powerTabs';
 const byDimension = (data: PowerResponse | null, ...dims: string[]) => (data?.indicators ?? []).filter((i) => dims.includes(i.dimension));
 // Aid a country receives is the receiving side of foreign policy, so it sits with aid given rather than with cultural exchange.
 const isAidReceived = (id: string) => id.startsWith('oda_received');
+// Outcomes of income and public services, not political values or attraction: grouped apart as development context.
+const CONTEXT_IDS = new Set(['internet_users', 'tertiary_enrollment', 'education_spending', 'life_expectancy', 'health_spending', 'gini', 'women_labor_force']);
+const isContext = (id: string) => CONTEXT_IDS.has(id);
 
 // Soft power: what draws people to a country, in Joseph Nye's terms resting on its culture, its political values and its foreign
 // policy, and best tested by what people in other countries actually say. Every figure carries its value, unit, year, source and
@@ -93,7 +96,7 @@ export function SoftPower() {
               <SectionHeader
                 tone="soft"
                 title="Attitudes: what people say"
-                description="Soft power works when people feel drawn to a country. These are published survey results, one pollster at a time, for the countries each survey covered."
+                description="Soft power works when people feel drawn to a country. These are published survey results, one pollster at a time, for the countries each survey covered. They cover the U.S. and China only; other countries are not yet polled here."
               />
               <CountryPicker codes={codes} onChange={(next) => { const n = new URLSearchParams(params); n.set('countries', next.join(',')); setParams(n, { replace: true }); }} />
               {opinion && year ? (
@@ -119,10 +122,15 @@ export function SoftPower() {
                 <>
                   <IndicatorExplorer
                     heading="Ties and exchange"
-                    blurb="The people, money and visits that connect a country to others."
-                    indicators={byDimension(data, 'culture', 'ties').filter((i) => !isAidReceived(i.id))}
+                    blurb="The people, money and visits that connect a country to others. Many are counts, so they partly track country size and geography."
+                    indicators={byDimension(data, 'culture', 'ties').filter((i) => !isAidReceived(i.id) && !isContext(i.id))}
                   />
                   <IndicatorExplorer heading="Knowledge and technology" blurb="Research, innovation and recognition that other countries want to be near." indicators={byDimension(data, 'knowledge')} />
+                  <IndicatorExplorer
+                    heading="Development context"
+                    blurb="Internet use, schooling and spending at home. These are outcomes of income and public services, not culture or attraction; they are shown for context."
+                    indicators={byDimension(data, 'culture').filter((i) => isContext(i.id))}
+                  />
                 </>
               ) : (
                 notLoaded
@@ -133,12 +141,19 @@ export function SoftPower() {
 
           {tab === 'values' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader tone="soft" title="Political values" description="How each country's governance is rated. Attraction rests on values that a country lives up to at home." />
+              <SectionHeader tone="soft" title="Political values" description="How each country's governance is rated. In Nye's argument, values attract when a country lives up to them, and repel when they look hypocritical or imposed; no measure of that is shown here. There is no democracy or civil-liberties index on this page." />
               {loaded ? (
                 <IndicatorExplorer
                   heading="Governance indicators"
                   blurb="The World Bank's Worldwide Governance Indicators combine many expert and survey sources. They are perceptions of governance, not verdicts."
-                  indicators={byDimension(data, 'political_values')}
+                  indicators={byDimension(data, 'political_values').filter((i) => !isContext(i.id))}
+                />
+              ) : null}
+              {loaded ? (
+                <IndicatorExplorer
+                  heading="Development context"
+                  blurb="Life expectancy, health spending, inequality and women's labor-force share are outcomes of income, health systems and history, not measures of political values."
+                  indicators={byDimension(data, 'political_values').filter((i) => isContext(i.id))}
                 />
               ) : (
                 notLoaded
@@ -160,7 +175,7 @@ export function SoftPower() {
               )}
               <section className="flex flex-col gap-3">
                 <h3 className="font-display text-xl font-bold text-ink">Voting at the United Nations</h3>
-                <p className="max-w-3xl text-sm leading-relaxed text-ink-muted">How closely each country's General Assembly votes track the United States and China. A behavior, not an opinion or proof of influence.</p>
+                <p className="max-w-3xl text-sm leading-relaxed text-ink-muted">Where each country's General Assembly votes fall on the main voting dimension, which is mostly Western democracies against the developing-world majority. Not a measure of closeness to China, and a behavior, not an opinion or proof of influence.</p>
                 <UnAlignmentGlobe />
               </section>
             </div>

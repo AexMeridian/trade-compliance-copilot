@@ -56,8 +56,8 @@ async function cachedSanctionCounts(env: Env, countryName: string): Promise<{ sd
     }
   }
   const [sdn, csl] = await Promise.all([
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE addresses LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE addresses LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
   ]);
   if (!sdn || !csl) return null; // a failed count is not cached
   const value = { sdn: sdn.n, csl: csl.n };

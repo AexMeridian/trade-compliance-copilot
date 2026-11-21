@@ -357,6 +357,38 @@ export function buildDutyStack(
   return { lines, totalPct: unparseable ? null : Math.round(total * 100) / 100 };
 }
 
+/** Chapters where Section 232 metal derivative duties can reach a good by its metal content, which this app does not ask for or know. */
+export const SEC232_METAL_SCOPE_CHAPTERS = new Set(['73', '74', '76', '83', '84', '85', '87']);
+/** Headings under the Section 232 automobile actions, whose rates differ by origin under trade agreements this app does not carry. */
+const SEC232_AUTO_PREFIXES = ['8703', '8704', '8708'];
+
+/**
+ * Section 232 coverage this app cannot settle from the HTS code alone. A good in a metal-derivative chapter may be dutiable under Proclamation
+ * 11032 depending on its metal content and the annex line lists, and the overlay table matches chapters 72, 74 and 76 only. So a case in
+ * those chapters is never called clear. `issues` are open-issue lines for the report.
+ */
+export function section232ScopeCheck(htsCode: string, country: string): { forceReview: boolean; issues: string[] } {
+  const digits = htsCode.replace(/\D/g, '');
+  const chapter = digits.slice(0, 2);
+  const issues: string[] = [];
+  if (SEC232_METAL_SCOPE_CHAPTERS.has(chapter)) {
+    issues.push(
+      `Determination: Section 232 duties on steel, aluminum and copper (Proclamation 11032) can reach goods in chapter ${chapter} by their metal content, and the annex line lists are not loaded in this app. The metal content of this good is not known here, so the total may omit a 25% or 50% Section 232 duty. Check the HTS code and metal content against the proclamation annexes.`
+    );
+  }
+  if (chapter === '74') {
+    issues.push(
+      'Determination: the chapter 74 copper rule in this app is a chapter-wide 50% upper bound. The 2025 copper action excluded some articles (for example refined copper cathodes under 7403 and scrap under 7404), and a 25% rate applies to certain others, so the figure may overstate the duty for those lines.'
+    );
+  }
+  if (SEC232_AUTO_PREFIXES.some((p) => digits.startsWith(p))) {
+    issues.push(
+      `Determination: Section 232 automobile duties differ by origin (the EU, Japan, Korea and the UK have negotiated rates, and USMCA-qualifying medium and heavy trucks pay only on non-U.S. content), and the auto parts program (heading 8708) is not loaded. Those rates are not in this app's data, so the figure for ${country || 'this origin'} may be wrong. Check CBP's Section 232 automobile guidance.`
+    );
+  }
+  return { forceReview: issues.length > 0, issues };
+}
+
 /**
  * Splits overlay rows by whether they are in force on `today`. A row that has expired or has not started yet must not be charged, and the
  * caller reports it so the estimate does not silently drop a program. Dates are YYYY-MM-DD; an open-ended row has no expiration_date.

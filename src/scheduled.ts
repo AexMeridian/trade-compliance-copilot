@@ -85,6 +85,8 @@ const DAILY_JOBS: RefreshJob[] = [
     run: async (env) => {
       // Also trims the refresh log (about 25 rows a day) to the last 90 days, so it cannot grow without end.
       await env.DB.prepare(`DELETE FROM data_refresh_log WHERE finished_at < date('now', '-90 days')`).run().catch(() => undefined);
+      // Daily counters (shared Claude cap, per-visitor quota) and expired citable snapshots would otherwise accumulate forever.
+      await env.DB.prepare(`DELETE FROM pulse_feed_state WHERE (source_key LIKE 'claude-calls:%' AND substr(source_key, 14, 10) < date('now', '-35 days')) OR (source_key LIKE 'claude-ip:%' AND substr(source_key, 11, 10) < date('now', '-35 days'))`).run().catch(() => undefined);
       await env.DB.prepare(`DELETE FROM model_cache WHERE created_at < date('now', '-14 days')`).run().catch(() => undefined);
       return { source: 'case_expiry', rows: await purgeExpiredCases(env) };
     },
@@ -95,7 +97,7 @@ const DAILY_JOBS: RefreshJob[] = [
 // `typicalRows` is the fallback size when a job has never logged a run.
 type SizedJob = RefreshJob & { typicalRows: number; /** Outbound requests one run makes, counted conservatively. */ fetches?: number };
 const BULK_JOBS: SizedJob[] = [
-  { source: 'sdn', run: refreshSdn, typicalRows: 44_000 },
+  { source: 'sdn', run: refreshSdn, typicalRows: 2_000 },
   { source: 'csl', run: refreshCsl, typicalRows: 7_000 },
   { source: 'un_sanctions', run: refreshUnSanctions, typicalRows: 3_000 },
   { source: 'uk_sanctions', run: refreshUkSanctions, typicalRows: 8_000 },
@@ -127,15 +129,22 @@ const BULK_ROW_BUDGET = 30_000; // rows per day; with indexes and search tables 
 async function pickDue(env: Env, jobs: SizedJob[], limits: { rows: number; fetches?: number }, now: number): Promise<SizedJob[]> {
   const { results } = await env.DB.prepare(
     `SELECT source, MAX(rows_affected) AS biggest,
-            MAX(CASE WHEN status = 'success' THEN finished_at END) AS last_ok
-     FROM data_refresh_log GROUP BY source`
-  ).all<{ source: string; biggest: number | null; last_ok: string | null }>();
+            MAX(CASE WHEN status = 'success' THEN finished_at END) AS last_ok,
+            SUM(CASE WHEN status = 'error' AND finished_at > COALESCE((SELECT MAX(l2.finished_at) FROM data_refresh_log l2 WHERE l2.source = l.source AND l2.status = 'success'), '') THEN 1 ELSE 0 END) AS fails
+     FROM data_refresh_log l GROUP BY source`
+  ).all<{ source: string; biggest: number | null; last_ok: string | null; fails?: number | null }>();
   const seen = new Map(results.map((r) => [r.source, r]));
 
+  // A job that keeps failing must not starve the others: jobs with a failure since their last success go to the back of the
+  // line (stable sort keeps priority order within each group), so a healthy due job is always picked first and the failing one
+  // only runs when it fits the budget or nothing else is due. Otherwise a permanently broken first job (e.g. SDN) would run
+  // alone every day and nothing after it would ever refresh.
+  const failing = (j: SizedJob) => ((seen.get(j.source)?.fails ?? 0) > 0 ? 1 : 0);
+  const ordered = [...jobs].sort((a, b) => failing(a) - failing(b));
   const picked: SizedJob[] = [];
   let spent = 0;
   let requests = 0;
-  for (const job of jobs) {
+  for (const job of ordered) {
     const row = seen.get(job.source);
     const lastOk = row?.last_ok ? Date.parse(row.last_ok) : 0;
     if (now - lastOk < BULK_DUE_AFTER_MS) continue;

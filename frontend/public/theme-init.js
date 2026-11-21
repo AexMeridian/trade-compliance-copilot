@@ -15,5 +15,12 @@
     var theme = saved === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.colorScheme = theme;
+    // The browser bar follows the site's own theme, not the OS setting (see index.html: no static theme-color tags).
+    var meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    meta.content = theme === 'dark' ? '#0c0d10' : '#ffffff';
+    document.head.appendChild(meta);
+    // A visitor who paused motion keeps it paused (see src/lib/motion.ts).
+    if (localStorage.getItem('motion') === 'paused') document.documentElement.setAttribute('data-motion', 'paused');
   } catch {}
 })();

@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
 import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
 import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows, getAllEccn } from '../lib/db.js';
-import { buildDutyStack, splitOverlaysByDate, USMCA_COUNTRIES } from '../lib/dutyStack.js';
-import { computeEntryFees } from '../lib/customsFees.js';
+import { buildDutyStack, section232ScopeCheck, splitOverlaysByDate, USMCA_COUNTRIES } from '../lib/dutyStack.js';
+import { computeEntryFees, deMinimisNote, TRANSPORT_MODES, type TransportMode } from '../lib/customsFees.js';
 import { describeAlerts, programsForOverlays, staleness } from '../lib/curatedWatch.js';
 import { curatedBaselines, getPendingAlerts } from '../lib/refresh/curatedWatch.js';
 import { narrateDutyStack } from '../lib/dutyNarration.js';
-import { decideExportLicense } from '../lib/exportLicense.js';
+import { decideExportLicense, CCL_COMPLETE_MIN_ENTRIES } from '../lib/exportLicense.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
 import { readObject } from '../lib/requestBody.js';
 import {
@@ -45,12 +45,20 @@ determinationRoute.post('/:id/determination', async (c) => {
   // Shared by both branches below the direction check, but only the import
   // branch currently does anything with it (a declared value has no meaning
   // for an export license determination).
-  const reqBody = await readObject<{ declared_value_usd: number; destination_country: string }>(c.req);
+  const reqBody = await readObject<{ declared_value_usd: number; destination_country: string; entry_date?: string; transport_mode?: string }>(c.req);
   if (reqBody.destination_country !== undefined && typeof reqBody.destination_country !== 'string') {
     return c.json({ error: 'destination_country must be a text country code when provided.' }, 400);
   }
   if (reqBody.declared_value_usd !== undefined && !(typeof reqBody.declared_value_usd === 'number' && Number.isFinite(reqBody.declared_value_usd) && reqBody.declared_value_usd >= 0)) {
     return c.json({ error: 'declared_value_usd must be a non-negative number when provided.' }, 400);
+  }
+
+  const entryDateGiven = reqBody.entry_date;
+  if (entryDateGiven !== undefined && !(typeof entryDateGiven === 'string' && /^d{4}-d{2}-d{2}$/.test(entryDateGiven) && !Number.isNaN(Date.parse(entryDateGiven)))) {
+    return c.json({ error: 'entry_date must be a date in YYYY-MM-DD form when provided.' }, 400);
+  }
+  if (reqBody.transport_mode !== undefined && !TRANSPORT_MODES.includes(reqBody.transport_mode as TransportMode)) {
+    return c.json({ error: 'transport_mode must be ocean, air, land or unknown when provided.' }, 400);
   }
 
   if (caseFile.direction === 'import') {
@@ -65,37 +73,24 @@ determinationRoute.post('/:id/determination', async (c) => {
     if (!hts) {
       return c.json({ error: `HTS line ${code} not found in reference data. Cannot compute duty stack.` }, 422);
     }
-    const today = new Date().toISOString().slice(0, 10);
+    // Duty rates and user fees follow the date of entry, so the user can give one; the default is today in U.S. Eastern time, where CBP dates entries.
+    const today = entryDateGiven ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const transportMode = (reqBody.transport_mode as TransportMode | undefined) ?? 'unknown';
     const { active: overlays, inactive: inactiveOverlays } = splitOverlaysByDate(await getApplicableOverlays(c.env, code, country || null), today);
     await logCaseEvent(c.env, caseId, 'determination', 'candidate_set', { code, country, overlays });
 
     const { lines, totalPct } = buildDutyStack(hts, country, caseFile.origin.qualifies, overlays);
 
-    // Dollar figures and the Section 321 de minimis check both depend only on
-    // a declared value the user may or may not have supplied -- both stay
-    // null without one, same "don't guess a number nobody gave us" rule as
-    // totalPct itself.
+    // Dollar figures depend on a declared value the user may or may not have supplied; both stay null without one, same "don't guess a
+    // number nobody gave us" rule as totalPct itself. The figure is duty only: it leaves out the MPF, HMF, freight and insurance.
+    // Section 321 de minimis is suspended for every shipment, so there is no eligibility to compute; the note states the suspension.
     const declaredValueUsd = reqBody.declared_value_usd ?? null;
-    const landedCostUsd = declaredValueUsd !== null && totalPct !== null ? Math.round(declaredValueUsd * (1 + totalPct / 100) * 100) / 100 : null;
-    const DE_MINIMIS_THRESHOLD_USD = 800;
-    // deMinimisEligible reflects ONLY the dollar threshold in 19 CFR 10.151 --
-    // the one part of Section 321 this app can check with certainty. It is
-    // deliberately not a full eligibility call: AD/CVD orders, quota goods,
-    // certain FDA/other-agency-regulated merchandise, and country-specific
-    // executive actions suspending de minimis treatment can all independently
-    // disqualify a shipment under $800, and this app has no source wired up
-    // to check any of those -- the note below says so every time.
-    const deMinimisEligible = declaredValueUsd === null ? null : declaredValueUsd <= DE_MINIMIS_THRESHOLD_USD;
-    const deMinimisNote =
-      declaredValueUsd === null
-        ? null
-        : deMinimisEligible
-          ? `Declared value of $${declaredValueUsd.toFixed(2)} is at or under the $${DE_MINIMIS_THRESHOLD_USD} Section 321 de minimis threshold (19 CFR 10.151), but this checks only the dollar threshold. Antidumping/countervailing-duty orders, quota merchandise, certain FDA- or other-agency-regulated goods, and recent country-specific executive actions suspending de minimis treatment can still disqualify a shipment under that threshold, and this app does not check any of those. Confirm with a licensed customs broker before relying on duty-free entry.`
-          : `Declared value of $${declaredValueUsd.toFixed(2)} exceeds the $${DE_MINIMIS_THRESHOLD_USD} Section 321 de minimis threshold (19 CFR 10.151). Not eligible for de minimis treatment regardless of other factors.`;
+    const estimatedDutyUsd = declaredValueUsd !== null && totalPct !== null ? Math.round(declaredValueUsd * totalPct) / 100 : null;
+    const deMinimisText = deMinimisNote(today);
 
     const narration = narrateDutyStack(code, country, lines, totalPct);
 
-    const entryFees = computeEntryFees({ valueUsd: declaredValueUsd, date: today, country, usmcaQualifies: caseFile.origin.qualifies });
+    const entryFees = computeEntryFees({ valueUsd: declaredValueUsd, date: today, country, usmcaQualifies: caseFile.origin.qualifies, transportMode });
 
     // Notices newer than the curated data, and how old that data is: either one stops this case being called clear.
     const touched = programsForOverlays(overlays.map((o) => o.program), country);
@@ -114,10 +109,13 @@ determinationRoute.post('/:id/determination', async (c) => {
     // data for (see dutyStack.ts) -- the estimate is knowingly incomplete, so
     // it can't be called "clear".
     const china301Unevaluated = country === 'CN' && !overlays.some((o) => o.program === 'sec301_china');
+    // Section 232 metal-derivative and auto coverage this app cannot settle from the code alone also blocks a green verdict.
+    const scope232 = section232ScopeCheck(code, country);
     const verdict: Verdict = hardStop
       ? 'stop'
       : caseFile.classification.ambiguous ||
           china301Unevaluated ||
+          scope232.forceReview ||
           (usmcaRelevant && caseFile.origin.qualifies === null) ||
           totalPct === null ||
           dataNeedsReview ||
@@ -132,9 +130,12 @@ determinationRoute.post('/:id/determination', async (c) => {
       duty_stack: lines,
       landed_cost_estimate_pct: totalPct,
       declared_value_usd: declaredValueUsd,
-      landed_cost_usd: landedCostUsd,
-      de_minimis_eligible: deMinimisEligible,
-      de_minimis_note: deMinimisNote,
+      estimated_duty_usd: estimatedDutyUsd,
+      landed_cost_usd: null,
+      entry_date: today,
+      transport_mode: transportMode,
+      de_minimis_eligible: null,
+      de_minimis_note: deMinimisText,
       destination_country: null,
       eccn: null,
       reasons_for_control: null,
@@ -155,6 +156,7 @@ determinationRoute.post('/:id/determination', async (c) => {
         'Determination: goods of China may be subject to an additional Section 301 duty that this app has no verified data for. The estimated total excludes it. Check the HTS code against the current USTR Section 301 lists (HTSUS Chapter 99) before relying on this figure.'
       );
     }
+    for (const issue of scope232.issues) caseFile.open_issues.push(issue);
     for (const issue of describeAlerts(pendingAlerts)) caseFile.open_issues.push(issue);
     if (freshness && freshness.level !== 'ok') {
       caseFile.open_issues.push(
@@ -165,7 +167,7 @@ determinationRoute.post('/:id/determination', async (c) => {
       caseFile.open_issues.push(`Determination: the ${row.program.replace(/_/g, ' ')} rule for HTS ${row.hts_pattern} ${reason}, so it was not charged. Confirm whether a replacement applies.`);
     }
     caseFile.open_issues.push(
-      'Determination: the total covers the HTS rate and the Section 232, 301 and 338 layers loaded in this app. It does not model antidumping or countervailing duty orders, Section 201 safeguards, or any IEEPA- or Section 122-based surcharges. Check current CBP guidance for those before relying on the total.'
+      'Determination: the total covers the HTS rate and the Section 232, 301 and 338 layers loaded in this app. It does not model antidumping or countervailing duty orders, Section 232 derivative products and pending Section 232 actions (robotics, wind turbines, polysilicon, specialty pharmaceuticals), Section 301 China Lists 1-4A, or Section 201 safeguards. This is an estimate, not a binding ruling; request a CBP ruling under 19 CFR Part 177 for certainty.'
     );
     if (totalPct === null) {
       caseFile.open_issues.push('Determination: one or more duty-stack lines have a non-ad-valorem (specific/compound) rate this app cannot sum automatically. Compute manually.');
@@ -187,6 +189,9 @@ determinationRoute.post('/:id/determination', async (c) => {
 
   // The curated ECCN table is small enough to give the model whole; if it ever grows past that, fall back to the text-search shortlist plus EAR99.
   const wholeTable = await getAllEccn(c.env);
+  // The Commerce Control List here is a handful of entries out of roughly 3,000. Until a full load lands (see docs/OWNER-TODO.md), the export path
+  // cannot confirm "EAR99" or "no license required", so it never returns a clear verdict (see CCL_COMPLETE_MIN_ENTRIES).
+  const cclComplete = (wholeTable?.length ?? 0) >= CCL_COMPLETE_MIN_ENTRIES;
   let allCandidates = wholeTable ?? (await searchEccn(c.env, caseFile.classification.product_description));
   if (!wholeTable) {
     const earCandidates = await getEccnByCode(c.env, 'EAR99');
@@ -202,7 +207,7 @@ determinationRoute.post('/:id/determination', async (c) => {
       tool: buildExportEccnTool(allCandidates.map((e) => e.eccn)),
     });
   } catch (err) {
-    if (err instanceof ClaudeGroundingError) return c.json({ error: `ECCN classification error: ${err.message}` }, 502);
+    if (err instanceof ClaudeGroundingError) { console.error('eccn grounding error:', err.message); return c.json({ error: 'The export classification step could not produce a verified answer. Please try again.' }, 502); }
     throw err;
   }
 
@@ -228,6 +233,7 @@ determinationRoute.post('/:id/determination', async (c) => {
     eccn: selected ? { eccn: selected.eccn, reasonsForControl, licenseExceptions: JSON.parse(selected.license_exceptions || '[]') } : null,
     chartRows,
     verifiedReasons,
+    cclComplete,
   });
   const licenseRequirement = decision.requirement;
   const licenseReasoningNote = decision.note;
@@ -243,7 +249,8 @@ determinationRoute.post('/:id/determination', async (c) => {
     licenseRequirement === 'License Required' || hardStop
       ? 'stop'
       : licenseRequirement === 'Insufficient Data' ||
-          licenseRequirement === 'License Exception May Apply' ||
+          licenseRequirement === 'Possible exception: verify' ||
+          !cclComplete ||
           // Same rule the import path applies: a true UK-list/MEU match or an
           // unresolved name match can't be called "clear" just because the
           // item itself needs no license.
@@ -261,6 +268,7 @@ determinationRoute.post('/:id/determination', async (c) => {
     duty_stack: null,
     landed_cost_estimate_pct: null,
     declared_value_usd: null,
+    estimated_duty_usd: null,
     landed_cost_usd: null,
     de_minimis_eligible: null,
     de_minimis_note: null,
@@ -295,6 +303,11 @@ determinationRoute.post('/:id/determination', async (c) => {
   if (exportFreshness && exportFreshness.level !== 'ok') {
     caseFile.open_issues.push(
       `Determination: the ECCN and Country Chart data were last verified on ${exportFreshness.dataAsOf} (${exportFreshness.ageDays} days ago).${exportFreshness.level === 'stale' ? ' That is too old to call this determination clear.' : ' Confirm it is still current.'}`
+    );
+  }
+  if (!cclComplete && licenseRequirement !== 'License Required') {
+    caseFile.open_issues.push(
+      'Determination: cannot confirm. The Commerce Control List loaded here is partial, so this tool cannot confirm EAR99 or "no license required", and never gives a clear verdict on an export. Classify the item against the full list (15 CFR Part 774) and confirm the Country Chart result.'
     );
   }
   if (licenseRequirement === 'Insufficient Data') {

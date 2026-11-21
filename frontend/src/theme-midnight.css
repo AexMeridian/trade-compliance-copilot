@@ -11,32 +11,37 @@
   --color-mark:#13264a;
   --color-hue-indigo:#13264a; --color-hue-indigo-ink:#13264a;
   --color-hue-blue-ink:#13264a;
-  --color-hue-cyan:#d8c08a; --color-hue-cyan-ink:#6f5a20; --color-soft:#0e7a76; --color-soft-tint:#e2f2f1;
+  --color-hue-cyan:#d8c08a; --color-hue-cyan-ink:#6f5a20; --color-soft:#735b1c; --color-soft-tint:#f8f0da;
   --color-hard:#2c5a7e; --color-hard-tint:#e8eff6;
   --color-hero-bg:#0e1a33; --color-hero-ink:#ffffff; --color-hero-ink-muted:#cfd6e4; --color-hero-ink-faint:#a3adc4;
-  --color-hero-border:rgba(255,255,255,.28); --color-hero-border-strong:rgba(255,255,255,.6); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
+  --color-hero-border:rgba(255,255,255,.45); --color-hero-border-strong:rgba(255,255,255,.7); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
   --color-hero-btn-bg:#d8c08a; --color-hero-btn-text:#10131c; --color-hero-btn-hover:#e8d3a0;
   --hero-mask-rgb:14,26,51; --hero-glow-rgb:216,192,138; --hero-halo-2:radial-gradient(circle at 80% 84%, rgba(216,192,138,.2) 0%, rgba(216,192,138,0) 52%); --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
   }
 :root[data-theme='dark']{
   --color-paper:#0c0d10; --color-paper-raised:#16181d;
   --color-ink:#f3f4f6; --color-ink-muted:#c0c4ce; --color-ink-faint:#8f95a3;
-  --color-hairline:#25272e; --color-hairline-strong:#4b4f5b;
+  --color-hairline:#25272e; --color-hairline-strong:#6b7080;
   --color-accent:#e8d3a0; --color-accent-hover:#efd085; --color-accent-soft:#2a2312;
   --color-accent-2:#e8d3a0; --color-accent-2-ink:#e8c875; --color-accent-2-soft:#2a2312;
   --color-mark:#e6e8ee;
   --color-hue-indigo:#e8d3a0; --color-hue-indigo-ink:#e8d3a0;
   --color-hue-blue-ink:#e8d3a0;
-  --color-hue-cyan:#e8d3a0; --color-hue-cyan-ink:#e8d3a0; --color-soft:#3dcfc9; --color-soft-tint:#0d2827;
+  --color-hue-cyan:#e8d3a0; --color-hue-cyan-ink:#e8d3a0; --color-soft:#e8d3a0; --color-soft-tint:#2a2312;
   --color-hard:#7fb0d6; --color-hard-tint:#12212f;
   --color-hero-bg:#0a1226; --color-hero-ink:#fff; --color-hero-ink-muted:#cfd6e4; --color-hero-ink-faint:#a3adc4;
-  --color-hero-border:rgba(255,255,255,.28); --color-hero-border-strong:rgba(255,255,255,.6); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
+  --color-hero-border:rgba(255,255,255,.45); --color-hero-border-strong:rgba(255,255,255,.7); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
   --color-hero-btn-bg:#e8d3a0; --color-hero-btn-text:#10131c; --color-hero-btn-hover:#efd085;
   --hero-mask-rgb:10,18,38; --hero-glow-rgb:224,187,98; --hero-halo-2:none; --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
   }
-:root:not([data-theme='dark']) .stage{--color-hero-bg:#05070d}
-::selection{background:#e8d9ac}
-header.sticky{border-image:none;border-bottom:3px solid #d8c08a}
+:root:not([data-theme='dark']) .stage{--color-hero-bg:#0e1a33;--hero-mask-rgb:14,26,51;--hero-glow-rgb:216,192,138}
+:root[data-theme='dark'] .stage{--color-hero-bg:#0a1226;--hero-mask-rgb:10,18,38;--hero-glow-rgb:224,187,98}
+.stage{--color-hero-border:rgba(255,255,255,.45);--color-hero-border-strong:rgba(255,255,255,.7)}
+/* The home globe's backdrop: champagne glow on navy, the same family as Hard and Soft Power (it was cyan on near-black). */
+.stage .hero-horizon{background:radial-gradient(ellipse 70% 38% at 50% 108%,rgba(216,192,138,.24) 0%,rgba(216,192,138,0) 100%)}
+::selection{background:#e8d9ac;color:#101216}
+:root[data-theme='dark'] ::selection{background:#5a4a1c;color:#fff}
+header.sticky{border-image:none;border-bottom:3px solid #d8c08a;-webkit-backdrop-filter:none;backdrop-filter:none}
 footer{background-image:none}
 .edge-glow{background-image:none;background:#d8c08a}
 .page-glow::before{background-image:none}
@@ -48,26 +53,26 @@ footer{background-image:none}
 :root[data-theme='dark'] .btn-primary{color:#10131c}
 :root:not([data-theme='dark']) .btn-primary{color:#fff}
 .card-accent::before{background:#d8c08a}
-footer{background:#0e1a33;color:#cfd6e4;--color-ink:#fff;--color-ink-muted:#cfd6e4;--color-mark:#e6c777;--color-hairline:#2b3a5e;border-top:3px solid #d8c08a}
+footer{background:#0e1a33;color:#cfd6e4;--color-ink:#fff;--color-ink-muted:#cfd6e4;--color-ink-faint:#b4bdd0;--color-mark:#e6c777;--color-hairline:#2b3a5e;border-top:3px solid #d8c08a}
 [role=tablist] [role=tab]{border-radius:2px}
 
-section.bg-hero-bg:not(.stage){background-image:radial-gradient(120% 90% at 85% 0%,#1d3a73 0%,#0e1a33 55%,#0a1226 100%)}
+section.bg-hero-bg{background-image:radial-gradient(120% 90% at 85% 0%,#1d3a73 0%,#0e1a33 55%,#0a1226 100%)}
 footer{background-image:linear-gradient(180deg,#0e1a33,#0a1226)}
 .card{border-radius:10px;box-shadow:0 12px 28px -18px rgba(14,26,51,.35)}
 
 /* Market bar: a slim, light glass strip under the header. Small-caps labels, tabular figures, hairline separators. */
 .market-bar{background:rgba(247,248,251,.92);border-bottom:1px solid var(--color-hairline);-webkit-backdrop-filter:saturate(1.4) blur(8px);backdrop-filter:saturate(1.4) blur(8px);--mkt-fade:247,248,251}
 :root[data-theme='dark'] .market-bar{background:rgba(22,24,29,.92);--mkt-fade:22,24,29}
-.market-bar .mkt-date{padding:9px 16px 9px 0;margin-right:4px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-2-ink);border-right:1px solid var(--color-hairline);white-space:nowrap}
-.market-bar .mkt-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-ink-faint)}
+.market-bar .mkt-date{padding:9px 16px 9px 0;margin-right:4px;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-2-ink);border-right:1px solid var(--color-hairline);white-space:nowrap}
+.market-bar .mkt-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-ink-faint)}
 .market-bar .mkt-asof{padding-left:16px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
 .market-bar .mkt-value{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--color-ink)}
-.market-bar .mkt-item{position:relative;padding-top:9px;padding-bottom:9px;font-size:11.5px;transition:background-color .15s}
+.market-bar .mkt-item{position:relative;padding-top:9px;padding-bottom:9px;font-size:12px;transition:background-color .15s}
 .market-bar .mkt-item::after{content:'';position:absolute;right:0;top:50%;height:14px;width:1px;transform:translateY(-50%);background:var(--color-hairline)}
 .market-bar .mkt-item:hover{background:rgba(19,38,74,.05)}
 :root[data-theme='dark'] .market-bar .mkt-item:hover{background:rgba(255,255,255,.05)}
 .market-bar .mkt-item:hover .mkt-label{color:var(--color-ink)}
-.market-bar .mkt-item span:last-child:not(.mkt-value):not(.mkt-label){font-size:11.5px;font-weight:600}
+.market-bar .mkt-item span:last-child:not(.mkt-value):not(.mkt-label){font-size:12px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){
   .market-bar .ticker{-webkit-mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent)}
   .market-bar .ticker-track{animation-duration:70s}
@@ -78,3 +83,22 @@ footer{background-image:linear-gradient(180deg,#0e1a33,#0a1226)}
 .globe-legend{padding:7px 16px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .globe-legend span{white-space:nowrap}
 .un-stage{background:radial-gradient(120% 90% at 50% 0%,#1d3a73 0%,#0e1a33 58%,#0a1226 100%);box-shadow:0 30px 60px -40px rgba(14,26,51,.7)}
+
+/* ---- Accessibility and legibility fixes (audit, Nov 2026) ---- */
+/* Keyboard focus ring: the page's navy ring is invisible on navy, so every dark surface gets champagne (about 10:1). */
+.bg-hero-bg :focus-visible,.bg-hero-bg:focus-visible,.stage :focus-visible,.un-stage :focus-visible,footer :focus-visible,.mobile-tabs-dark :focus-visible{outline-color:#e8d3a0}
+.skip-link{background:#13264a;color:#fff}
+.skip-link:focus,.skip-link:focus-visible{outline:2px solid #e8d3a0;outline-offset:-5px}
+/* 12px is the smallest text on the site: lifts the few 10 and 11px utility sizes without touching each component. */
+.text-\[10px\],.text-\[11px\],.text-\[11\.5px\]{font-size:12px}
+.market-bar .mkt-date,.market-bar .mkt-label,.market-bar .mkt-item{font-size:12px}
+/* Touch targets: nothing clickable is shorter than 24px (WCAG 2.5.8). */
+button,summary,a.block{min-height:24px}
+/* Pause motion (lib/motion.ts): stops every CSS animation on the site; the globe loop reads the same flag. */
+:root[data-motion='paused'] .hero-twinkle,:root[data-motion='paused'] .live-dot,:root[data-motion='paused'] .hero-backdrop *{animation-play-state:paused!important}
+/* A paused ticker returns to its start and can be scrolled by hand; the repeated passes are only there for the loop. */
+:root[data-motion='paused'] .ticker-track{animation:none!important;transform:none!important}
+:root[data-motion='paused'] .ticker-extra{display:none!important}
+:root[data-motion='paused'] .ticker{overflow-x:auto!important}
+@media (prefers-reduced-motion:reduce){.motion-toggle{display:none}}
+.market-bar .mkt-period{font-size:12px;font-weight:500;color:var(--color-ink-faint)}

@@ -5,6 +5,8 @@ import { CitePage } from './CitePage';
 
 const col = 'flex flex-col gap-2.5';
 const head = 'mb-1 font-sans text-[13px] font-semibold tracking-normal text-ink';
+// The build date in words ("21 November 2026"), not a commit hash. __BUILD_DATE__ is a UTC YYYY-MM-DD set by vite.config.ts.
+const builtOn = new Date(`${__BUILD_DATE__}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const link = 'text-[14px] text-ink-muted no-underline hover:text-ink hover:underline';
 
 // A newsroom-style sitemap footer: who we are on the left, then the site's sections, the data and methods,
@@ -72,7 +74,7 @@ export function SiteFooter() {
         </p>
         <CitePage />
         <p className="mt-6 text-[13px] text-ink-faint">
-          &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. All rights reserved. Version {__BUILD__}.
+          &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. All rights reserved. Site last built {builtOn}.
         </p>
       </div>
     </footer>

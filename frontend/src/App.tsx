@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react';
+import { MobileTabBar } from './components/MobileTabBar';
 import { MobileMenu } from './components/MobileMenu';
 import { Routes, Route, Link, NavLink, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Pulse } from './pages/Pulse';
@@ -96,6 +97,18 @@ export default function App() {
 
   // After a page change (not on first load, and not for a tab or filter change) focus moves to the page itself, so a keyboard
   // user continues from the new content instead of from the link they clicked, and a screen reader announces the new page.
+  // Sticky tab bars sit just under the header; they read its real height (it changes with the border and text size), not a guess.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const set = () => document.documentElement.style.setProperty('--header-h', `${el.getBoundingClientRect().height}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const firstPath = useRef(location.pathname);
   useEffect(() => {
     if (firstPath.current === location.pathname) return;
@@ -104,7 +117,7 @@ export default function App() {
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pb-14 lg:pb-0">
       {/* Visually hidden until focused -- the first tab stop on every page, so a
           keyboard or screen-reader user isn't forced through the header nav
           (and, on pages with a tab bar, isn't forced through that too) before
@@ -116,7 +129,7 @@ export default function App() {
           into the hero below -- both use bg-bar, so without a seam they were
           one indistinguishable black area. no-print: a printed case report
           (Report.tsx) has its own print-only header, not this site chrome. */}
-      <header className="no-print sticky top-0 z-10 border-b-2 border-transparent bg-paper-raised/90 text-ink backdrop-blur-md [border-image:linear-gradient(90deg,var(--color-accent),var(--color-hue-cyan),var(--color-accent-2))_1]">
+      <header ref={headerRef} className="no-print sticky top-0 z-10 border-b-2 border-transparent bg-paper-raised text-ink [border-image:linear-gradient(90deg,var(--color-accent),var(--color-hue-cyan),var(--color-accent-2))_1]">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
           {/* Below sm, the full wordmark doesn't fit next to all four nav
               links without truncating mid-word -- the mark alone (it's
@@ -136,10 +149,11 @@ export default function App() {
             <span className="hidden font-[family-name:var(--font-wordmark)] text-[19px] font-semibold uppercase tracking-[0.3em] sm:inline">{SITE.name}</span>
           </Link>
           <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <NavLink to="/" end className={navClass}>
+            {/* Below lg the five main pages live in the bottom tab bar (MobileTabBar); this row shows them from lg up. */}
+            <NavLink to="/" end className={(s) => `${navClass(s)} hidden lg:block`}>
               Wire
             </NavLink>
-            <NavLink to="/calculator" className={navClass}>
+            <NavLink to="/calculator" className={(s) => `${navClass(s)} hidden lg:block`}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
             </NavLink>
             <NavLink to="/hard-power" className={(s) => `${navClass(s)} hidden lg:block`}>
@@ -192,6 +206,7 @@ export default function App() {
       </main>
 
       <SiteFooter />
+      <MobileTabBar />
     </div>
   );
 }

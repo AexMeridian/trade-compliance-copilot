@@ -49,7 +49,7 @@ export const COUNTRY_PATTERNS: { code: string; name: string; pattern: RegExp }[]
   { code: 'CN', name: 'China', pattern: /\b(?:People'?s Republic of China|China)\b/i },
   { code: 'VN', name: 'Vietnam', pattern: /\b(?:Socialist Republic of Vietnam|Vietnam)\b/i },
   { code: 'KR', name: 'South Korea', pattern: /\b(?:(?<!People'?s )Republic of Korea|South Korea)\b/i },
-  { code: 'MX', name: 'Mexico', pattern: /\bMexico\b/i },
+  { code: 'MX', name: 'Mexico', pattern: /(?<!New )\bMexico\b/i },
   { code: 'CA', name: 'Canada', pattern: /\bCanada\b/i },
   { code: 'IN', name: 'India', pattern: /\bIndia\b/i },
   { code: 'ID', name: 'Indonesia', pattern: /\bIndonesia\b/i },

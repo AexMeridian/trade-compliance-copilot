@@ -26,6 +26,10 @@ export interface IndicatorDef {
   hidden?: boolean;
   /** For derived distance series: the country whose position is the reference. */
   reference?: string;
+  /** Overrides how many years older than the newest figure still gets ranked (default: 1 for hard power, 5 otherwise). */
+  maxLagYears?: number;
+  /** The upstream series stopped publishing after this year: it is shown as ended and never ranked. */
+  endedYear?: number;
 }
 
 /** How the page is organized: Nye's three sources of soft power (culture, political values, foreign policy), then the
@@ -42,7 +46,7 @@ export const DIMENSIONS: DimensionInfo[] = [
   { id: 'knowledge', label: 'Knowledge and technology', blurb: 'Research and innovation that other countries want to be near.' },
   { id: 'ties', label: 'Ties and exchange', blurb: 'The people, money and visits that connect a country to others. These are the footprints of attraction, not proof of it.' },
   { id: 'alignment', label: 'Voting at the United Nations', blurb: 'How closely a country’s votes in the General Assembly track the United States, China and Russia. A behavior, not an opinion.' },
-  { id: 'hard_power', label: 'Hard-power context', blurb: 'Economic and military weight: money, investment, exports of high technology, and defense. These are what a state can pay or compel with, shown for contrast with the soft-power measures.' },
+  { id: 'hard_power', label: 'Economic weight and exposure', blurb: 'Economic and military weight: money, investment, exports of high technology, and defense. Some of these show what a state can pay or compel with (size, military spending); others show how exposed it is to others (foreign investment received, licence payments, trade openness). Context for the soft-power measures, not a measure of coercive capacity.' },
 ];
 export const DIMENSION_LABELS = Object.fromEntries(DIMENSIONS.map((d) => [d.id, d.label])) as Record<Dimension, string>;
 
@@ -167,8 +171,8 @@ export const INDICATORS: IndicatorDef[] = [
   {
     id: 'tourism_receipts', provider: 'worldbank', code: 'ST.INT.RCPT.CD', label: 'International tourism receipts', unit: 'usd', dimension: 'hard_power',
     definition: 'Expenditure by international inbound visitors, including payments to carriers for transport, current US dollars.',
-    caveat: 'Money spent by visitors, not what they think of the country. Large economies and cheap-to-visit ones can both rank high for different reasons.',
-    higherIs: 'more spent by visitors', minCountries: 100,
+    caveat: 'The World Bank series ends in 2020 (a pandemic-trough year), so it is not ranked here. Money spent by visitors, not what they think of the country.',
+    higherIs: 'more spent by visitors', minCountries: 100, endedYear: 2020,
   },
   {
     id: 'fdi_inflows', provider: 'worldbank', code: 'BX.KLT.DINV.CD.WD', label: 'Foreign direct investment received', unit: 'usd', dimension: 'hard_power',
@@ -267,20 +271,20 @@ export const INDICATORS: IndicatorDef[] = [
   wgi('wgi_regulation', 'GOV_WGI_RQ.EST', 'Regulatory quality', 'The ability of government to set and apply policies that support private-sector development.'),
   {
     id: 'military_usd', provider: 'worldbank', code: 'MS.MIL.XPND.CD', label: 'Military spending', unit: 'usd', dimension: 'hard_power',
-    definition: 'Military expenditure in current US dollars (SIPRI definition, which includes personnel, operations and procurement).',
-    caveat: 'Spending is not capability. Prices, exchange rates and what each state reports as military all differ.',
+    definition: 'Military expenditure in current US dollars at market exchange rates (SIPRI definition, which includes personnel, operations and procurement).',
+    caveat: 'From the SIPRI Military Expenditure Database. Spending is not capability. Figures for some states, China among them, are SIPRI estimates, and market exchange rates understate spending where prices are lower. NATO publishes a different measure for its allies, so the two can differ.',
     higherIs: 'more spending', minCountries: 120,
   },
   {
     id: 'military_gdp', provider: 'worldbank', code: 'MS.MIL.XPND.GD.ZS', label: 'Military spending, share of GDP', unit: 'pct', dimension: 'hard_power',
-    definition: 'Military expenditure as a percentage of GDP.',
-    caveat: 'Shows the burden on the economy rather than the size of the force.',
+    definition: 'Military expenditure (SIPRI definition) as a percentage of GDP.',
+    caveat: 'From the SIPRI Military Expenditure Database. Shows the burden on the economy rather than the size of the force. NATO uses its own definition for its allies, so the U.S. figure here can differ from NATO’s.',
     higherIs: 'a larger share of the economy', minCountries: 120,
   },
   {
     id: 'gdp_usd', provider: 'worldbank', code: 'NY.GDP.MKTP.CD', label: 'Economy size (GDP)', unit: 'usd', dimension: 'hard_power',
-    definition: 'Gross domestic product at market exchange rates, current US dollars.',
-    caveat: 'Market exchange rates move the ranking when currencies move. It is output, not wealth per person.',
+    definition: 'Gross domestic product at market exchange rates, current US dollars (not adjusted for purchasing power, and not in constant prices).',
+    caveat: 'Market exchange rates move the ranking when currencies move, and they understate output in lower-price economies; a purchasing-power (PPP) measure would put China closer to the United States. It is output, not wealth per person.',
     higherIs: 'a larger economy', minCountries: 180,
   },
   {
@@ -367,6 +371,7 @@ export const INDICATORS: IndicatorDef[] = [
 export function sourceFor(def: IndicatorDef): { name: string; url: string } {
   switch (def.provider) {
     case 'worldbank':
+      if (def.id === 'military_usd' || def.id === 'military_gdp') return { name: 'SIPRI Military Expenditure Database, via the World Bank World Development Indicators', url: 'https://www.sipri.org/databases/milex' };
       return def.wbSource === 3
         ? { name: 'World Bank, Worldwide Governance Indicators', url: 'https://www.worldbank.org/en/publication/worldwide-governance-indicators' }
         : { name: 'World Bank, World Development Indicators', url: 'https://data.worldbank.org/' };

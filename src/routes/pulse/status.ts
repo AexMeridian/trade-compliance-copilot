@@ -17,8 +17,8 @@ export interface SourceStatus {
   lastError: string | null; // latest failure message newer than the last success, if any
 }
 
-// Upstream error text can carry web addresses and paths; the public page keeps the reason but not those.
-const publicError = (message: string | null): string => (message ? message.replace(/https?:\/\/\S+/g, '[address]').slice(0, 200) : 'Last refresh failed');
+// The raw upstream error text stays in data_refresh_log and the Worker logs; the public page only says that the last refresh failed.
+const publicError = (): string => 'Last refresh failed';
 
 export const statusRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -28,8 +28,8 @@ statusRoute.get('/data-status', async (c) => {
       `SELECT source, MAX(finished_at) AS last_success FROM data_refresh_log WHERE status = 'success' GROUP BY source`
     ).all<{ source: string; last_success: string }>(),
     c.env.DB.prepare(
-      `SELECT source, MAX(finished_at) AS last_error, error_message FROM data_refresh_log WHERE status = 'error' GROUP BY source`
-    ).all<{ source: string; last_error: string; error_message: string | null }>(),
+      `SELECT source, MAX(finished_at) AS last_error FROM data_refresh_log WHERE status = 'error' GROUP BY source`
+    ).all<{ source: string; last_error: string }>(),
   ]);
   const lastOk = new Map(ok.results.map((r) => [r.source, r.last_success]));
   const lastErr = new Map(failed.results.map((r) => [r.source, r]));
@@ -39,7 +39,7 @@ statusRoute.get('/data-status', async (c) => {
     return {
       source,
       lastSuccess: success,
-      lastError: err && (!success || err.last_error > success) ? publicError(err.error_message) : null,
+      lastError: err && (!success || err.last_error > success) ? publicError() : null,
     };
   });
   // How current each hand-verified table is, and how many newer notices are waiting for review. Failure here must not hide the sources.

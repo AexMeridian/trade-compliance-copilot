@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { quarterLabel } from '../lib/powerFormat';
 
 // A dedicated chart for the one series-specific new data point on this page
 // (IMF COFER) rather than reusing PulseLineChart: that component rebases
@@ -6,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 // would misrepresent a share-of-total figure like this one -- the real story
 // here is the actual percentage (57%, down from 71%), not an indexed
 // wiggle. This renders the raw values instead.
-export function PowerCoferChart({ points }: { points: [string, number][] }) {
+export function PowerCoferChart({ points, eur = [], cny = [] }: { points: [string, number][]; eur?: [string, number][]; cny?: [string, number][] }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [hover, setHover] = useState<number | null>(null);
@@ -39,11 +40,14 @@ export function PowerCoferChart({ points }: { points: [string, number][] }) {
     for (let i = 1; i < xs.length; i++) if (Math.abs(xs[i] - t) < Math.abs(xs[best] - t)) best = i;
     setHover(best);
   };
-  const quarter = (d: string) => {
-    const dt = new Date(Date.parse(d));
-    return `Q${Math.floor(dt.getUTCMonth() / 3) + 1} ${dt.getUTCFullYear()}`;
-  };
+  const quarter = quarterLabel;
   const line = points.map(([d, v]) => `${x(Date.parse(d)).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const lineOf = (pts: [string, number][]) => pts.filter(([d]) => Date.parse(d) >= tMin).map(([d, v]) => `${x(Date.parse(d)).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const valueAt = (pts: [string, number][], d: string) => pts.find((p) => p[0] === d)?.[1];
+  const others = [
+    { name: 'Euro', pts: eur, color: 'var(--color-hue-orange)' },
+    { name: 'Renminbi', pts: cny, color: 'var(--color-hue-pink)' },
+  ].filter((o) => o.pts.length > 1);
 
   return (
     <div ref={box} className="w-full">
@@ -51,9 +55,13 @@ export function PowerCoferChart({ points }: { points: [string, number][] }) {
         {hover !== null ? (
           <>
             <span className="font-semibold text-ink">{quarter(points[hover][0])}:</span> {points[hover][1].toFixed(1)}% of allocated reserves in dollars
+            {others.map((o) => {
+              const v = valueAt(o.pts, points[hover][0]);
+              return v === undefined ? null : `, ${v.toFixed(1)}% ${o.name.toLowerCase()}`;
+            })}
           </>
         ) : (
-          'Move over the chart, or use the arrow keys, to read a quarter.'
+          `Latest: ${quarter(points[points.length - 1][0])}. Move over the chart, or use the arrow keys, to read a quarter.`
         )}
       </p>
       <svg
@@ -93,6 +101,9 @@ export function PowerCoferChart({ points }: { points: [string, number][] }) {
           </text>
         ))}
         <polygon points={`${x(tMin)},${y(yMin)} ${line} ${x(tMax)},${y(yMin)}`} fill="var(--color-hard)" opacity="0.1" />
+        {others.map((o) => (
+          <polyline key={o.name} points={lineOf(o.pts)} fill="none" stroke={o.color} strokeWidth="1.5" strokeLinejoin="round" />
+        ))}
         <polyline points={line} fill="none" stroke="var(--color-hard)" strokeWidth="1.75" strokeLinejoin="round" />
         {hover !== null && (
           <g>
@@ -101,7 +112,15 @@ export function PowerCoferChart({ points }: { points: [string, number][] }) {
           </g>
         )}
       </svg>
-      <p className="mt-1 text-[11px] text-ink-faint">Quarterly, IMF COFER. Actual share of allocated reserves, not indexed.</p>
+      {others.length > 0 && (
+        <p className="mt-1 text-[11px] text-ink-muted">
+          Lines: U.S. dollar (dark){others.map((o) => `, ${o.name.toLowerCase()}`).join('')}. The vertical axis does not start at zero.
+        </p>
+      )}
+      <p className="mt-1 text-[11px] text-ink-faint">
+        Quarterly, IMF COFER, {quarter(points[points.length - 1][0])} latest. Shares are at current exchange rates, so a weaker dollar lowers the dollar's share even if no central bank sold any:
+        part of any move is valuation, not diversification. Not indexed. The axis does not start at zero.
+      </p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Breadcrumb } from '../components/Breadcrumb';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { getPulseCountry, getPulseMarkets, getPulseNews } from '../lib/api';
 import { COUNTRY_TABS, CountryTabs, HARD_SECTIONS, OLD_COUNTRY_TAB, type CountryTabId, type HardSectionId } from '../components/CountryTabs';
 import { CountryGuide } from '../components/CountryGuide';
@@ -26,10 +26,23 @@ import type { PulseCountryDetail, PulseMarkets, NewsItem } from '../types/pulse'
 // directly to a reader, so it needs stripping rather than passing it through.
 const stripHtsMarkup = (s: string) => s.replace(/<\/?[a-z]+>/gi, '');
 
+// Three-letter (ISO 3166 alpha-3) codes for the countries people most often try; country pages are keyed by the two-letter code, so
+// /country/CHN sends the reader to /country/CN instead of an error.
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: 'US', CHN: 'CN', CAN: 'CA', MEX: 'MX', GBR: 'GB', DEU: 'DE', FRA: 'FR', ITA: 'IT', ESP: 'ES', NLD: 'NL', BEL: 'BE', CHE: 'CH', SWE: 'SE', NOR: 'NO', DNK: 'DK',
+  FIN: 'FI', IRL: 'IE', PRT: 'PT', POL: 'PL', AUT: 'AT', GRC: 'GR', CZE: 'CZ', HUN: 'HU', ROU: 'RO', UKR: 'UA', RUS: 'RU', TUR: 'TR', ISR: 'IL', SAU: 'SA', ARE: 'AE',
+  IRN: 'IR', IRQ: 'IQ', EGY: 'EG', ZAF: 'ZA', NGA: 'NG', KEN: 'KE', ETH: 'ET', MAR: 'MA', DZA: 'DZ', IND: 'IN', PAK: 'PK', BGD: 'BD', LKA: 'LK', JPN: 'JP', KOR: 'KR',
+  PRK: 'KP', TWN: 'TW', HKG: 'HK', SGP: 'SG', MYS: 'MY', THA: 'TH', VNM: 'VN', IDN: 'ID', PHL: 'PH', MMR: 'MM', KHM: 'KH', AUS: 'AU', NZL: 'NZ', BRA: 'BR', ARG: 'AR',
+  CHL: 'CL', COL: 'CO', PER: 'PE', VEN: 'VE', ECU: 'EC', BOL: 'BO', URY: 'UY', PRY: 'PY', CUB: 'CU', PAN: 'PA', CRI: 'CR', DOM: 'DO', GTM: 'GT', HND: 'HN', SLV: 'SV',
+  KAZ: 'KZ', UZB: 'UZ', BLR: 'BY', SYR: 'SY', AFG: 'AF', QAT: 'QA', KWT: 'KW', OMN: 'OM', BHR: 'BH', JOR: 'JO', LBN: 'LB', LBY: 'LY', SDN: 'SD', ISL: 'IS', LIE: 'LI',
+};
+
 export function CountryDetail() {
   const { code: rawCode } = useParams<{ code: string }>();
   const code = (rawCode ?? '').toUpperCase();
+  const iso2 = code.length === 3 ? ISO3_TO_ISO2[code] : undefined;
   const name = TARIFF_COUNTRY_LABELS[code] ?? code;
+  const redirectTo = iso2 ? `/country/${iso2.toLowerCase()}` : null;
 
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
@@ -88,6 +101,7 @@ export function CountryDetail() {
   const fxRow = markets?.currencies.find((c) => c.quote === currency) ?? null;
   const countryNews = news.filter((n) => parseCountries(n.countries).includes(code)).slice(0, 8);
 
+  if (redirectTo) return <Navigate to={redirectTo} replace />;
   if (loading && !data) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16">
@@ -98,7 +112,12 @@ export function CountryDetail() {
   if (error || !data) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16">
-        <p className="border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">Couldn't load this page. ({error ?? 'No data'})</p>
+        <h1 className="display text-3xl text-ink">Couldn't load this country</h1>
+        <p className="mt-4 border border-stop/30 bg-stop-soft px-3 py-2 text-sm text-stop">Couldn't load this page. ({error ?? 'No data'})</p>
+        <p className="mt-3 text-sm text-ink-muted">
+          Country pages use the two-letter code, for example <Link to="/country/cn" className="text-accent hover:underline">/country/cn</Link> for China. Or{' '}
+          <Link to="/hard-power?tab=compare" className="text-accent hover:underline">pick a country from the list</Link>.
+        </p>
       </div>
     );
   }
@@ -114,7 +133,7 @@ export function CountryDetail() {
         {blocs.length > 0 && <p className="text-sm text-ink-faint">{blocs.map((b) => BLOC_FULL_NAMES[b]).join(' · ')}</p>}
       </div>
       <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-        Everything this app tracks about {name} in one place: U.S. policy actions naming it, the real tariff rates it faces, a sample duty-stack breakdown,
+        Everything this site tracks about {name} in one place: U.S. policy actions naming it, the real tariff rates it faces, a sample duty-stack breakdown (every tariff layer added up for one product),
         export-control status, and a sanctioned-entity count. See the Guide on the main page for what each of these does and doesn't mean.
       </p>
       <Link to={`/compare?countries=${code},${code === 'MX' ? 'CN' : 'MX'}`} className="mt-2 inline-block text-sm text-accent hover:underline">
@@ -139,7 +158,7 @@ export function CountryDetail() {
               <PulsePanel
                 title="Country snapshot"
                 subtitle={`${data.snapshot.region}, ${data.snapshot.incomeLevel.toLowerCase()}`}
-                help="Region, income classification, capital, population and GDP from the World Bank's own country data, the baseline this app can show for every country, independent of whether the U.S. has taken any trade action naming it."
+                help="Region, income classification, capital, population and GDP from the World Bank's own country data, the baseline this site can show for every country, independent of whether the U.S. has taken any trade action naming it."
               >
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                   {data.snapshot.capitalCity && (
@@ -165,7 +184,7 @@ export function CountryDetail() {
             )}
             <PulsePanel title="U.S. policy actions naming it">
               <p className="text-3xl font-bold tabular-nums text-ink">{data.actionsTotal.toLocaleString('en-US')}</p>
-              <p className="mt-1 text-sm text-ink-faint">In the full Federal Register history this app tracks.</p>
+              <p className="mt-1 text-sm text-ink-faint">In the full Federal Register history this site tracks.</p>
             </PulsePanel>
             <PulsePanel title="Section 301 forced-labor rate">
               {tariffs.forcedLabor ? (
@@ -180,7 +199,7 @@ export function CountryDetail() {
             <PulsePanel title="Export-control status">
               <p className="text-base font-semibold text-ink">{STATUS_LABEL[exportControl.status]}</p>
               {exportControl.status === 'not_curated' && (
-                <p className="mt-1 text-sm text-ink-faint">Only 12 destinations are hand-verified in this app; see the Export controls tab.</p>
+                <p className="mt-1 text-sm text-ink-faint">Only 12 destinations are hand-verified in this site; see the Export controls tab.</p>
               )}
             </PulsePanel>
             <PulsePanel title="Sanctioned entities (OFAC/BIS)">
@@ -315,7 +334,7 @@ export function CountryDetail() {
                 title={freightNote.fromRegion ? 'Typical shipping lane for this region' : 'Typical shipping lane'}
                 help={
                   freightNote.fromRegion
-                    ? "A general industry rule of thumb for a standard commercial routing to major U.S. ports, generalized across this country's whole World Bank region rather than measured for this specific country, this app doesn't have a country-specific lane for it. Wider range than a country-specific entry on purpose; use it to gauge whether this is fundamentally a short hop or a multi-week ocean crossing, not to plan an actual ship date."
+                    ? "A general industry rule of thumb for a standard commercial routing to major U.S. ports, generalized across this country's whole World Bank region rather than measured for this specific country, this site doesn't have a country-specific lane for it. Wider range than a country-specific entry on purpose; use it to gauge whether this is fundamentally a short hop or a multi-week ocean crossing, not to plan an actual ship date."
                     : "A general industry rule of thumb for a standard commercial routing to major U.S. ports: not a live carrier quote, and not specific to any one shipper, season or port. Use it to gauge whether a lane is fundamentally a short land hop or a multi-week ocean crossing, not to plan an actual ship date."
                 }
               >
@@ -330,8 +349,8 @@ export function CountryDetail() {
 
             <PulsePanel
               title="Sample duty-stack breakdown"
-              subtitle={`A representative sample of ${dutyStack.length} HTS headings with known tariff-program exposure, not the full ~31,000-line schedule.`}
-              help="Each heading below runs through the same duty-stack logic used by the compliance calculator: the HTS general (or USMCA-special) rate, plus whichever Section 232/301/338 layers apply to this country and this product, with the real anti-stacking and country-cap rules already applied. Pick a different product in the calculator for an exact answer on your own shipment."
+              subtitle={`A representative sample of ${dutyStack.length} HTS headings with known tariff-program exposure, not the full ~31,000-line schedule. HTS is the Harmonized Tariff Schedule, the U.S. list of product codes and duty rates.`}
+              help="Each heading below runs through the same duty-stack logic used by the compliance calculator: the HTS general (or USMCA-special, the U.S.-Mexico-Canada trade agreement) rate, plus whichever Section 232/301/338 layers apply to this country and this product, with the real anti-stacking and country-cap rules already applied. Pick a different product in the calculator for an exact answer on your own shipment."
             >
               <div className="flex flex-col gap-6">
                 {dutyStack.map((h) => (
@@ -447,7 +466,7 @@ export function CountryDetail() {
                   UFLPA Entity List
                 </a>{' '}
                 of specific named importers/suppliers presumed to use forced labor, a narrower, newer list than the one above, published only as a web page
-                with no bulk data file, so this app links to it rather than guessing at a scrape of its layout.
+                with no bulk data file, so this site links to it rather than guessing at a scrape of its layout.
               </p>
             </PulsePanel>
           </div>
@@ -476,7 +495,7 @@ export function CountryDetail() {
             )}
             <PulsePanel title={`Recent news naming ${name}`}>
               {countryNews.length === 0 ? (
-                <p className="text-sm text-ink-faint">No recent headlines name {name} in this app's news feed.</p>
+                <p className="text-sm text-ink-faint">No recent headlines name {name} in this site's news feed.</p>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {countryNews.map((n) => (

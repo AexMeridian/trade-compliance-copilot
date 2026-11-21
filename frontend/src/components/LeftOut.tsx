@@ -14,17 +14,17 @@ const LEFT_OUT: { measure: string; why: Why; reason: string }[] = [
   {
     measure: 'World Heritage sites',
     why: 'Licence',
-    reason: "UNESCO's terms for the World Heritage list limit reuse to non-commercial syndication and do not allow licensing the material. This site is run by a company, so it does not copy the list.",
+    reason: "As we read UNESCO's syndication terms (not re-verified in November 2026; the page could not be fetched), reuse of the World Heritage list is limited to non-commercial syndication. This site is run by a company, so it does not copy the list until that is confirmed.",
   },
   {
     measure: 'Language reach and learning',
     why: 'No open data',
-    reason: 'Only shared official language and colonial history with seven major powers is shown (CEPII). Language learning, the reach of a language beyond official status and Wikipedia editions have no open, reliable dataset we could verify; Wikidata, which we tested, lists Spanish as official in the United States and omits Russian in Kyrgyzstan.',
+    reason: 'Only shared official language and colonial history with seven major powers is shown (CEPII). Language learning, the reach of a language beyond official status and Wikipedia editions have no open, reliable dataset we could verify; the Wikidata language fields we tested were incomplete or contestable for some countries (for example, the official status of Russian in Kyrgyzstan), so we did not rely on them.',
   },
   {
     measure: 'Peacekeeping contributions',
     why: 'No open data',
-    reason: 'The UN publishes contributor figures only as an interactive chart and PDF reports. The one open database ends in 2012.',
+    reason: 'We did not find a complete, reusable country-by-country series we could verify and load for this site. The UN Peacekeeping website publishes contributor figures, and a monthly download may exist there; this entry is an open item to check, not a finding that none exists.',
   },
   {
     measure: 'Chinese overseas lending',
@@ -39,7 +39,7 @@ const LEFT_OUT: { measure: string; why: Why; reason: string }[] = [
   {
     measure: 'Public opinion beyond Pew and Afrobarometer',
     why: 'Licence',
-    reason: 'Gallup and the Democracy Perception Index publish headline results but no confirmed right to reuse country tables. Latinobarómetro allows non-commercial use only, Arab Barometer’s files sit behind a registration form, and Asian Barometer is restricted to researchers.',
+    reason: 'Gallup (whose series here measure approval of national leadership, not soft power as such) and the Democracy Perception Index publish headline results but no confirmed right to reuse country tables. Latinobarómetro allows non-commercial use only, Arab Barometer’s files sit behind a registration form, and Asian Barometer is restricted to researchers.',
   },
   {
     measure: 'Pew’s questions on the UN, NATO, the EU and leaders',
@@ -54,7 +54,7 @@ const LEFT_OUT: { measure: string; why: Why; reason: string }[] = [
   {
     measure: 'Brand Finance Global Soft Power Index',
     why: 'Licence',
-    reason: 'The best-known composite ranking of nations (U.S. 74.9 and China 73.5 in 2026). Its terms say the data may not be used in part or in full for commercial purposes without written permission, so it stays off the page until Brand Finance agrees. The index is also a composite built from weights this site does not control.',
+    reason: 'A well-known composite ranking of nations. Its terms say the data may not be used in part or in full for commercial purposes without written permission, so no figures from it appear here until Brand Finance agrees. It is also a composite built from weights this site does not control.',
   },
   {
     measure: 'Years Gallup and other pollsters state only in charts',
@@ -74,7 +74,7 @@ export function LeftOut() {
       <h3 id="left-out-title" className="text-[15px] font-semibold text-ink">
         What we looked for and left out
       </h3>
-      <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-muted">A blank in a comparison is not a zero. These measures are missing on purpose, for the reasons given.</p>
+      <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-muted">A blank in a comparison is not a zero. These measures are missing on purpose, for the reasons given. The framing of soft power on this site follows Joseph Nye, <em>Soft Power: The Means to Success in World Politics</em> (PublicAffairs, 2004).</p>
       <ul className="mt-3 grid gap-3 md:grid-cols-2">
         {LEFT_OUT.map((l) => (
           <li key={l.measure} className="card min-w-0 p-3.5">

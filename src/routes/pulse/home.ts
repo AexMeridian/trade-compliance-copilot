@@ -3,6 +3,7 @@ import type { Env } from '../../types/env.js';
 import { runPulseSync } from '../../lib/pulse/sync.js';
 import { refreshIfStale } from '../../lib/pulse/refreshLazy.js';
 import { logRefresh } from '../../lib/refresh/log.js';
+import { safeEqual } from '../../lib/abuse.js';
 import type { PulseAction } from '../../lib/pulse/types.js';
 import type { PulseApp } from './util.js';
 import { clampInt, slimAction } from './util.js';
@@ -32,6 +33,8 @@ export function homeRoute(root: PulseApp): PulseApp {
   const homeRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
 homeRoute.post('/sync', async (c) => {
+  // Not a public button: it makes ~68 outbound requests. The cron job does not use this route, so it needs the owner's SYNC_TOKEN.
+  if (!safeEqual(c.req.header('x-sync-token'), c.env.SYNC_TOKEN)) return c.json({ ok: false, error: 'Not authorised.' }, 401);
   const now = new Date();
   const cooldownEdge = new Date(now.getTime() - SYNC_COOLDOWN_MS).toISOString();
 

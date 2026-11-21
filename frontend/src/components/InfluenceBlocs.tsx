@@ -64,7 +64,7 @@ export function InfluenceBlocs({
                 <p className="mt-2 text-xs text-ink-faint">Also a member, not a country: {BLOC_NON_COUNTRY_MEMBERS[bloc]!.join(', ')}.</p>
               )}
               <p className="mt-2 text-xs text-ink-faint">
-                {members.length} countries{bloc === 'BRICS' ? ' (as listed by the BRICS presidency)' : ''}. Source:{' '}
+                {members.length} members listed here{bloc === 'G20' ? ' (including the European Union)' : ''}, plus the U.S., which is left off every list on this page{bloc === 'BRICS' ? '; as listed by the BRICS presidency' : ''}. Source:{' '}
                 <a href={BLOC_SOURCES[bloc].url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
                   {BLOC_SOURCES[bloc].label}
                 </a>

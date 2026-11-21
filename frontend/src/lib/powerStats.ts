@@ -34,14 +34,18 @@ export function spearman(xs: number[], ys: number[]): number | null {
   return dx === 0 || dy === 0 ? null : num / Math.sqrt(dx * dy);
 }
 
-export type AlignmentBand = 'china' | 'leanChina' | 'middle' | 'leanUs' | 'us';
+export type AlignmentBand = 'beyondChina' | 'china' | 'leanChina' | 'middle' | 'leanUs' | 'us' | 'beyondUs';
 export const BAND_LABELS: Record<AlignmentBand, string> = {
-  china: "At China's end",
+  beyondChina: "Beyond China's position",
+  china: "Close to China's position",
   leanChina: "Nearer China's position",
   middle: 'About halfway',
-  leanUs: "Nearer the U.S. position",
-  us: "At the U.S. end",
+  leanUs: 'Nearer the U.S. position',
+  us: 'Close to the U.S. position',
+  beyondUs: 'Beyond the U.S. position',
 };
+/** The band edges, as a share of the distance from China (0) to the United States (1); shown on the page. */
+export const BAND_THRESHOLDS = [0.2, 0.4, 0.6, 0.8] as const;
 
 /**
  * Where `position` falls on the line from `from` (0) to `to` (1). Values outside the two ends are not clipped, so a country
@@ -52,11 +56,17 @@ export function positionBetween(position: number, from: number, to: number): num
   return span === 0 ? 0.5 : (position - from) / span;
 }
 
-/** Five groups along the line from China (0) to the United States (1): the outer two cover everything at or beyond 0.2 / 0.8. */
+/**
+ * Seven groups along the line from China (0) to the United States (1). Anything below 0 or above 1 is past the named power's own
+ * position and is labelled that way, never as being "at" that power's end; inside, the cuts are at 0.2, 0.4, 0.6 and 0.8 of the distance
+ * (equal fifths, chosen for readability, not statistical breaks).
+ */
 export function alignmentBand(t: number): AlignmentBand {
+  if (t < 0) return 'beyondChina';
   if (t < 0.2) return 'china';
   if (t < 0.4) return 'leanChina';
   if (t <= 0.6) return 'middle';
   if (t <= 0.8) return 'leanUs';
-  return 'us';
+  if (t <= 1) return 'us';
+  return 'beyondUs';
 }

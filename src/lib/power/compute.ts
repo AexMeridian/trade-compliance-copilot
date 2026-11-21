@@ -6,6 +6,20 @@ export type SeriesByCountry = Record<string, Series>;
 
 /** A country's latest figure is ranked only if it is within this many years of the newest figure any country has. */
 export const STALE_YEARS = 5;
+/** Hard-power measures are flows and market-rate values that move every year, so a figure is ranked only if it is at most this many years older than the newest. */
+export const HARD_POWER_STALE_YEARS = 1;
+
+/**
+ * Dependencies and other non-sovereign territories the World Bank reports beside countries (ISO 3166-1 alpha-2). They are left out of
+ * hard-power ranks and denominators so "rank 12 of 190" is not padded with places like Gibraltar or Sint Maarten. Hong Kong and Macao
+ * stay in: they are separate customs and statistical economies. Every ranked figure is therefore "of N economies".
+ */
+export const NON_SOVEREIGN = new Set(['AS', 'AW', 'BM', 'VG', 'KY', 'CW', 'FO', 'GI', 'GL', 'GU', 'IM', 'MF', 'MP', 'NC', 'PF', 'PR', 'SX', 'TC', 'VI']);
+
+/** How many years back a figure may be and still be ranked for this indicator. */
+export function maxLagYears(def: Pick<IndicatorDef, 'dimension' | 'maxLagYears'>): number {
+  return def.maxLagYears ?? (def.dimension === 'hard_power' ? HARD_POWER_STALE_YEARS : STALE_YEARS);
+}
 
 export interface Standing {
   value: number;
@@ -27,6 +41,10 @@ export interface IndicatorView {
   source: { name: string; url: string };
   /** Newest year any country reports. */
   latestYear: number | null;
+  /** Set when the upstream series has stopped (no new data after this year): the indicator is not ranked at all. */
+  endedYear?: number;
+  /** The year of each ranked country's figure, so a rank is never read as a same-year comparison when it is not. */
+  years: Record<string, number>;
   standings: Record<string, Standing | null>;
   series: Record<string, Series>;
   /** Every ranked country's latest value, sorted ascending, for the dot plot. */
@@ -59,13 +77,18 @@ function latest(series: Series | undefined): [number, number] | null {
 export function buildIndicatorView(def: IndicatorDef, data: SeriesByCountry, requested: string[]): IndicatorView {
   const newest = new Map<string, [number, number]>();
   let latestYear = 0;
+  const hard = def.dimension === 'hard_power';
   for (const [cc, s] of Object.entries(data)) {
+    if (hard && NON_SOVEREIGN.has(cc)) continue;
     const l = latest(s);
     if (!l) continue;
     newest.set(cc, l);
     if (l[0] > latestYear) latestYear = l[0];
   }
-  const ranked = [...newest.entries()].filter(([, [y]]) => y >= latestYear - STALE_YEARS);
+  const lag = maxLagYears(def);
+  // A series that has stopped publishing is not ranked: its newest year is a past snapshot (and one country's gap is not a zero).
+  const ended = def.endedYear !== undefined;
+  const ranked = ended ? [] : [...newest.entries()].filter(([, [y]]) => y >= latestYear - lag);
   ranked.sort((a, b) => b[1][1] - a[1][1] || a[0].localeCompare(b[0]));
   const rankOf = new Map(ranked.map(([cc], i) => [cc, i + 1]));
 
@@ -88,6 +111,8 @@ export function buildIndicatorView(def: IndicatorDef, data: SeriesByCountry, req
     sourceCode: def.code,
     source: sourceFor(def),
     latestYear: latestYear || null,
+    ...(ended ? { endedYear: def.endedYear } : {}),
+    years: Object.fromEntries(ranked.map(([cc, [y]]) => [cc, y])),
     standings,
     series,
     distribution: ranked.map(([cc, [, v]]) => [cc, v] as [string, number]).reverse(),

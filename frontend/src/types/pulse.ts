@@ -84,7 +84,7 @@ export interface MarketTile {
 
 export interface CurrencyRow {
   quote: string;
-  label: string; // e.g. "USD/EUR"
+  label: string; // e.g. "EUR per $"
   rate: number; // units of the quote currency per 1 USD
   asOf: string;
   change30dPct: number | null;

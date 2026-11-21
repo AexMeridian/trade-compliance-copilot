@@ -11,16 +11,16 @@ const SAMPLE_LABELS: Record<string, { title: string; note: string }> = {
     note: 'A product description that plausibly fits two HTS headings.',
   },
   'canada-usmca-338': {
-    title: 'Canada import: clears USMCA, still hits Section 338',
-    note: 'Qualifies for preferential origin, but a separate tariff overlay still applies.',
+    title: 'Canada import: USMCA qualified, Section 338 coverage unconfirmed',
+    note: 'Qualifies for preferential origin, but a separate tariff overlay may still apply and its product list is not loaded, so no total is given.',
   },
   'export-license-required': {
     title: 'Export with a real license requirement',
     note: 'Self-classifies to a controlled ECCN with a matching country-chart reason.',
   },
   'clean-pass': {
-    title: 'Clean pass',
-    note: 'Everything clears: classification, origin, screening, and determination.',
+    title: 'No issues found within modeled scope',
+    note: 'No finding in classification, origin, screening or the modeled duty layers. This is not a clearance: see what the estimate leaves out.',
   },
 };
 
@@ -59,7 +59,7 @@ function referenceData(c: Record<string, number | null>) {
       dataset: 'Export control classifications',
       count: fmt(c.eccnEntries) ? `${fmt(c.eccnEntries)} curated ECCNs` : 'Loading…',
       source: 'BIS Commerce Control List and Country Chart',
-      note: 'A small, hand-verified subset of the Commerce Control List. Anything outside it is reported as not covered, never guessed.',
+      note: 'A small, hand-verified subset of the Commerce Control List. Anything outside it is reported as not covered.',
     },
   ];
 }
@@ -75,11 +75,11 @@ const METHOD_STEPS = [
   },
   {
     title: 'Party screening',
-    body: 'Buyer, seller, and intermediary names are matched against the OFAC SDN list, the Commerce/State Consolidated Screening List, the UN Security Council list and the UK Sanctions List, with a written rationale for every candidate, including the false positives.',
+    body: 'Buyer, seller, and intermediary names are matched against the OFAC SDN list, the Commerce/State Consolidated Screening List, the UN Security Council list and the UK Sanctions List, with a written rationale for every candidate, including those dismissed as not the same party. The dismissal is a model judgment on the names given, and a person should confirm it.',
   },
   {
     title: 'Determination',
-    body: 'Classification, origin, and screening results are combined into a landed-cost duty stack (imports) or a license-requirement path (exports), with open issues listed for a human analyst to review.',
+    body: 'Classification, origin, and screening results are combined into an estimated-duty stack (imports) or a license-requirement path (exports), with open issues listed for a human analyst to review.',
   },
 ];
 
@@ -182,7 +182,7 @@ export function Landing() {
 
       <section className="mt-14">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="display text-2xl text-ink">Example result</h2>
+          <h2 className="display text-2xl text-ink">Example result{preview ? <span className="ml-2 text-sm font-normal text-ink-faint">recorded {preview.case_file.updated_at.slice(0, 10)}</span> : null}</h2>
           {preview && (
             <button type="button" onClick={() => navigate(`/case/${preview.case_file.id}/report`)} className="text-[13px] text-accent hover:underline">
               Open the full report
@@ -217,7 +217,10 @@ export function Landing() {
                   <div>License requirement: {preview.case_file.determination.license_requirement ?? 'Unresolved'}</div>
                 </div>
               )}
-              <p className="mt-4 text-xs leading-relaxed text-ink-faint">This is a real determination from the live pipeline for a seeded sample case.</p>
+              <p className="mt-4 border-l-2 border-review bg-review-soft px-3 py-2 text-[13px] leading-snug text-ink">
+                <strong>Recorded on {new Date(preview.case_file.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.</strong>{' '}
+                This is a stored sample case, not a live run, and it has not been re-run against today's tariff rules and data. Rates and findings may have changed since. Run your own case for a current result. Not a binding ruling.
+              </p>
             </>
           )}
         </div>

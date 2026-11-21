@@ -22,7 +22,7 @@ const JARGON: [string, string][] = [
   ['ECCN', 'Export Control Classification Number: the code that says which export controls (if any) apply to an item under the Commerce Control List.'],
   ['EAR99', 'The default classification for items subject to the Export Administration Regulations but not listed under a specific ECCN. Usually no license is required.'],
   ['NLR', 'No License Required: the export can proceed without a BIS export license for the stated destination and end use.'],
-  ['De minimis (Section 321)', 'A shipment valued under $800 is often, but not always, exempt from duty. See the determination step for this case’s own disclosed caveats.'],
+  ['De minimis (Section 321)', 'The $800 exemption from duty and entry for low-value shipments (19 U.S.C. 1321). It has been suspended for all shipments from all countries since 2025-08-29 (CBP rule of 2026-06-24, indefinite), and the statute ends it on 2027-07-01. Every shipment now pays duty and the entry fee.'],
 ];
 
 function JargonGuide() {
@@ -456,6 +456,8 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
   const [loading, setLoading] = useState(false);
   const [destination, setDestination] = useState(caseFile.determination.destination_country ?? '');
   const [declaredValue, setDeclaredValue] = useState(caseFile.determination.declared_value_usd?.toString() ?? '');
+  const [entryDate, setEntryDate] = useState(caseFile.determination.entry_date ?? '');
+  const [transportMode, setTransportMode] = useState<string>(caseFile.determination.transport_mode ?? 'unknown');
   const isExport = caseFile.direction === 'export';
 
   async function submit() {
@@ -466,6 +468,8 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
       const { determination } = await submitDetermination(caseFile.id, {
         destinationCountry: isExport ? destination : undefined,
         declaredValueUsd: !isExport && declaredValue.trim() ? Number(declaredValue) : undefined,
+        entryDate: !isExport && entryDate ? entryDate : undefined,
+        transportMode: !isExport ? transportMode : undefined,
       });
       onDone({ ...caseFile, determination });
     } catch (e) {
@@ -478,7 +482,7 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
   return (
     <StepShell title="Final determination">
       <p className="text-sm text-ink-muted">
-        Combines classification, origin, and screening results into a {caseFile.direction === 'import' ? 'landed-cost estimate' : 'license determination'}.
+        Combines classification, origin, and screening results into a {caseFile.direction === 'import' ? 'duty estimate' : 'license determination'}.
       </p>
       {isExport && (
         <label className="mt-3 block text-sm text-ink-muted">
@@ -504,8 +508,36 @@ function DeterminationStep({ caseFile, onDone, onError }: { caseFile: CaseFile; 
             placeholder="e.g. 4500.00"
             className="mt-1.5 block w-40 border border-hairline-strong bg-paper-raised px-2 py-1.5 tabular-nums text-sm outline-none focus:border-accent"
           />
-          <span className="mt-1 block text-xs text-ink-faint">Adds a dollar landed-cost figure and a Section 321 de minimis check. Leave blank for a percentage-only estimate.</span>
+          <span className="mt-1 block text-xs text-ink-faint">Adds a dollar duty figure and the entry fees. Section 321 de minimis is suspended, so no value is treated as exempt. Leave blank for a percentage-only estimate.</span>
         </label>
+      )}
+      {!isExport && (
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+          <label className="block text-sm text-ink-muted">
+            Date of entry (optional)
+            <input
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              className="mt-1.5 block border border-hairline-strong bg-paper-raised px-2 py-1.5 tabular-nums text-sm outline-none focus:border-accent"
+            />
+            <span className="mt-1 block max-w-xs text-xs text-ink-faint">Duty rates and fees follow the entry date. Blank means today, U.S. Eastern time.</span>
+          </label>
+          <label className="block text-sm text-ink-muted">
+            Mode of transport
+            <select
+              value={transportMode}
+              onChange={(e) => setTransportMode(e.target.value)}
+              className="mt-1.5 block border border-hairline-strong bg-paper-raised px-2 py-1.5 text-sm outline-none focus:border-accent"
+            >
+              <option value="unknown">Not sure</option>
+              <option value="ocean">Ocean</option>
+              <option value="air">Air</option>
+              <option value="land">Land (truck or rail)</option>
+            </select>
+            <span className="mt-1 block max-w-xs text-xs text-ink-faint">The harbor maintenance fee applies to ocean cargo only.</span>
+          </label>
+        </div>
       )}
       <button type="button" onClick={submit} disabled={loading || (isExport && !destination.trim())} className="btn-primary mt-3">
         {loading ? 'Computing…' : 'Run determination and view report'}

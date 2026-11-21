@@ -3,7 +3,7 @@ import { publishMarkets } from '../lib/marketStore';
 import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTempo, syncPulse } from '../lib/api';
+import { getPulseFeed, getPulseHome, getPulseMarkets, getPulseNews, getPulseTempo } from '../lib/api';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
@@ -261,11 +261,8 @@ export function Pulse() {
     setSyncing(true);
     setError(null);
     try {
-      await syncPulse();
-      // A sync can touch every table this page reads, so refresh everything
-      // together here -- unlike the tag-filter click above, this is one
-      // user-initiated action where "did it fully refresh" matters more
-      // than isolating each panel's fetch.
+      // Data refreshes on a schedule on the server (syncing from the browser needs an owner token),
+      // so this reloads what is stored, everything together.
       await Promise.all([loadFeed(activeTag, activeCountry === 'US' ? null : activeCountry, search), loadPanels()]);
     } catch (e) {
       setError((e as Error).message);

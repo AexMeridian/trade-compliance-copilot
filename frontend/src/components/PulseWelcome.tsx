@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PRESETS, type Preset } from '../lib/pulsePrefs';
 
 // Shown once to a first-time visitor (until they pick, skip, or open the
@@ -34,31 +35,41 @@ const CHOICES: { presetId: string; label: string; blurb: string }[] = [
   { presetId: 'default', label: "I'm just looking around", blurb: 'Keep everything, exactly as it is.' },
 ];
 
-// One quiet row, not a card: it never pushes the real content down, takes one
-// tap to use, and one tap to dismiss. The blurb lives in each button's tooltip.
+// One quiet row that stays out of the way: a single "Tailor this page" button opens the role choices, and "Not now" dismisses it for good.
+// The same choices live under "Filter" on the tab bar, so this is only a shortcut for first-time visitors. The blurb is in each tooltip.
 export function PulseWelcome({ onPick, onSkip }: { onPick: (p: Preset) => void; onSkip: () => void }) {
+  const [open, setOpen] = useState(false);
   return (
-    <section aria-label="Personalize this page" className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border border-hairline bg-paper-raised px-3 py-2">
-      <span className="text-[13px] text-ink-muted">Show me what matters to:</span>
-      <div className="flex flex-wrap gap-1.5">
-        {CHOICES.filter((c) => c.presetId !== 'default').map((c) => {
-          const preset = PRESETS.find((p) => p.id === c.presetId);
-          if (!preset) return null;
-          return (
-            <button
-              key={c.presetId}
-              type="button"
-              title={c.blurb}
-              onClick={() => onPick(preset)}
-              className="rounded-full border border-hairline-strong px-3 py-1 text-[13px] font-medium text-ink hover:border-accent hover:bg-accent-soft"
-            >
-              {SHORT_LABEL[c.presetId] ?? c.label}
-            </button>
-          );
-        })}
-      </div>
-      <button type="button" onClick={onSkip} aria-label="Dismiss" className="ml-auto text-[13px] text-ink-faint hover:text-ink">
-        Dismiss
+    <section aria-label="Personalize this page" className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline pb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-full border border-hairline-strong px-3 py-1 text-[13px] font-semibold text-ink hover:border-accent hover:bg-accent-soft"
+      >
+        Tailor this page to your work <span aria-hidden="true">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="flex flex-wrap gap-1.5">
+          {CHOICES.filter((c) => c.presetId !== 'default').map((c) => {
+            const preset = PRESETS.find((p) => p.id === c.presetId);
+            if (!preset) return null;
+            return (
+              <button
+                key={c.presetId}
+                type="button"
+                title={c.blurb}
+                onClick={() => onPick(preset)}
+                className="rounded-full border border-hairline-strong px-3 py-1 text-[13px] font-medium text-ink hover:border-accent hover:bg-accent-soft"
+              >
+                {SHORT_LABEL[c.presetId] ?? c.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button type="button" onClick={onSkip} className="ml-auto rounded border border-hairline-strong px-2.5 py-0.5 text-[13px] font-medium text-ink-muted hover:text-ink">
+        Not now
       </button>
     </section>
   );

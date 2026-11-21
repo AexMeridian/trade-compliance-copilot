@@ -102,7 +102,7 @@ const SOURCES: SourceRow[] = [
     name: "U.S. dollar's share of global reserves (COFER)",
     publisher: 'International Monetary Fund',
     url: 'https://data.imf.org/',
-    terms: 'IMF data, used with attribution under the IMF terms of use.',
+    terms: 'IMF data, used with attribution under the IMF terms of use. The dollar, euro and renminbi shares of allocated reserves at current exchange rates.',
     cadence: 'Quarterly series, checked daily',
     keys: ['pulse_cofer'],
   },
@@ -131,10 +131,10 @@ const SOURCES: SourceRow[] = [
     keys: ['world_bank'],
   },
   {
-    name: 'Country indicators (aid, exchange, tourism, investment, knowledge, health, governance, military)',
-    publisher: 'The World Bank, World Development Indicators and Worldwide Governance Indicators',
+    name: 'Country indicators (aid, exchange, investment, knowledge, health, governance, military)',
+    publisher: 'The World Bank, World Development Indicators and Worldwide Governance Indicators. Military spending is the SIPRI Military Expenditure Database (Stockholm International Peace Research Institute), redistributed by the World Bank.',
     url: 'https://data.worldbank.org/',
-    terms: 'Licensed CC BY 4.0; attribution required. Figures are shown as published, with their year; nothing is estimated or combined into a score.',
+    terms: 'Licensed CC BY 4.0; attribution required. Figures are shown as published, with their year, and are not combined into a score; a published figure can itself be a source estimate (SIPRI’s for China, ILO modeled series). Military spending is SIPRI data, used with attribution.',
     cadence: 'Checked weekly; most series update once a year, some lag by several years',
     keys: ['power_indicators'],
   },
@@ -238,7 +238,7 @@ const SOURCES: SourceRow[] = [
     name: 'NATO defence expenditure',
     publisher: 'North Atlantic Treaty Organization',
     url: 'https://www.nato.int/cps/en/natohq/topics_49198.htm',
-    terms: 'NATO publication, attributed. Entered by hand once a year; shown with its publication date.',
+    terms: 'NATO publication, attributed. Entered by hand once a year from the Defence Expenditure of NATO Countries (2014-2025) tables, published 28 August 2025, for a subset of allies only; shown with its publication date.',
     cadence: 'Annual, manual',
     keys: [],
   },
@@ -265,6 +265,89 @@ const SOURCES: SourceRow[] = [
     terms: 'Each headline links to its publisher. No article text or photographs are stored or shown. Publishers keep all rights.',
     cadence: 'About every 30 minutes while the site is in use',
     keys: ['pulse_news'],
+  },
+];
+
+interface HardRow {
+  name: string;
+  code: string;
+  unit: string;
+  basis: string;
+  provenance: string;
+}
+
+// The hard-power (economic weight and exposure) series on the Hard Power page, in the same order as the indicator definitions in the code.
+// All come from the World Bank's World Development Indicators (CC BY 4.0), which compiles them from the organizations named in the last column.
+const HARD_POWER_ROWS: HardRow[] = [
+  {
+    name: 'Economy size (GDP)',
+    code: 'NY.GDP.MKTP.CD',
+    unit: 'US dollars',
+    basis: 'Current prices at market exchange rates. Not adjusted for purchasing power (no PPP) and not in constant prices.',
+    provenance: 'World Bank national accounts data and OECD National Accounts data files.',
+  },
+  {
+    name: 'Population',
+    code: 'SP.POP.TOTL',
+    unit: 'people',
+    basis: 'Mid-year estimate of all residents regardless of legal status.',
+    provenance: 'United Nations Population Division and national statistical offices, compiled by the World Bank.',
+  },
+  {
+    name: 'Military spending (dollars; share of GDP)',
+    code: 'MS.MIL.XPND.CD; MS.MIL.XPND.GD.ZS',
+    unit: 'US dollars; percent of GDP',
+    basis: 'Current prices at market exchange rates, SIPRI definition (all current and capital spending on armed forces, including peacekeeping, defense ministries, paramilitary forces and military space activities).',
+    provenance: 'SIPRI Military Expenditure Database (Stockholm International Peace Research Institute), redistributed by the World Bank. Figures for some states, China among them, are SIPRI estimates. NATO publishes a different measure for its allies.',
+  },
+  {
+    name: 'Foreign direct investment received',
+    code: 'BX.KLT.DINV.CD.WD',
+    unit: 'US dollars',
+    basis: 'Net inflows (new investment less disinvestment) in an enterprise in which the foreign investor holds a lasting interest of 10 percent or more of voting shares. Balance-of-payments basis, current prices.',
+    provenance: 'International Monetary Fund balance-of-payments data, with UNCTAD and national sources, compiled by the World Bank.',
+  },
+  {
+    name: 'High-technology exports (dollars; share of manufactured exports)',
+    code: 'TX.VAL.TECH.CD; TX.VAL.TECH.MF.ZS',
+    unit: 'US dollars; percent',
+    basis: 'Products with high research and development intensity (aerospace, computers, pharmaceuticals, scientific instruments, electrical machinery). Current prices.',
+    provenance: 'UN Comtrade merchandise trade data, using the product list in the World Bank definition.',
+  },
+  {
+    name: 'Intellectual-property receipts and payments',
+    code: 'BX.GSR.ROYL.CD; BM.GSR.ROYL.CD',
+    unit: 'US dollars',
+    basis: 'Charges for the use of intellectual property (patents, trademarks, copyrights, franchises, industrial processes). Balance-of-payments basis, current prices. Includes payments between branches of one company, so tax planning moves it.',
+    provenance: 'International Monetary Fund balance-of-payments data, compiled by the World Bank.',
+  },
+  {
+    name: 'ICT service exports',
+    code: 'BX.GSR.CCIS.CD',
+    unit: 'US dollars',
+    basis: 'Exports of computer, communications and information services. Balance-of-payments basis, current prices.',
+    provenance: 'International Monetary Fund balance-of-payments data, compiled by the World Bank.',
+  },
+  {
+    name: 'Patent applications by non-residents',
+    code: 'IP.PAT.NRES',
+    unit: 'applications',
+    basis: 'Filings at the national patent office by applicants based abroad.',
+    provenance: 'World Intellectual Property Organization, compiled by the World Bank.',
+  },
+  {
+    name: 'Trade openness',
+    code: 'NE.TRD.GNFS.ZS',
+    unit: 'percent of GDP',
+    basis: 'Exports plus imports of goods and services divided by GDP, current prices.',
+    provenance: 'World Bank national accounts data and OECD National Accounts data files.',
+  },
+  {
+    name: 'International tourism receipts (not ranked)',
+    code: 'ST.INT.RCPT.CD',
+    unit: 'US dollars',
+    basis: 'Spending by inbound visitors, current prices. The World Bank series ends in 2020, so it is not ranked or shown on the Hard Power page.',
+    provenance: 'World Tourism Organization, compiled by the World Bank.',
   },
 ];
 
@@ -308,6 +391,7 @@ export function Methodology() {
           ['#scope', 'Scope and neutrality'],
           ['#measures', 'How the measures are calculated'],
           ['#sources', 'Sources and licences'],
+          ['#power', 'Hard- and soft-power indicators'],
           ['#coverage', 'Coverage and limits'],
           ['#automation', 'Automation and AI'],
           ['#testing', 'Testing'],
@@ -337,34 +421,53 @@ export function Methodology() {
         <li>
           <span className="text-ink">Notices.</span> An official U.S. government publication in the Federal Register about tariffs, sanctions, export
           controls or trade agreements. Counts cover the last 30 days by publication date. A notice can name several countries and then counts once for each.
-          A count measures how much was published, not how significant it was.
+          A count measures how much was published, not how significant it was: it counts Federal Register documents, including
+          corrections and comment-period notices, so a small change from one 30-day window to the next is noise. The Hard Power page lists actions
+          with an editorial weighting by document type (a presidential order or final rule above a routine notice); that ordering is a choice made by this site,
+          not a measure of impact.
         </li>
         <li>
           <span className="text-ink">Sanctioned parties.</span> People, companies and vessels on the OFAC SDN list, the Commerce/State Consolidated
           Screening List, the UN Security Council list and the UK Sanctions List, counted by the country named in each party's listed address (UN entries
           also use nationality). The sources carry no country codes, so this is a text match on country names; entries that name more than three countries are
-          skipped as roundups, and the United States is excluded. One party can appear on several lists and is then counted once per list. It describes
-          where listed parties are said to be located, not which country a measure is aimed at.
+          skipped as roundups, and the United States is excluded. "Hong Kong, China" is counted for Hong Kong only, not also for China, and "New Mexico" is not
+          counted as Mexico. One party can appear on several lists and is then counted once per list, so a total is listings, not distinct parties. OFAC sanctions
+          (SDN) and the Commerce/State lists, which are mostly export controls, are shown per list rather than blended. It describes where listed parties are
+          said to be located, not which country a measure is aimed at. Only U.S., UN and UK lists are counted: other countries' own sanctions and export-control
+          lists are not included.
         </li>
         <li>
-          <span className="text-ink">Extra tariffs.</span> The country-specific additional duty currently in force under the Section 301 forced-labor
-          determination, plus separately noted Section 338 and Section 232 country rules, from hand-verified rows in our tariff table, each with its Federal
-          Register citation and a data-as-of date. Antidumping and countervailing duties are not included.
+          <span className="text-ink">Forced-labor tariff.</span> The country-specific additional duty currently in force under the 2026 Section 301 forced-labor
+          action only, plus separately noted Section 338 and Section 232 country rules, from hand-verified rows in our tariff table, each with its Federal Register
+          citation and a data-as-of date. It is not a country's total U.S. tariff: China's Section 301 duties from 2018 onward (Lists 1 to 4A and later increases),
+          Section 232 product duties, and antidumping and countervailing duties are not in the figure, so China can face far more than the rate shown.
         </li>
         <li>
           <span className="text-ink">Dollar's reserve share.</span> The IMF COFER series: the share of allocated foreign-exchange reserves held in U.S.
-          dollars, quarterly, shown as published.
+          dollars, quarterly, shown as published and labelled by quarter (for example Q2 2026), with the euro and renminbi shares from the same table when
+          available. Shares are at current exchange rates, so part of any move is valuation: a weaker dollar lowers the dollar's share even if no central bank
+          sold dollars. The IMF also publishes constant-exchange-rate figures; this page does not.
         </li>
         <li>
-          <span className="text-ink">Defense spending.</span> NATO's published estimate of defence expenditure as a share of GDP for the countries it lists,
-          for the latest year it covers.
+          <span className="text-ink">Foreign holders of U.S. Treasuries.</span> The Treasury's TIC table, by where securities are held (custody), at market value.
+          Financial centers such as Belgium, Luxembourg and the Cayman Islands hold securities for investors elsewhere, so a country's own row can understate
+          what its residents own, and the change from a year ago mixes price moves with net purchases or sales.
         </li>
         <li>
-          <span className="text-ink">Currencies.</span> Percentage change over 30 days in ECB reference exchange rates against the U.S. dollar.
+          <span className="text-ink">Defense spending.</span> NATO's published estimate of defence expenditure as a share of GDP. Only some of NATO's 32 allies are
+          stored, so the chart and the median tile say how many are shown and are not the alliance as a whole; each bar shows its own latest year (Germany's is a
+          year earlier because NATO left its 2025 estimate blank). The 2% guideline is drawn with the 3.5% core target agreed in 2025 (plus 1.5% for related
+          spending, by 2035). NATO's definition differs from SIPRI's, so the same country can differ between the NATO chart and the military explorer.
+        </li>
+        <li>
+          <span className="text-ink">Currencies.</span> Percentage change over 30 days in ECB reference exchange rates against the U.S. dollar, labelled as units of the currency
+          per dollar (for example, EUR per $). Pegged currencies move little by design.
         </li>
         <li>
           <span className="text-ink">Alliance membership.</span> Formal membership of NATO, G7, G20, BRICS and USMCA, each checked against the
-          organization's own published list and dated on the page. Partner countries are shown separately and are not members.
+          organization's own published list and dated on the page. BRICS has eleven members here: the five founders, the 2024 additions (Egypt, Ethiopia, Iran, the
+          UAE and Saudi Arabia) and Indonesia (2025). Partner countries are shown separately and are not members. The EU takes part in G7 summits but is not a
+          G7 member, so it is not listed there; it is a G20 member.
         </li>
       </ul>
 
@@ -410,7 +513,53 @@ export function Methodology() {
       </p>
 
       <H id="power">What the Power profile does and does not measure</H>
-      <p className="mt-3">
+      <h3 className="mt-4 text-base font-semibold text-ink">Hard-power indicators (economic weight and exposure)</h3>
+      <p className="mt-2">
+        The country measures on the Hard Power page are context, not a measure of coercive capacity: size and military spending show what a state can pay or compel
+        with, while foreign investment received, licence payments and trade openness show how exposed it is to others. They are shown by country and year with no
+        composite score. Every series is a World Bank World Development Indicator (CC BY 4.0), shown as published; the World Bank in turn compiles each from the
+        organization named below, and "as published" can itself mean a source estimate or a modeled figure. All dollar figures are current U.S. dollars at market exchange
+        rates, with no purchasing-power (PPP) adjustment. A PPP measure of GDP would put China much closer to the United States, and market rates understate military
+        spending in lower-price economies.
+      </p>
+      <p className="mt-2">
+        Ranks use each economy's newest figure and are computed only among economies whose figure is no more than one year older than the newest, with the year shown beside any
+        figure older than the newest. Dependencies and other non-sovereign territories (for example Gibraltar, the Faroe Islands and Sint Maarten) are left out of ranks and counts, so
+        "of N" counts economies; Hong Kong and Macao are kept as separate economies. Military spending is credited to the Stockholm International Peace Research
+        Institute (SIPRI), whose database is the original source.
+      </p>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
+          <caption className="sr-only">Hard-power indicators: World Bank code, unit, price basis and provenance</caption>
+          <thead>
+            <tr className="border-b-2 border-ink text-ink">
+              <th scope="col" className="py-2 pr-3 font-semibold">Indicator</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">World Bank code and unit</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">Definition and price basis</th>
+              <th scope="col" className="py-2 font-semibold">Original source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {HARD_POWER_ROWS.map((r) => (
+              <tr key={r.name} className="border-b border-hairline align-top">
+                <th scope="row" className="py-2.5 pr-3 font-semibold text-ink">{r.name}</th>
+                <td className="py-2.5 pr-3">
+                  <span className="block break-all font-mono text-[12px]">{r.code}</span>
+                  <span className="block text-ink-faint">{r.unit}</span>
+                </td>
+                <td className="py-2.5 pr-3">{r.basis}</td>
+                <td className="py-2.5">{r.provenance}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-ink-faint">
+        This page tracks the U.S. toolkit only. Other countries' instruments, such as China's export controls on rare earths, its Unreliable Entity List and its
+        counter-measures, are not collected here, so it does not compare coercive tools on both sides.
+      </p>
+      <h3 className="mt-6 text-base font-semibold text-ink">Soft-power measures</h3>
+      <p className="mt-2">
         The Power profile (Compare, Power view) follows the usual definition of soft power as attraction resting on a country’s culture, its political values and its foreign
         policy. It shows published figures by country and year, each with its source and a caveat, and it has no composite score: scores mix resources with outcomes and hide the
         weights, so you see the figures instead.
@@ -462,13 +611,14 @@ export function Methodology() {
       <ul className="mt-4 list-disc space-y-2 pl-5">
         <li>
           <span className="text-ink">The export-control and origin checks in the Compliance calculator cover only the curated rows above.</span> They are a
-          small subset of the Commerce Control List, the Country Chart and the HTSUS chapters. For anything else the tool says it is not covered; it never
-          guesses.
+          small subset of the Commerce Control List, the Country Chart and the HTSUS chapters. For anything else the tool says it is not covered and does not
+          produce a result for it.
         </li>
         <li>
           <span className="text-ink">Sanctions lists are refreshed weekly,</span> and the official lists can change daily. Do not rely on this site for a
-          screening decision; use the official OFAC Sanctions List Search and your own counsel. Matching is by name only, uses no dates of birth or other
-          identifiers, and does not apply ownership rules such as OFAC's 50 percent rule.
+          screening decision; use the official OFAC Sanctions List Search and your own counsel. Candidates are found by name similarity, and a model then judges
+          each candidate from the name and listed fields only (it uses no dates of birth or other identifiers) as a true match, a false positive or inconclusive. That
+          judgment can be wrong. The calculator does not apply ownership rules such as OFAC's 50 percent rule.
         </li>
         <li>
           <span className="text-ink">Country attribution is by text.</span> Notices, headlines and sanctions entries are tied to countries by matching names
@@ -476,12 +626,13 @@ export function Methodology() {
           excluded from cross-topic links.
         </li>
         <li>
-          <span className="text-ink">News is a filtered, automated selection,</span> mostly English-language and drawn from eight outlets, so it reflects
+          <span className="text-ink">News is a filtered, automated selection,</span> mostly English-language and drawn from nine outlets (BBC News, The Guardian, NPR, Al Jazeera, Deutsche Welle, CNBC and, for official releases, the European Central Bank, the Federal Reserve and the Department of Justice), so it reflects
           those outlets' choices. Topic labels are keyword rules and can be wrong.
         </li>
         <li>
-          <span className="text-ink">Market data is delayed or daily.</span> Stock and commodity quotes are switched off while their source terms are
-          reviewed. Nothing here is for trading.
+          <span className="text-ink">Market data is delayed or daily.</span> Stock-index and company-share quotes are switched off while their source terms
+          are reviewed, so no stock tiles are shown. The commodity figures that are shown are IMF monthly averages, not live quotes, and exchange rates are the ECB's
+          daily reference rates. Nothing here is for trading.
         </li>
         <li>
           <span className="text-ink">Tariff rates beyond ad valorem rates</span> (specific or compound duties) and antidumping or countervailing duties are not
@@ -497,17 +648,21 @@ export function Methodology() {
         The Wire, Hard Power and Soft Power pages use no AI model. Labels, counts, rankings and links come from fixed, published rules applied to
         source data. The Compliance calculator (Beta) is different: an AI model (Anthropic's Claude) reads the product description, suggests a tariff
         classification and writes explanations, and every suggestion is grounded in rows of the official tariff schedule that the system supplies. All
-        arithmetic (duty stacks, percentages) is computed by deterministic code, never by the model, and party-name screening uses a fixed two-stage
-        algorithm (a word-order-independent pre-filter, then Jaro-Winkler similarity) whose scores are shown. AI output can be wrong and must be reviewed by
-        a qualified person.
+        arithmetic (duty stacks, percentages) is computed by deterministic code, not by the model. Party-name screening has two steps: a fixed two-stage
+        algorithm (a word-order-independent pre-filter, then Jaro-Winkler similarity, with the scores shown) finds candidate list entries; then the model reads each
+        candidate and judges, from the name and listed fields alone, whether it is a true match, a false positive or inconclusive. That judgment is not
+        deterministic and can be wrong. The "hard stop" outcomes come from the lists themselves (a confirmed match to the SDN list, the Entity List or Denied Persons List,
+        or the UN list on an export), not from the model, but the model's call decides whether a candidate counts as a confirmed match. AI output can be wrong and must
+        be reviewed by a qualified person.
       </p>
 
       <H id="testing">Testing</H>
       <p className="mt-3">
         The deterministic code is covered by automated tests that run on every change: duty arithmetic, country and name matching, alliance data,
-        cross-topic link rules, feeds and refresh scheduling. The calculator's classification step is checked against a small set of eleven reference
-        products, which it passed on its most recent run; eleven cases show the tool works on those examples and do not establish a general accuracy rate. We do not claim
-        one.
+        cross-topic link rules, feeds and refresh scheduling. The calculator's classification step has been run against 106 test descriptions (98 everyday products with known answers and 8 deliberately vague
+        descriptions). On the most recent run 100 of 106 were correct, 5 were appropriately flagged for review and 1 was confidently wrong; the export-classification step was
+        checked on 34 products. The full results, including the failures, are in the repository's accuracy notes (docs/ACCURACY.md). A test set of this size is not a general
+        accuracy rate, and we do not claim one.
       </p>
 
       <H id="names">Names and boundaries</H>

@@ -1,3 +1,4 @@
+import { quarterLabel } from '../lib/powerFormat';
 import type { MarketTile } from '../types/pulse';
 import { MARKET_HINTS } from '../lib/pulseGlossary';
 import { PulseDelta } from './PulseDelta';
@@ -63,7 +64,7 @@ export function PulseMarketStrip({ tiles }: { tiles: MarketTile[] }) {
               >
                 {t.label}
               </h3>
-              <p className="text-xs text-ink-faint">as of {t.asOf}</p>
+              <p className="text-xs text-ink-faint">as of {t.id === 'COFER:USD_SHARE' ? `${quarterLabel(t.asOf)} (quarterly)` : t.asOf}</p>
             </div>
             <div className="text-right sm:text-left">
               <a href={t.sourceUrl} target="_blank" rel="noreferrer" className="display block text-[28px] text-ink no-underline hover:text-accent">

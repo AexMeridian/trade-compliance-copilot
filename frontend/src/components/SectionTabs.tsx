@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useScrollCue } from './useScrollCue';
 
 import type { TabDef } from '../lib/powerTabs';
 
@@ -19,11 +20,15 @@ export function SectionTabs<T extends string>({
   label: string;
   children?: ReactNode;
 }) {
+  const cue = useScrollCue(active);
   return (
-    <div id={`${idPrefix}-tabs`} className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 flex-col gap-3 bg-paper/80 backdrop-blur-md sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
+    <div id={`${idPrefix}-tabs`} className="sticky top-[var(--header-h,59px)] z-[9] mt-8 flex scroll-mt-[calc(var(--header-h,59px)+8px)] flex-col gap-3 bg-paper sm:flex-row sm:items-end sm:border-b sm:border-hairline-strong">
       <div
         role="tablist"
         aria-label={label}
+        ref={cue.ref}
+        onScroll={cue.onScroll}
+        style={cue.style}
         className="flex min-w-0 overflow-x-auto border-b border-hairline-strong sm:border-b-0"
         onKeyDown={(e) => {
           const i = tabs.findIndex((t) => t.id === active);

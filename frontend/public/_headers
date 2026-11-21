@@ -1,3 +1,5 @@
+# News lead images are off (NEWS_IMAGES=off in wrangler.jsonc), so img-src allows no outside hosts.
+# If NEWS_IMAGES is turned on, add the publishers' image hosts (https://ichef.bbci.co.uk https://i.guim.co.uk) back to img-src.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -6,7 +8,7 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
   X-Permitted-Cross-Domain-Policies: none
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ichef.bbci.co.uk https://i.guim.co.uk; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
 /case/*
   X-Robots-Tag: noindex, nofollow

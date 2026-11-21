@@ -182,7 +182,7 @@ function describe(seriesId: string, changePct: number): { label: string; reading
   if (seriesId.startsWith('FX:')) {
     const cur = seriesId.slice(3);
     // Series is "units of currency per 1 USD": up means the currency bought less.
-    return { label: `USD/${cur}`, reading: flat ? `${cur} little changed against the dollar` : `${cur} ${changePct > 0 ? 'weakened' : 'strengthened'} ${abs}% against the dollar` };
+    return { label: `${cur} per $`, reading: flat ? `${cur} little changed against the dollar` : `${cur} ${changePct > 0 ? 'weakened' : 'strengthened'} ${abs}% against the dollar` };
   }
   const label = INDEX_LABELS[seriesId] ?? seriesId;
   return { label, reading: flat ? `${label} little changed` : `${label} ${changePct > 0 ? 'rose' : 'fell'} ${abs}%` };

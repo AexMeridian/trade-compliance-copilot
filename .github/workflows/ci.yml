@@ -11,6 +11,9 @@ on:
   schedule:
     - cron: '0 13 * * 1' # weekly: new advisories appear without any code change
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -24,5 +27,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build:frontend
+      # Bundles the Worker without deploying or contacting Cloudflare, so a config or import error fails here.
+      - run: npx wrangler deploy --dry-run --outdir /tmp/worker-dry-run
       # Fails on a known high or critical vulnerability in anything that ships to production.
       - run: npm audit --omit=dev --audit-level=high

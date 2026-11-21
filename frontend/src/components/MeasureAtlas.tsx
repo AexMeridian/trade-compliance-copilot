@@ -1,6 +1,9 @@
 import { lazy, Suspense, useCallback, useMemo } from 'react';
 import { divergingBanding, NO_DATA_COLOR, sequentialBanding, type AtlasKind } from '../lib/atlasBands';
-import { nameFor } from '../lib/powerCountries';
+import { nameFor as baseName } from '../lib/powerCountries';
+
+// Pew polled only the West Bank and East Jerusalem; the map paints the whole territory, so the name says which part.
+const nameFor = (code: string) => (code === 'PS' ? 'Palestine (West Bank and East Jerusalem polled)' : baseName(code));
 
 // Loaded on its own so the map library does not slow the rest of the page.
 const PulseGlobe = lazy(() => import('./PulseGlobe').then((m) => ({ default: m.PulseGlobe })));
@@ -19,6 +22,8 @@ export interface AtlasMeasure {
   diverging?: { left: string; right: string; near: number; edge: number };
   /** Year or survey date shown with the numbers. */
   asOf?: string | null;
+  /** A short caveat shown under this map (thresholds, coverage). The standing "no reading is not zero" note is always added. */
+  note?: string | null;
 }
 
 const rankOf = (values: Record<string, number>, code: string) => {
@@ -89,6 +94,9 @@ export function MeasureAtlas({
           </Suspense>
         </div>
       </div>
+      <p className="mx-auto mt-2 max-w-[580px] text-[11px] leading-snug text-hero-ink-faint">
+        No reading means not surveyed or not reported, not zero.{measure.note ? ` ${measure.note}` : ''}
+      </p>
       <details className="mt-3 text-xs text-hero-ink-faint">
         <summary className="cursor-pointer font-semibold hover:text-hero-ink">The same numbers as a table ({entries.length} countries)</summary>
         <div className="mt-2 max-h-64 overflow-auto border border-hero-border bg-hero-card-bg">

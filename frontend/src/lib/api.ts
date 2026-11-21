@@ -86,10 +86,10 @@ export function submitScreening(id: string, parties: { role: PartyRole; name: st
   });
 }
 
-export function submitDetermination(id: string, opts: { destinationCountry?: string; declaredValueUsd?: number } = {}) {
+export function submitDetermination(id: string, opts: { destinationCountry?: string; declaredValueUsd?: number; entryDate?: string; transportMode?: string } = {}) {
   return request<{ determination: CaseFile['determination'] }>(`/cases/${id}/determination`, {
     method: 'POST',
-    body: JSON.stringify({ destination_country: opts.destinationCountry, declared_value_usd: opts.declaredValueUsd }),
+    body: JSON.stringify({ destination_country: opts.destinationCountry, declared_value_usd: opts.declaredValueUsd, entry_date: opts.entryDate, transport_mode: opts.transportMode }),
   });
 }
 
@@ -182,7 +182,7 @@ export function getPulseExportControlChart() {
 }
 
 export function getPulseCoferHistory() {
-  return request<{ points: [string, number][] }>('/pulse/cofer');
+  return request<{ points: [string, number][]; eur?: [string, number][]; cny?: [string, number][] }>('/pulse/cofer');
 }
 
 export interface NatoDefenseCountry {
@@ -214,8 +214,10 @@ export function getDataStats() {
 
 export interface SanctionCounts {
   asOf: string;
+  /** Listings across the four lists. A party on several lists is counted once per list. */
   total: number;
-  countries: { country: string; count: number }[];
+  totals?: { sdn: number; csl: number; un: number; uk: number };
+  countries: { country: string; count: number; bySource?: { sdn: number; csl: number; un: number; uk: number } }[];
 }
 
 export function getSanctionCounts() {
@@ -240,6 +242,10 @@ export interface PowerIndicator {
   sourceCode: string;
   source: { name: string; url: string };
   latestYear: number | null;
+  /** Set when the upstream series has stopped publishing: it is not ranked. */
+  endedYear?: number;
+  /** Year of each ranked country's figure. */
+  years?: Record<string, number>;
   standings: Record<string, PowerStanding | null>;
   series: Record<string, [number, number][]>;
   /** Every ranked country's newest value, ascending. */

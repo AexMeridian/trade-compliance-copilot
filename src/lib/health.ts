@@ -14,7 +14,11 @@ export const EXPECTED_TABLES = [
 
 /** The longest a source may go without a successful refresh before it is reported. Weekly jobs get two extra days for a late or skipped run. */
 export const SOURCE_MAX_AGE_DAYS: Record<string, number> = {
-  sdn: 9, csl: 9, un_sanctions: 9, uk_sanctions: 9, hts: 9, schedule_b: 9, xref: 9, wro_findings: 9, pulse: 3, curated_watch: 3,
+  sdn: 9, csl: 9, un_sanctions: 9, uk_sanctions: 9, hts: 9, schedule_b: 9, xref: 9, wro_findings: 9, gta: 9,
+  // Weekly country indicators (the indicator cron).
+  world_bank: 9, power_indicators: 9, un_voting: 9, uis_students: 9, unhcr: 9, nobel: 9, fts: 9, undp_hdr: 9, openalex: 9,
+  // Daily jobs. A partial Treasury refresh is logged as an error, so it never counts as a success here.
+  pulse: 3, curated_watch: 3, pulse_fx: 3, pulse_quotes: 3, pulse_news: 3, pulse_macro: 3, pulse_cofer: 3, pulse_treasury: 3, pulse_commodities: 3,
 };
 
 export type Severity = 'critical' | 'action' | 'warning';
@@ -42,6 +46,16 @@ export function checkSources(rows: SourceRow[], now: Date): Finding[] {
   const out: Finding[] = [];
   for (const [source, limit] of Object.entries(SOURCE_MAX_AGE_DAYS)) {
     const row = bySource.get(source);
+    if (row && !row.lastOk && row.errorsSinceOk > 0) {
+      // It has tried and failed and never once succeeded: that is a broken source, not a new one.
+      out.push({
+        key: `source:${source}`,
+        severity: 'critical',
+        title: `${source} has never refreshed successfully (${row.errorsSinceOk} failed attempt${row.errorsSinceOk === 1 ? '' : 's'})`,
+        detail: `No successful refresh of ${source} is on record.${row.lastError ? ` Last error: ${row.lastError.slice(0, 200)}` : ''}`,
+      });
+      continue;
+    }
     if (!row || !row.lastOk) {
       out.push({ key: `source:${source}`, severity: 'warning', title: `${source} has not refreshed yet`, detail: `No successful refresh of ${source} is on record.` });
       continue;

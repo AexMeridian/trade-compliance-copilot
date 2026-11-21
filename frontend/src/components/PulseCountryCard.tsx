@@ -276,7 +276,7 @@ export function PulseCountryCard({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs text-hero-ink-faint">
-                    USD/{fxRow.quote}
+                    {fxRow.quote} per $
                     {currency === 'EUR' ? ' (Eurozone)' : ''}
                   </p>
                   <p className="text-sm font-semibold text-hero-ink">

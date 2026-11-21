@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { programsFor, findNewAlerts, staleness, describeAlerts, programsForOverlays, latestAmendment, ecfrAlerts, ECFR_PARTS, type WatchedAction } from '../src/lib/curatedWatch.js';
-import { computeEntryFees, FEE_SCHEDULE } from '../src/lib/customsFees.js';
+import { computeEntryFees, deMinimisNote, FEE_SCHEDULE } from '../src/lib/customsFees.js';
 import { splitOverlaysByDate } from '../src/lib/dutyStack.js';
 import type { TariffOverlayRow } from '../src/lib/db.js';
 
@@ -114,15 +114,28 @@ test('USMCA-originating goods pay no MPF; unknown qualification is flagged, not 
   assert.match(mpf({ country: 'CA', usmcaQualifies: null }).basis, /zero if the goods qualify/);
   assert.equal(mpf({ country: 'DE', usmcaQualifies: true }).amount_usd, 34.64); // USMCA does not apply to Germany
 });
-test('low-value and informal entries are not given a computed MPF', () => {
-  assert.equal(mpf({ valueUsd: 500 }).amount_usd, 0);
-  assert.equal(mpf({ valueUsd: 1500 }).amount_usd, null);
+test('de minimis is suspended: a shipment under $800 pays the informal-entry MPF, not zero', () => {
+  assert.equal(mpf({ valueUsd: 500 }).amount_usd, 2.77);
+  assert.equal(mpf({ valueUsd: 1500 }).amount_usd, 2.77);
+  assert.match(mpf({ valueUsd: 500 }).basis, /8\.30/);
+  assert.match(mpf({ valueUsd: 500 }).basis, /12\.45/);
+  assert.match(mpf({ valueUsd: 500 }).basis, /2026-15530/);
+  assert.equal(mpf({ valueUsd: 500, country: 'CA', usmcaQualifies: true }).amount_usd, 0); // the USMCA exemption still applies
+  assert.equal(mpf({ valueUsd: 500, date: '2026-09-30' }).amount_usd, null); // the FY2026 informal amounts are not carried
   assert.equal(mpf({ valueUsd: null }).amount_usd, null);
 });
-test('HMF is shown as conditional and never added', () => {
-  const hmf = fee({ valueUsd: 10_000 })[1];
-  assert.equal(hmf.amount_usd, null);
-  assert.match(hmf.basis, /12\.50 dollars/);
+test('the de minimis note states the suspension and switches at the statutory repeal', () => {
+  assert.match(deMinimisNote('2026-11-21'), /suspended for all shipments/);
+  assert.match(deMinimisNote('2026-11-21'), /2027-07-01/);
+  assert.match(deMinimisNote('2027-07-01'), /repealed by statute/);
+});
+test('HMF is stated only for ocean cargo, zero for air and land, and left open when the mode is unknown', () => {
+  const unknown = fee({ valueUsd: 10_000 })[1];
+  assert.equal(unknown.amount_usd, null);
+  assert.match(unknown.basis, /12\.50 dollars/);
+  assert.equal(fee({ valueUsd: 10_000, transportMode: 'ocean' })[1].amount_usd, 12.5);
+  assert.equal(fee({ valueUsd: 10_000, transportMode: 'air' })[1].amount_usd, 0);
+  assert.equal(fee({ valueUsd: 10_000, transportMode: 'land' })[1].amount_usd, 0);
 });
 
 // Overlay dates

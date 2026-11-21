@@ -15,7 +15,7 @@ export const SITE = {
   team: [] as { name: string; role: string; bio: string }[], // real people and credentials only
   // "Last updated" dates on the About, Privacy and Accessibility pages.
   // Change them whenever those pages change.
-  aboutUpdated: '2026-10-09',
+  aboutUpdated: '2026-11-21',
   privacyUpdated: '2026-10-13',
   termsUpdated: '2026-10-09',
   accessibilityUpdated: '2026-10-09',

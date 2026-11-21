@@ -3,10 +3,10 @@ import { Sparkline } from '../components/Sparkline';
 import { StatTile } from '../components/StatTile';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getPower, getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, syncPulse, type NatoDefenseCountry, type PowerIndicator, type TicHolders as TicData } from '../lib/api';
+import { getPower, getNatoDefenseSpending, getPulseCoferHistory, getPulseHome, getPulseTempo, getTicHolders, type NatoDefenseCountry, type PowerIndicator, type TicHolders as TicData } from '../lib/api';
 import { TicHolders } from '../components/TicHolders';
 import { IndicatorExplorer } from '../components/IndicatorExplorer';
-import { NatoSpendingBars } from '../components/NatoSpendingBars';
+import { NatoSpendingBars, NATO_MEMBER_COUNT, NATO_TABLE_COUNT, natoLatestRows } from '../components/NatoSpendingBars';
 import { SanctionsLeaders } from '../components/SanctionsLeaders';
 import { ActiveMeasuresTable } from '../components/ActiveMeasuresTable';
 import { InfluenceBlocs } from '../components/InfluenceBlocs';
@@ -32,6 +32,7 @@ import { PulsePanel } from '../components/PulsePanel';
 import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/PulseTempoChart';
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { quarterLabel } from '../lib/powerFormat';
 import { agoText, plainSummary } from '../lib/pulsePlain';
 import { SITE } from '../lib/site';
 import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
@@ -63,6 +64,8 @@ export function HardPower() {
   const [news, setNews] = useState<PulseNewsResponse | null>(null);
   const [newsFailed, setNewsFailed] = useState(false);
   const [coferPoints, setCoferPoints] = useState<[string, number][]>([]);
+  const [coferEur, setCoferEur] = useState<[string, number][]>([]);
+  const [coferCny, setCoferCny] = useState<[string, number][]>([]);
   const [tic, setTic] = useState<TicData | null>(null);
   const [natoDefense, setNatoDefense] = useState<Record<string, NatoDefenseCountry>>({});
   const [activeCountry, setActiveCountry] = useState<string | null>(null);
@@ -100,7 +103,7 @@ export function HardPower() {
   const loadAll = useCallback(async () => {
     const [home, cofer, natoDef, ticData] = await Promise.all([
       getPulseHome(),
-      getPulseCoferHistory().catch(() => ({ points: [] as [string, number][] })),
+      getPulseCoferHistory().catch(() => ({ points: [] as [string, number][], eur: [] as [string, number][], cny: [] as [string, number][] })),
       getNatoDefenseSpending().catch(() => ({ countries: {} as Record<string, NatoDefenseCountry> })),
       getTicHolders().catch(() => null),
     ]);
@@ -111,6 +114,8 @@ export function HardPower() {
     if (home.recent) setRecentAll(home.recent.actions);
     setPolicyChecked(home.status?.policy ?? null);
     setCoferPoints(cofer.points);
+    setCoferEur(cofer.eur ?? []);
+    setCoferCny(cofer.cny ?? []);
     setNatoDefense(natoDef.countries);
     if (home.markets) {
       setMarkets(home.markets);
@@ -149,7 +154,7 @@ export function HardPower() {
     setSyncing(true);
     setError(null);
     try {
-      await syncPulse();
+      // Data refreshes on a schedule on the server; this button just reloads what is stored.
       await loadAll();
     } catch (e) {
       setError((e as Error).message);
@@ -172,10 +177,8 @@ export function HardPower() {
   );
 
   const coferLatest = coferPoints.length > 0 ? { date: coferPoints[coferPoints.length - 1][0], value: coferPoints[coferPoints.length - 1][1] } : null;
-  const natoLatest = Object.values(natoDefense)
-    .map((c) => c.points[c.points.length - 1]?.[1])
-    .filter((v): v is number => typeof v === 'number')
-    .sort((a, b) => a - b);
+  const natoRows = natoLatestRows(natoDefense);
+  const natoLatest = natoRows.map((r) => r.value).sort((a, b) => a - b);
   // Defense spending is stored as a share of GDP; the median is the middle country, so one outlier cannot move it.
   const natoMedian = natoLatest.length > 0 ? (natoLatest.length % 2 ? natoLatest[(natoLatest.length - 1) / 2] : (natoLatest[natoLatest.length / 2 - 1] + natoLatest[natoLatest.length / 2]) / 2) : null;
   const coferEarliest = coferPoints.length > 0 ? { date: coferPoints[0][0], value: coferPoints[0][1] } : null;
@@ -216,9 +219,9 @@ export function HardPower() {
                   {summary && (
                     <StatTile
                       tone="hard"
-                      label="Trade actions, last 30 days"
+                      label="Federal Register trade notices, last 30 days"
                       figure={String(summary.last30)}
-                      note={summary.trendPct === null ? 'No earlier period to compare.' : `${summary.trendPct >= 0 ? 'Up' : 'Down'} ${Math.abs(Math.round(summary.trendPct))}% on the 30 days before.`}
+                      note={summary.trendPct === null ? 'No earlier period to compare.' : `${summary.trendPct >= 0 ? 'Up' : 'Down'} ${Math.abs(Math.round(summary.trendPct))}% on the 30 days before. Counts notices, including corrections and comment periods; small swings are noise.`}
                       visual={<Sparkline points={months.map((m, i) => [i, m.count] as [number, number])} color="var(--color-hard)" width={160} height={34} fill />}
                       onClick={() => setTab('trade', true)}
                     />
@@ -228,7 +231,7 @@ export function HardPower() {
                       tone="hard"
                       label="Dollar share of world FX reserves"
                       figure={`${coferLatest.value.toFixed(0)}%`}
-                      note={coferEarliest && coferEarliest.date !== coferLatest.date ? `Down from ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)}.` : 'IMF COFER.'}
+                      note={`${quarterLabel(coferLatest.date)}, IMF COFER, at market exchange rates${coferEarliest && coferEarliest.date !== coferLatest.date ? `; ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)}` : ''}. Part of any move is valuation.`}
                       visual={<Sparkline points={coferPoints.map((p, i) => [i, p[1]] as [number, number])} color="var(--color-hard)" width={160} height={34} fill />}
                       onClick={() => setTab('money', true)}
                     />
@@ -246,9 +249,9 @@ export function HardPower() {
                   {natoMedian !== null && (
                     <StatTile
                       tone="hard"
-                      label="NATO members: median defense spending"
+                      label={natoLatest.length >= NATO_TABLE_COUNT ? 'NATO allies: median defense spending' : `Median of ${natoLatest.length} of ${NATO_MEMBER_COUNT} allies: defense spending`}
                       figure={`${natoMedian.toFixed(1)}%`}
-                      note="Share of GDP, NATO's own estimates. The alliance's target is 2%."
+                      note={`Share of GDP, NATO's estimates (${[...new Set(natoRows.map((r) => r.year))].sort().join(', ')}). ${natoLatest.length >= NATO_TABLE_COUNT ? `Median of the ${natoLatest.length} allies in NATO's table (not Iceland, which has no armed forces).` : `Only ${natoLatest.length} of ${NATO_MEMBER_COUNT} allies are stored, so this is not the alliance median.`} Targets: 2% guideline, and 3.5% core plus 1.5% related by 2035.`}
                       onClick={() => setTab('military', true)}
                     />
                   )}
@@ -281,15 +284,15 @@ export function HardPower() {
                       </p>
                       <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
                         {coferEarliest && coferEarliest.date !== coferLatest.date
-                          ? `Down from ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)} (IMF COFER).`
-                          : 'IMF COFER, the U.S. dollar share of allocated reserves.'}
+                          ? `${quarterLabel(coferLatest.date)}; ${coferEarliest.value.toFixed(0)}% in ${coferEarliest.date.slice(0, 4)}, the year the euro began (IMF COFER, at market exchange rates, so a weaker dollar lowers the share without any selling).`
+                          : `${quarterLabel(coferLatest.date)}. IMF COFER, the U.S. dollar share of allocated reserves.`}
                       </p>
                     </>
                   ) : (
                     <Unavailable loading={loading} />
                   )}
                 </Item>
-                <Item label="Top diplomatic headline">
+                <Item label="Latest politics headline">
                   {headline ? (
                     <>
                       <NewsThumb src={headline.image_url} className="mb-3 h-24 w-full" />
@@ -322,12 +325,12 @@ export function HardPower() {
                 </PulsePanel>
                 <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
                   <div className="min-w-0 lg:col-span-8">
-                    <PulsePanel title="What matters most" subtitle="Standalone actions only, ranked by document type and then date." help="A presidential order or final rule counts for more than a routine notice.">
+                    <PulsePanel title="What matters most" subtitle="Standalone actions only, ranked by document type and then date." help="An editorial weighting, not a measure of impact: a presidential order or final rule is placed above a routine notice.">
                       {loading ? loadingBlock : <PulseTopSignals actions={recentAll} />}
                     </PulsePanel>
                   </div>
                   <div className="min-w-0 lg:col-span-4">
-                    <PulsePanel title="Which countries face the most measures" subtitle="Section 301 forced-labor rate, plus notes on other extra duties." help="Real, currently collected extra duties by country of origin, not how often a country is mentioned in the news.">
+                    <PulsePanel title="Rate under the 2026 forced-labor Section 301 action" subtitle="One action only. China's 2018-onward Section 301 duties and other measures are not in this figure." help="The extra duty each economy faces under the July 2026 Section 301 forced-labor action, as collected today. It is not a country's total U.S. tariff: the 2018-onward Section 301 duties on China, Section 232 product duties and antidumping/countervailing duties are not included, so a country can face far more than the rate shown.">
                       {loading || !summary ? loadingBlock : <PulseCountryTariffs tariffs={summary.countryTariffs} activeCountry={activeCountry} onSelect={setActiveCountry} />}
                     </PulsePanel>
                   </div>
@@ -356,12 +359,12 @@ export function HardPower() {
               <section className="flex flex-col gap-4">
                 <h3 className="font-display text-xl font-bold text-ink">Money and the dollar</h3>
                 {coferPoints.length > 0 && (
-                  <PulsePanel title="Percent of world FX reserves held in U.S. dollars" subtitle="Quarterly since 1999." help="IMF COFER: the currency composition of official foreign-exchange reserves.">
-                    <PowerCoferChart points={coferPoints} />
+                  <PulsePanel title="Percent of world FX reserves held in U.S. dollars" subtitle={`Quarterly since 1999, latest ${coferLatest ? quarterLabel(coferLatest.date) : ''}.`} help="IMF COFER: the currency composition of official foreign-exchange reserves, at current exchange rates. A weaker dollar lowers the share even if no central bank sold dollars, so part of any move is valuation.">
+                    <PowerCoferChart points={coferPoints} eur={coferEur} cny={coferCny} />
                   </PulsePanel>
                 )}
                 {tic && tic.countries.length > 0 && (
-                  <PulsePanel title="Largest foreign holders of U.S. Treasury securities" subtitle="Monthly, about a six-week lag." help="Holdings are reported by where the securities are held, so financial centers can hold securities on behalf of investors elsewhere.">
+                  <PulsePanel title="Largest foreign holders of U.S. Treasury securities" subtitle="Monthly, about a six-week lag." help="Holdings are reported by where the securities are held (custody), so financial centers such as Belgium, Luxembourg and the Cayman Islands hold securities for investors elsewhere. Figures are market values, so a rate rise alone lowers holdings, and the change from a year ago mixes price moves with net buying or selling.">
                     <TicHolders data={tic} />
                   </PulsePanel>
                 )}
@@ -380,7 +383,7 @@ export function HardPower() {
                   <InfluenceBlocs breakdown={summary?.countryBreakdown ?? []} activeCountry={activeCountry} onSelect={setActiveCountry} />
                 )}
                 {Object.keys(natoDefense).length > 0 && (
-                  <PulsePanel title="NATO defense spending, % of GDP" subtitle="NATO's own published estimates, not a live feed." help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are estimates.">
+                  <PulsePanel title="NATO defense spending, % of GDP" subtitle={`${Object.keys(natoDefense).length} of ${NATO_MEMBER_COUNT} allies shown; NATO's own estimates, not a live feed.`} help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are estimates. Only some allies are stored, and each bar shows its own latest year.">
                     <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />
                   </PulsePanel>
                 )}
@@ -388,7 +391,7 @@ export function HardPower() {
               </section>
 
               <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
-                Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. Most of these figures come from the same feeds as the{' '}
+                Hard power is what a state can compel or withhold: sanctions, tariffs, export controls, the dollar and defense. This page tracks the U.S. toolkit only: other countries' instruments, such as China's export controls on rare earths and its Unreliable Entity List, are not shown, so it is not a two-sided comparison of coercive tools. Most of these figures come from the same feeds as the{' '}
                 <Link to="/" className="text-accent hover:underline">
                   {SITE.name} front page
                 </Link>
@@ -405,7 +408,7 @@ export function HardPower() {
             <div className="flex flex-col gap-4">
               <SectionHeader tone="hard" title="Trade tools" description="
                   Tariffs, sanctions and export controls: the tools the U.S. is actively using to raise costs or cut off access, as published in the Federal
-                  Register.
+                  Register. U.S. tools only; other countries' instruments are not shown.
                 " />
               <PulsePanel
                 title="Where measures converge"
@@ -426,9 +429,9 @@ export function HardPower() {
                 </div>
                 <div className="grid min-w-0 content-start gap-4 lg:col-span-4">
                   <PulsePanel
-                    title="Which countries face the most measures"
-                    help="Real, currently-collected extra duties by country of origin, from the Section 301 forced-labor determination, not how often a country is mentioned in the news."
-                    subtitle="Section 301 forced-labor rate, plus notes on Canada's extra duty and 11 countries' reduced metals rate."
+                    title="Rate under the 2026 forced-labor Section 301 action"
+                    help="The extra duty each economy faces under the July 2026 Section 301 forced-labor action, as collected today. It is not a country's total U.S. tariff: the 2018-onward Section 301 duties on China, Section 232 product duties and antidumping/countervailing duties are not in this figure, so a country can face far more than the rate shown."
+                    subtitle="One action only. China's 2018-onward Section 301 duties and other measures are not in this figure."
                   >
                     {loading || !summary ? (
                       loadingBlock
@@ -484,7 +487,7 @@ export function HardPower() {
             <div className="flex flex-col gap-4">
               <SectionHeader tone="hard" title="Sanctions" description="
                   Browse OFAC's Specially Designated Nationals list and the Commerce/State Consolidated Screening List by country. Filtering by country is a
-                  text match on each entry's address field, not a normalized code. See the note below the search box.
+                  text match on each entry's address field, not a normalized code. See the note below the search box. OFAC sanctions and Commerce/State export-control listings are different kinds of measure and are counted separately.
                 " />
               <PulsePanel title="Recently listed" help="Parties added to the UN Security Council, UK and U.S. Commerce/State lists in the last 30 days, by each list's own listing date. Only parties whose address or nationality names a country appear.">
                 <RecentListings />
@@ -492,7 +495,7 @@ export function HardPower() {
               <PulsePanel
                 title="Countries named most often"
                 subtitle="Listed parties whose address names the country (a text match, not a legal finding)."
-                help="Counts of entries on the U.S. (OFAC, Commerce/State), UN and UK lists whose listed address names each country. A count says how many parties are listed, not how severe the measures are."
+                help="Counts of listings on the OFAC SDN, Commerce/State (export-control and related), UN and UK lists whose listed address names each country, shown per list. A party on several lists counts once on each list. A count says how many parties are listed, not how severe the measures are, and the match is on address text, not a legal finding."
               >
                 <SanctionsLeaders selected={sanctionsCountry} onPick={setSanctionsCountry} />
               </PulsePanel>
@@ -513,14 +516,14 @@ export function HardPower() {
                 <h3 className="font-display text-xl font-bold text-ink">The dollar's reserve-currency share</h3>
                 <PulsePanel
                   title="Percent of world FX reserves held in U.S. dollars"
-                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide. A real, slow-moving measure of confidence in the dollar as a place to hold savings, not a prediction about what replaces it."
-                  subtitle="Quarterly since 1999."
+                  help="IMF COFER: the currency composition of official foreign-exchange reserves, reported by central banks worldwide, valued at current exchange rates. Part of any move is valuation (a falling dollar shrinks the dollar share with no selling), so it is not a clean read on central-bank confidence, and it is not a prediction about what replaces the dollar. The euro and renminbi lines are drawn when available."
+                  subtitle={`Quarterly since 1999, latest ${coferLatest ? quarterLabel(coferLatest.date) : ''}.`}
                 >
                   {coferPoints.length === 0 ? (
                     loadingBlock
                   ) : (
                     <>
-                      <PowerCoferChart points={coferPoints} />
+                      <PowerCoferChart points={coferPoints} eur={coferEur} cny={coferCny} />
                       <div className="mt-3">
                         <CiteThisButton
                           chartType="cofer"
@@ -540,7 +543,7 @@ export function HardPower() {
                   <h3 className="font-display text-xl font-bold text-ink">Who holds U.S. debt</h3>
                   <PulsePanel
                     title="Largest foreign holders of U.S. Treasury securities"
-                    help="The Treasury's monthly survey of who owns U.S. government debt. Holdings are reported by where the securities are held, so financial centers such as Belgium, Luxembourg and the Cayman Islands can hold securities on behalf of investors elsewhere."
+                    help="The Treasury's monthly survey of who owns U.S. government debt. Holdings are reported by where the securities are held, so financial centers such as Belgium, Luxembourg and the Cayman Islands can hold securities on behalf of investors elsewhere, which understates the true owners (China's holdings are larger than its own row). Figures are market values, so a rate rise alone lowers holdings, and the change from a year ago mixes price moves with net buying or selling."
                     subtitle="Monthly, about a six-week lag."
                   >
                     <TicHolders data={tic} />
@@ -552,11 +555,11 @@ export function HardPower() {
               <section className="flex flex-col gap-4">
                 <h3 className="font-display text-xl font-bold text-ink">The dollar's market reach</h3>
                 <PulseMarketStrip tiles={tilesIn('Rates & dollar')} />
-                <PulseMarketStrip tiles={tilesIn('World stocks')} />
+                {tilesIn('World stocks').length > 0 && <PulseMarketStrip tiles={tilesIn('World stocks')} />}
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <PulsePanel
                     title="U.S. dollar vs. trade partners"
-                    help="How many units of each currency one U.S. dollar buys. A rising number means the dollar reaches further."
+                    help="How many units of each currency one U.S. dollar buys (for example, euros per dollar). A rising number means the dollar buys more of that currency. Some currencies are pegged to the dollar, so their moves are small by design."
                     subtitle="Last 30 days, ECB reference rate."
                   >
                     {marketsFailed && !markets ? <Unavailable loading={false} /> : <PulseCurrencies rows={(markets?.currencies ?? []).slice(0, 8)} />}
@@ -574,14 +577,19 @@ export function HardPower() {
               {power.some((i) => !isDefense(i.id)) && (
                 <IndicatorExplorer
                   tone="hard"
-                  heading="Economic weight and reach"
-                  blurb="Size, trade, investment and high-technology exports: what a country can pay for, buy or withhold. Pick a measure to see every country ranked."
+                  heading="Economic weight and exposure"
+                  blurb="Size, trade, investment and high-technology exports: what a country can pay for, buy or withhold, and how exposed it is to others. These are context, not coercive capacity: some measures (foreign investment received, licence payments, trade openness) show dependence rather than power. Figures are in current U.S. dollars at market exchange rates (no purchasing-power adjustment), and each row shows its own year. Pick a measure to see economies ranked."
                   indicators={power.filter((i) => !isDefense(i.id))}
                 />
               )}
+              {power.filter((i) => i.endedYear).map((i) => (
+                <p key={i.id} className="border border-hairline-strong bg-paper-raised px-3 py-2 text-[13px] leading-relaxed text-ink-muted">
+                  <span className="font-semibold text-ink">{i.label}: series ended in {i.endedYear}.</span> The World Bank has published nothing newer, so this measure is not ranked here (the last figures are a pandemic-year snapshot, not a current standing).
+                </p>
+              ))}
 
               <p className="text-xs leading-relaxed text-ink-faint">
-                Reserve-share data is the IMF's COFER series, published quarterly with roughly a one-quarter lag. Currency rates are the ECB's daily reference rates,
+                Reserve-share data is the IMF's COFER series, published quarterly with roughly a one-quarter lag, at current exchange rates. Currency rates are the ECB's daily reference rates,
                 published once per business day.
               </p>
             </div>
@@ -602,8 +610,8 @@ export function HardPower() {
               {Object.keys(natoDefense).length > 0 && (
                 <PulsePanel
                   title="NATO defense spending, % of GDP"
-                  subtitle="NATO's own published estimates, not a live feed, re-verified by hand roughly once a year."
-                  help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. The United States is shown as the comparison baseline this panel exists to provide, not because it needs to meet its own guideline. NATO's own target is 2% of GDP on core defense (raised in 2025 to a path toward 5% by 2035, split 3.5% core / 1.5% related spending)."
+                  subtitle={`${Object.keys(natoDefense).length} of ${NATO_MEMBER_COUNT} allies shown; NATO's own estimates, not a live feed, re-verified by hand roughly once a year.`}
+                  help="Source: NATO, 'Defence Expenditure of NATO Countries (2014-2025),' published 28 August 2025. 2024 and 2025 figures are NATO's own estimates, not final. Only some allies are stored here, so this is not the whole alliance; each bar shows its own latest year (Germany's is 2024 because NATO left its 2025 estimate blank). The United States is shown as the baseline. The older target is 2% of GDP on core defense; in 2025 allies agreed to 5% by 2035, split 3.5% core and 1.5% related. NATO's definition differs from the World Bank/SIPRI series in the military explorer below, so the same country can show two slightly different figures (for example the U.S.: 3.22% NATO 2025e, about 3.1% SIPRI)."
                 >
                   <NatoSpendingBars countries={natoDefense} active={activeCountry} onSelect={setActiveCountry} />
                 </PulsePanel>

@@ -22,7 +22,11 @@ export function SanctionsLeaders({ selected, onPick }: { selected: string; onPic
   const max = rows[0]?.count || 1;
   return (
     <div>
-      <p className="mb-2 text-[13px] text-ink-muted">{data.total.toLocaleString('en-US')} listed parties. Select a country to filter the table below.</p>
+      <p className="mb-2 text-[13px] text-ink-muted">
+        {data.total.toLocaleString('en-US')} listings across four lists
+        {data.totals ? ` (OFAC SDN ${data.totals.sdn.toLocaleString('en-US')}, Commerce/State ${data.totals.csl.toLocaleString('en-US')}, UN ${data.totals.un.toLocaleString('en-US')}, UK ${data.totals.uk.toLocaleString('en-US')})` : ''}. A party on several lists
+        counts once on each. Commerce/State entries are export-control listings, not OFAC sanctions. Hong Kong is counted separately from mainland China. Select a country to filter the table below.
+      </p>
       <ol>
         {rows.map((r) => {
           const name = COUNTRY_LABELS[r.country] ?? r.country;
@@ -39,6 +43,11 @@ export function SanctionsLeaders({ selected, onPick }: { selected: string; onPic
                 <span className="block h-3 rounded-sm bg-hard" style={{ width: `${Math.max(1.5, (r.count / max) * 100)}%` }} />
               </span>
               <span className="w-14 shrink-0 text-right tabular-nums text-ink">{r.count.toLocaleString('en-US')}</span>
+              {r.bySource && (
+                <span className="hidden w-48 shrink-0 text-right text-[11px] tabular-nums text-ink-faint sm:inline">
+                  OFAC {r.bySource.sdn.toLocaleString('en-US')} / Commerce-State {r.bySource.csl.toLocaleString('en-US')} / UN {r.bySource.un.toLocaleString('en-US')} / UK {r.bySource.uk.toLocaleString('en-US')}
+                </span>
+              )}
             </button>
           </li>
           );

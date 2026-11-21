@@ -41,3 +41,10 @@ export function ordinal(n: number): string {
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
+
+/** "Q2 2026" for a quarterly observation stored as its first day (2026-04-01), so a reader does not take it for an April 1 print. */
+export function quarterLabel(date: string): string {
+  const dt = new Date(Date.parse(date));
+  if (Number.isNaN(dt.getTime())) return date;
+  return `Q${Math.floor(dt.getUTCMonth() / 3) + 1} ${dt.getUTCFullYear()}`;
+}

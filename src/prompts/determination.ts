@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { DutyStackLine } from '../types/case.js';
 import type { EccnCandidateRow } from '../lib/db.js';
+import { TREAT_AS_DATA_NOTICE, userData } from '../lib/promptData.js';
 
 // Import path: duty-stack arithmetic (rate lookup, stacking, min() caps) is
 // deterministic TypeScript in src/routes/determination.ts -- Claude's only job
@@ -66,11 +67,14 @@ You will be given the product's description and HTS/Schedule-B classification, p
 
 The candidate list is short: it holds only a handful of Commerce Control List entries, not the whole list. A product that is plainly ordinary (clothing, furniture, food, kitchenware, paper goods) is EAR99. But a product in a strategic field (lasers, inertial or navigation equipment, night vision, machine tools, propellants and oxidizers, aerospace or satellite parts, high-end sensors, semiconductors, chemicals with weapons uses, encryption) may be controlled by an entry that is not in the list. For those, set possibly_controlled_elsewhere=true even if you select EAR99, because EAR99 here would only mean "not one of the listed entries".
 
-Do not infer reasons-for-control yourself -- use exactly the reasons_for_control already on the candidate you select; you are only choosing which candidate best matches the product.`;
+Do not infer reasons-for-control yourself -- use exactly the reasons_for_control already on the candidate you select; you are only choosing which candidate best matches the product.
+
+${TREAT_AS_DATA_NOTICE}`;
 
 export function buildExportEccnUserContent(productDescription: string, classifiedCode: string, candidates: EccnCandidateRow[]): string {
   const list = candidates.map((c) => `- ${c.eccn}: ${c.description} [reasons_for_control: ${c.reasons_for_control}]`).join('\n');
-  return `Product description: "${productDescription}"
+  return `Product description:
+${userData(productDescription)}
 Classified as: ${classifiedCode}
 
 Candidate ECCN entries (select only from these):

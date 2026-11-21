@@ -57,14 +57,19 @@ export function MeasureHero<T extends string>({
         <p className="mt-3 max-w-xl text-[15px] leading-snug text-hero-ink-muted sm:text-base">{sub}</p>
 
         <div className="mt-7">
-          <MeasureSwitcher measures={measures} active={current.id} onChange={onMeasure} label="Measure to show" />
+          <MeasureSwitcher measures={measures} active={current.id} onChange={onMeasure} label="Measure to show" balanced={centered} />
         </div>
 
-        <div id="measure-panel" role="tabpanel" aria-live="polite" className={`mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12 ${centered ? 'lg:items-center' : ''}`}>
+        <p className="sr-only" role="status" aria-live="polite">
+          {ready ? `Showing ${current.label}` : 'Loading'}
+        </p>
+        <div id="measure-panel" role="tabpanel" aria-labelledby={`measure-tab-${current.id}`} className={`mt-6 min-h-[390px] grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12 ${centered ? 'lg:items-center' : ''}`}>
           <div>
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-hero-btn-bg)]">{ready ? current.label : 'Loading'}</p>
             <p className="display text-5xl leading-none tabular-nums sm:text-6xl">{ready ? current.figure : '…'}</p>
             <div className="mt-3 max-w-sm text-[15px] leading-snug text-hero-ink-muted">{ready ? current.caption : 'Loading the latest numbers.'}</div>
+            {/* Beside a tall globe the selected-country card fills the left column instead of sitting far below it. */}
+            {centered && activeCountry && card && <div className="mt-6 hidden text-left lg:block">{card}</div>}
           </div>
           <div className={`min-w-0 ${centered ? 'lg:-mr-12' : ''}`}>{ready ? current.body : <Skeleton rows={8} className="text-hero-ink" />}</div>
         </div>
@@ -97,7 +102,7 @@ export function MeasureHero<T extends string>({
           {updatedText && <span className="text-[13px] text-hero-ink-faint">{updatedText}</span>}
         </div>
 
-        {activeCountry && card && <div className="mt-6 text-left">{card}</div>}
+        {activeCountry && card && <div className={`mt-6 text-left ${centered ? 'lg:hidden' : ''}`}>{card}</div>}
       </div>
     </section>
   );

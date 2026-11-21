@@ -3,11 +3,11 @@ import { parseIssue, type ParsedIssue } from './IssueList';
 
 const CONFIG: Record<Verdict, { label: string; bg: string; fg: string; border: string; note: string }> = {
   clear: {
-    label: 'Clear',
+    label: 'No issues found within modeled scope',
     bg: 'bg-clear-soft',
     fg: 'text-clear',
     border: 'border-clear/40',
-    note: 'No blocking findings across classification, origin, screening, or determination.',
+    note: 'Nothing in the checks this app runs blocked or flagged this case. That is not a clearance and not a binding ruling: the scope it did not model is listed under the duty total in the Determination section.',
   },
   review_required: {
     label: 'Review required',
@@ -51,7 +51,7 @@ export function VerdictBanner({
   return (
     <div className={`border ${cfg.border} ${cfg.bg} px-5 py-4`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className={`display text-3xl ${cfg.fg}`}>{cfg.label}</h1>
+        <h1 className={`display ${verdict === 'clear' ? 'text-2xl' : 'text-3xl'} ${cfg.fg}`}>{cfg.label}</h1>
         <span className="tabular-nums text-xs text-ink-muted">
           Case {caseId.slice(0, 8)}
           {generatedAt ? `, generated ${new Date(generatedAt).toLocaleString()}` : ''}

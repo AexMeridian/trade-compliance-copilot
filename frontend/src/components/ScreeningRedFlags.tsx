@@ -4,7 +4,7 @@
 // but not sufficient for real due diligence; these are the questions BIS
 // itself says should still be asked by hand.
 const RED_FLAGS: string[] = [
-  'The customer or its address matches an entity on the BIS Entity List, Denied Persons List or Unverified List (checked automatically above).',
+  'The customer or its address matches an entity on the BIS Entity List, Denied Persons List or Unverified List (screened above against the list copies shown there; those copies can be out of date).',
   'The customer is reluctant to offer information about the end use of the item.',
   'The product’s capabilities don’t fit the buyer’s stated line of business.',
   'The item ordered is incompatible with the technical level of the country it’s being shipped to.',

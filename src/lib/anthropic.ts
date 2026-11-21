@@ -57,7 +57,7 @@ async function monthToDateUsd(env: Env): Promise<number | null> {
       .first<{ i: number; o: number }>();
     return row ? estimateUsd(row.i, row.o) : 0;
   } catch {
-    return null; // unreadable: allow the call rather than block the calculator
+    return null; // unreadable: callClaudeTool fails closed on this (a pause, never an unmetered call)
   }
 }
 
@@ -77,7 +77,7 @@ async function recordUsage(env: Env, tool: string, inputTokens: number, outputTo
 /**
  * Counts one Claude call against the day's shared ceiling (CLAUDE_DAILY_CAP, default 300 per UTC day; one counter row in D1).
  * Called immediately before each real call, so requests that fail validation never use it up. If the counter cannot be read,
- * the call is allowed rather than blocked.
+ * the call is refused (fail closed): an unmetered call is worse than a short pause.
  */
 export async function claimClaudeCall(env: Env): Promise<void> {
   const cap = Number(env.CLAUDE_DAILY_CAP ?? 300);
@@ -94,7 +94,7 @@ export async function claimClaudeCall(env: Env): Promise<void> {
       .first<{ last_note: string }>();
     used = Number(row?.last_note ?? 0);
   } catch {
-    return;
+    throw new ClaudeUnavailableError('spend_unknown');
   }
   if (used > cap) throw new ClaudeDailyCapError('Daily Claude call ceiling reached.');
 }
@@ -124,7 +124,9 @@ export async function callClaudeTool<T>(
     if (hit !== null) return hit;
   }
   const spent = await monthToDateUsd(env);
-  if (spent !== null && spent >= monthlyBudgetUsd(env.MONTHLY_BUDGET_USD)) {
+  // Fail closed: if spend cannot be read, pause rather than risk an unmetered call. The Anthropic console limit is the other backstop.
+  if (spent === null) throw new ClaudeUnavailableError('spend_unknown');
+  if (spent >= monthlyBudgetUsd(env.MONTHLY_BUDGET_USD)) {
     await markModelState(env, 'model_budget', 'failing', `Estimated spend this month: $${spent.toFixed(2)}`);
     throw new ClaudeUnavailableError('budget');
   }

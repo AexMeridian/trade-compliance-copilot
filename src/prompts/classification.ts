@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { HtsCandidateRow, ScheduleBCandidateRow } from '../lib/db.js';
 import type { Direction } from '../types/case.js';
+import { TREAT_AS_DATA_NOTICE, userData } from '../lib/promptData.js';
 
 export const CLASSIFICATION_SYSTEM_PROMPT = `You are a customs classification analyst applying the General Rules of Interpretation (GRI) of the Harmonized System to classify a product.
 
@@ -18,7 +19,9 @@ If two or more candidates are genuinely plausible after applying GRI 1-3 (e.g. t
 
 When a candidate line states a numeric limit (a thickness, width, weight, size, percentage or value, with wording such as "not exceeding", "exceeding", "or more but less than"), compare the figure given in the product description with each limit explicitly, including which side of the boundary it falls on, and show that comparison in reasoning_steps. A 5 mm thickness is not "less than 4.75 mm"; a 2 kg package is "not exceeding 3 kg". If the description does not give the figure that decides between candidates, set ambiguous=true rather than assuming it. A typical or common value for this kind of product (for example, the usual weight of office copy paper) is not a stated value: do not use it to choose a candidate, and name the missing figure in reasoning_steps.
 
-Write reasoning_steps as a short numbered list showing which GRI rule(s) you applied and why, referencing the specific candidate descriptions by code.`;
+Write reasoning_steps as a short numbered list showing which GRI rule(s) you applied and why, referencing the specific candidate descriptions by code.
+
+${TREAT_AS_DATA_NOTICE}`;
 
 export function buildClassificationUserContent(
   productDescription: string,
@@ -37,7 +40,8 @@ export function buildClassificationUserContent(
       return chain && chain.length > 0 ? `- ${code}: [${chain.join(' > ')}] ${c.description}` : `- ${code}: ${c.description}`;
     })
     .join('\n');
-  return `Product description: "${productDescription}"
+  return `Product description:
+${userData(productDescription)}
 
 Direction: ${direction} (classify against the ${schedule})
 

@@ -52,8 +52,9 @@ export function PulseCountryTariffs({
         })}
       </ul>
       <p className="text-[11px] leading-relaxed text-ink-faint">
-        Section 301 forced-labor determination: {forcedLabor.length} economies, applied across almost every product category. Not the same as being
-        mentioned in the news: this is a real, currently-collected extra duty.
+        <strong className="font-semibold text-ink-muted">This is one action, not a country's total tariff.</strong> It is the rate under the 2026 Section 301 forced-labor
+        action ({forcedLabor.length} economies, across almost every product category). It does not include China's Section 301 duties from 2018 onward (Lists 1-4A), Section 232 product
+        duties, or antidumping and countervailing duties, so China and every other economy can face far more than the rate shown.
         {extra.length > 0 && (
           <>
             {' '}

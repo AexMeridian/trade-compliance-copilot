@@ -1,3 +1,5 @@
+import { useScrollCue } from './useScrollCue';
+
 // Same accessible tab-bar convention as PulseTabs.tsx/SectionTabs.tsx --
 // native buttons with tab roles, roving tabindex, arrow-key navigation. Kept
 // as its own small file rather than adding a fourth tab-id union to one of
@@ -32,11 +34,15 @@ export const OLD_COUNTRY_TAB: Record<string, { tab: CountryTabId; section?: Hard
 };
 
 export function CountryTabs({ active, onChange }: { active: CountryTabId; onChange: (id: CountryTabId) => void }) {
+  const cue = useScrollCue(active);
   return (
-    <div id="country-tabs" className="sticky top-14 z-[9] mt-8 flex scroll-mt-16 bg-paper flex-col gap-3 border-b border-hairline-strong">
+    <div id="country-tabs" className="sticky top-[var(--header-h,59px)] z-[9] mt-8 flex scroll-mt-[calc(var(--header-h,59px)+8px)] bg-paper flex-col gap-3 border-b border-hairline-strong">
       <div
         role="tablist"
         aria-label="Country sections"
+        ref={cue.ref}
+        onScroll={cue.onScroll}
+        style={cue.style}
         className="flex min-w-0 overflow-x-auto"
         onKeyDown={(e) => {
           const i = COUNTRY_TABS.findIndex((t) => t.id === active);

@@ -11,12 +11,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   country-chart:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,11 +41,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          branch="data/country-chart-$(date -u +%Y%m%d)"
+          branch="data/country-chart-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
           git config user.name "aex-terminal-data-bot"
           git config user.email "actions@users.noreply.github.com"
           git checkout -b "$branch"
-          git add -A
+          # Only the files the sync script writes: the snapshot and the new migration.
+          git add data/country-chart.json migrations/
           git commit -m "Update the Commerce Country Chart from the eCFR"
           git push origin "$branch"
           result="passed"

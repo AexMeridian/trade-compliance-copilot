@@ -2,7 +2,7 @@
 // Run: npm run test:unit
 
 import assert from 'node:assert/strict';
-import { tallyCountries } from '../src/lib/pulse/sanctionCounts.js';
+import { tallyBySource, tallyCountries } from '../src/lib/pulse/sanctionCounts.js';
 
 let failures = 0;
 function test(name: string, fn: () => void) {
@@ -33,6 +33,25 @@ test('skips parties with no recognisable country and U.S. addresses', () => {
 test('ignores roundups that name many countries', () => {
   const roundup = 'Branches in Iran; Russia; China; North Korea; Syria; Cuba';
   assert.deepEqual(tallyCountries([roundup, 'Beijing, China']).map((r) => [r.country, r.count]), [['CN', 1]]);
+});
+
+test('New Mexico is not counted as Mexico', () => {
+  const out = tallyCountries(['Albuquerque, New Mexico, United States', 'Mexico City, Mexico']);
+  assert.deepEqual(out.map((r) => [r.country, r.count]), [['MX', 1]]);
+});
+
+test('"Hong Kong, China" counts for Hong Kong only, not also China', () => {
+  const out = tallyCountries(['Central, Hong Kong, China', 'Kowloon, Hong Kong', 'Beijing, China']);
+  assert.deepEqual(out.map((r) => [r.country, r.count]), [['HK', 2], ['CN', 1]]);
+});
+
+test('per-list tally keeps OFAC and Commerce/State apart and adds up to the total', () => {
+  const out = tallyBySource({ sdn: ['Tehran, Iran', 'Moscow, Russia'], csl: ['Tehran, Iran'], un: [], uk: ['Moscow, Russia'] });
+  const ir = out.find((r) => r.country === 'IR')!;
+  const ru = out.find((r) => r.country === 'RU')!;
+  assert.deepEqual(ir.bySource, { sdn: 1, csl: 1, un: 0, uk: 0 });
+  assert.equal(ir.count, 2);
+  assert.deepEqual(ru.bySource, { sdn: 1, csl: 0, un: 0, uk: 1 });
 });
 
 if (failures) {

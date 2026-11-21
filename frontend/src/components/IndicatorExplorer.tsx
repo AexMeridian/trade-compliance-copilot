@@ -64,7 +64,10 @@ export function IndicatorExplorer({
       <span className="h-2.5 min-w-0 flex-1 rounded-full bg-hairline" aria-hidden="true">
         <span className={`block h-2.5 rounded-full ${highlight ? T.mark : T.bar}`} style={{ width: width(v) }} />
       </span>
-      <span className="w-24 shrink-0 text-right tabular-nums text-ink">{formatValue(ind.unit, v)}</span>
+      <span className="w-24 shrink-0 text-right tabular-nums text-ink">
+        {formatValue(ind.unit, v)}
+        {ind.years?.[cc] !== undefined && ind.years[cc] !== ind.latestYear && <span className="block text-[11px] font-normal text-ink-faint">{ind.years[cc]}</span>}
+      </span>
     </li>
   );
 
@@ -81,7 +84,7 @@ export function IndicatorExplorer({
             <p className="font-display text-lg font-bold leading-tight text-ink">{ind.label}</p>
             <p className="mt-0.5 text-[13px] text-ink-muted">
               Higher means {ind.higherIs}. {ind.latestYear ? `${ind.latestYear}, ` : ''}
-              {ind.distribution.length} countries.
+              {ind.distribution.length} {tone === 'hard' ? 'economies' : 'countries'}.{tone === 'hard' ? ' Dependencies and other non-sovereign territories are not ranked; a year under a figure means it is older than the newest.' : ''}
             </p>
           </div>
           <InfoPopover label={`About ${ind.label}`} align="right">
@@ -113,7 +116,7 @@ export function IndicatorExplorer({
               </select>
               {country && (
                 <p className="text-[13px] text-ink" aria-live="polite">
-                  <span className="font-semibold">{nameFor(country)}:</span> {rank ? `${formatValue(ind.unit, ranked[rank - 1][1])}, ${ordinal(rank)} of ${ranked.length}` : 'no reading'}
+                  <span className="font-semibold">{nameFor(country)}:</span> {rank ? `${formatValue(ind.unit, ranked[rank - 1][1])}${ind.years?.[country] ? ` (${ind.years[country]})` : ''}, ${ordinal(rank)} of ${ranked.length}` : 'no reading'}
                 </p>
               )}
             </div>

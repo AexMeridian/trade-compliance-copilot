@@ -2,7 +2,7 @@ import type { DeterminationResult } from '../types/case';
 
 const REQUIREMENT_STYLE: Record<string, string> = {
   NLR: 'text-clear border-clear',
-  'License Exception May Apply': 'text-review border-review',
+  'Possible exception: verify': 'text-review border-review',
   'License Required': 'text-stop border-stop',
   'Insufficient Data': 'text-review border-review',
 };
