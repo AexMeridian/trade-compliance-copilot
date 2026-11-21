@@ -36,8 +36,14 @@ jobs:
           # The status endpoint must say the database tables exist and nothing critical is failing.
           body=$(curl -s --max-time 30 "$BASE/api/pulse/data-status")
           echo "$body" | head -c 600; echo
-          if echo "$body" | grep -q '"ok":false'; then
-            echo "::error::health summary reports critical problems (see the critical keys above)"
+          # Critical keys that mean a bad deploy (missing tables, failed built-in accuracy checks, calculator paused) fail the run.
+          # Stale or failing data sources are real but are not a deploy failure: they raise a warning annotation instead, so the run is not red on every push.
+          crit=$(echo "$body" | grep -o '"critical":\[[^]]*\]' | head -1)
+          echo "critical: $crit"
+          if echo "$crit" | grep -Eq '"(schema|canary|model[^"]*)"'; then
+            echo "::error::deploy problem: $crit"
             fail=1
+          elif echo "$body" | grep -q '"ok":false'; then
+            echo "::warning::data health is degraded (stale or failing sources): $crit. See /api/pulse/data-status and docs/OWNER-TODO.md."
           fi
           exit $fail
