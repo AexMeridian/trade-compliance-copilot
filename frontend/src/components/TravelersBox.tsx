@@ -17,15 +17,15 @@ const LEVEL_TONE: Record<number, string> = { 1: 'text-clear', 2: 'text-review', 
 const fmt = (n: number, digits = 2) => n.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 
 export function TravelersBox({ code, name, currency }: { code: string; name: string; currency?: string }) {
-  const [advisory, setAdvisory] = useState<TravelAdvisory | null | 'none'>(null);
+  const [advisory, setAdvisory] = useState<TravelAdvisory | null | 'none' | 'unavailable'>(null);
   const [fx, setFx] = useState<[string, number][] | null>(null);
   const [amount, setAmount] = useState('500');
 
   useEffect(() => {
     let live = true;
     getAdvisories()
-      .then((r) => live && setAdvisory(r.items.find((i) => i.country === code) ?? 'none'))
-      .catch(() => live && setAdvisory('none'));
+      .then((r) => live && setAdvisory(r.items.length === 0 ? 'unavailable' : (r.items.find((i) => i.country === code) ?? 'none')))
+      .catch(() => live && setAdvisory('unavailable'));
     if (currency && currency !== 'USD') {
       getFxHistory(currency)
         .then((r) => live && setFx(r.points))
@@ -90,6 +90,8 @@ export function TravelersBox({ code, name, currency }: { code: string; name: str
             </>
           ) : currency && currency !== 'USD' && fx === null ? (
             <p className="text-sm text-ink-faint">Loading the exchange rate…</p>
+          ) : currency && currency !== 'USD' ? (
+            <p className="text-sm text-ink-muted">Couldn't load the exchange rate for the {cur ?? currency} right now. Please try again later.</p>
           ) : (
             <p className="text-sm text-ink-muted">
               {currency === 'USD' ? `${name} uses the U.S. dollar.` : `This site has no daily reference rate for ${name}'s currency.`}
@@ -106,6 +108,14 @@ export function TravelersBox({ code, name, currency }: { code: string; name: str
         <div>
           {advisory === null ? (
             <p className="text-sm text-ink-faint">Loading the travel advisory…</p>
+          ) : advisory === 'unavailable' ? (
+            <p className="text-sm text-ink-muted">
+              Travel advisories are not available on this site right now.{' '}
+              <a href="https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                Check travel.state.gov
+              </a>
+              .
+            </p>
           ) : advisory === 'none' ? (
             <p className="text-sm text-ink-muted">
               No country-wide advisory found for {name}.{' '}

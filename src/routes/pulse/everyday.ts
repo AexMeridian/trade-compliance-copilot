@@ -116,7 +116,8 @@ everydayRoute.get('/fx-history', async (c) => {
   const cache = (globalThis as unknown as { caches?: { default: Cache } }).caches?.default;
   const key = new Request(`https://cache.aexterminal.internal/fx-history/${code}`);
   const hit = await cache?.match(key);
-  if (hit) return hit;
+  // A Response from the cache has immutable headers, and the security-header middleware sets headers on every response: return a copy.
+  if (hit) return new Response(hit.body, hit);
   const from = new Date(Date.now() - 372 * 86_400_000).toISOString().slice(0, 10);
   const res = await fetch(`https://api.frankfurter.dev/v1/${from}..?base=USD&symbols=${code}`, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(10_000) }).catch(() => null);
   if (!res?.ok) return c.json({ error: 'Currency history is not available right now.' }, 502);
