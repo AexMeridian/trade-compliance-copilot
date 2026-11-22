@@ -2,7 +2,20 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { EVERYDAY_SERIES } from '../../lib/pulse/macro.js';
-import { ADVISORY_KEY, type TravelAdvisory } from '../../lib/pulse/everyday.js';
+import { ADVISORY_KEY, refreshCustomsDuties, refreshTravelAdvisories, type TravelAdvisory } from '../../lib/pulse/everyday.js';
+import { refreshMacro } from '../../lib/pulse/macro.js';
+import { refreshIfStale } from '../../lib/pulse/refreshLazy.js';
+
+// Like the Markets panel: a visit that finds a source past its age refreshes it in the background, so a new series fills in without
+// waiting for the next daily job. One claim per source per window, so concurrent visits never repeat the fetch.
+const HOURS = 3_600_000;
+function lazyRefresh(c: { env: Env; executionCtx: { waitUntil: (p: Promise<unknown>) => void } }, jobs: Promise<unknown>[]) {
+  try {
+    c.executionCtx.waitUntil(Promise.allSettled(jobs));
+  } catch {
+    /* no execution context (tests): skip */
+  }
+}
 import { FX_QUOTES } from '../../lib/pulse/markets.js';
 import { getApplicableOverlays, getRateBearingHtsLine, searchHts } from '../../lib/db.js';
 import { buildDutyStack } from '../../lib/dutyStack.js';
@@ -23,6 +36,10 @@ const yoy = (pts: Point[]): number | null => {
 };
 
 everydayRoute.get('/everyday', async (c) => {
+  lazyRefresh(c, [
+    refreshIfStale(c.env, 'customs', 12 * HOURS, () => refreshCustomsDuties(c.env)),
+    refreshIfStale(c.env, 'macro', 12 * HOURS, () => refreshMacro(c.env)),
+  ]);
   const ids = [...EVERYDAY_SERIES.map((s) => s.id), 'BLS:CPI', 'BLS:IMPORT_PX', 'TREAS:CUSTOMS_GROSS', 'TREAS:CUSTOMS_NET'];
   const [{ results }, meta, overlays] = await Promise.all([
     c.env.DB.prepare(`SELECT series_id, obs_date, value FROM market_series WHERE series_id IN (${ids.map((_, i) => `?${i + 1}`).join(',')}) ORDER BY series_id, obs_date`)
@@ -75,6 +92,7 @@ everydayRoute.get('/everyday', async (c) => {
 });
 
 everydayRoute.get('/advisories', async (c) => {
+  lazyRefresh(c, [refreshIfStale(c.env, 'advisories', 12 * HOURS, () => refreshTravelAdvisories(c.env))]);
   const row = await c.env.DB.prepare(`SELECT last_success_at, last_note FROM pulse_feed_state WHERE source_key = ?1`)
     .bind(ADVISORY_KEY)
     .first<{ last_success_at: string | null; last_note: string | null }>()
