@@ -76,7 +76,14 @@ export function DutyStackTable({
               <p className="max-w-md text-xs font-semibold text-review">Plus {notEvaluated.join(' and ')}, not evaluated here and not in this figure.</p>
             </>
           ) : totalPct !== null ? (
-            <p className="font-display text-3xl font-bold tabular-nums text-ink">{totalPct}%</p>
+            <>
+              <p className="font-display text-3xl font-bold tabular-nums text-ink">{totalPct}%</p>
+              {declaredValueUsd == null && (
+                <p className="text-xs text-ink-muted">
+                  About {usd(Math.round(totalPct * 100))} in duty on a $10,000 shipment, before fees and freight.
+                </p>
+              )}
+            </>
           ) : (
             <p className="text-base font-semibold text-review">Can't be totalled automatically</p>
           )}

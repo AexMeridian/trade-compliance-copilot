@@ -43,7 +43,7 @@ export function MarketStrip() {
           </Link>
         ))}
         {fx.map((r) => (
-          <Link key={r.quote} to="/?tab=markets" tabIndex={tab} className={item} title={`${r.label}, ECB reference rate for ${r.asOf}; change over 30 days`}>
+          <Link key={r.quote} to="/?tab=markets" tabIndex={tab} className={item} title={`${r.label}, ECB reference rate for ${r.asOf}. Up means the dollar buys more ${r.quote} than 30 days ago.`}>
             <span className="mkt-label">{r.label}</span>
             <span className="mkt-value">{formatRate(r.rate)}</span>
             <PulseDelta change={r.change30dPct} text={`${Math.abs(r.change30dPct ?? 0).toFixed(2)}%`} />
@@ -51,11 +51,16 @@ export function MarketStrip() {
           </Link>
         ))}
         {cpi && (
-          <Link to="/?tab=markets" tabIndex={tab} className={item} title={`Consumer prices, as of ${cpi.asOf.slice(0, 7)}; change from the month before`}>
-            <span className="mkt-label">CPI</span>
-            <span className="mkt-value">{cpi.value.toFixed(1)}</span>
-            {cpi.changePct !== null && <PulseDelta change={cpi.changePct} text={`${Math.abs(cpi.changePct).toFixed(1)}%`} />}
-            {cpi.changePct !== null && <span className="mkt-period">m/m</span>}
+          <Link to="/prices" tabIndex={tab} className={item} title={`Consumer prices (inflation), as of ${cpi.asOf.slice(0, 7)}; change from a year earlier`}>
+            <span className="mkt-label">Inflation</span>
+            {cpi.yoyChangePct !== null ? (
+              <>
+                <span className="mkt-value">{cpi.yoyChangePct.toFixed(1)}%</span>
+                <span className="mkt-period">a year</span>
+              </>
+            ) : (
+              <span className="mkt-value">{cpi.value.toFixed(1)}</span>
+            )}
           </Link>
         )}
         {unrate && (

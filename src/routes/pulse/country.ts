@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseAction, TempoPoint } from '../../lib/pulse/types.js';
-import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows } from '../../lib/db.js';
+import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows, type HtsCandidateRow } from '../../lib/db.js';
 import { buildDutyStack } from '../../lib/dutyStack.js';
 import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
@@ -27,6 +27,35 @@ const REPRESENTATIVE_HTS: { htsno: string; label: string }[] = [
   { htsno: '8708.10.30', label: 'Motor vehicle bumpers (Chapter 87)' },
   { htsno: '6109.10.00', label: 'Cotton T-shirts (Chapter 61)' },
 ];
+
+// Products each partner actually ships most to the U.S. (user testing: every country showed the same six lines, so Vietnam had no furniture
+// and Mexico no wire harnesses). Six-digit HS headings, resolved at request time to the first rate-bearing HTS line under them, so a heading
+// that is not in the loaded schedule simply drops out instead of showing a guessed rate.
+const COUNTRY_SAMPLE_HS6: Record<string, { hs6: string; label: string }[]> = {
+  CN: [{ hs6: '8471.30', label: 'Laptops' }, { hs6: '9503.00', label: 'Toys' }, { hs6: '8504.40', label: 'Power supplies and chargers' }, { hs6: '7323.93', label: 'Stainless steel cookware' }],
+  VN: [{ hs6: '9403.60', label: 'Wooden furniture' }, { hs6: '6403.99', label: 'Leather footwear' }, { hs6: '8517.13', label: 'Smartphones' }],
+  MX: [{ hs6: '8544.42', label: 'Wire harnesses (insulated conductors)' }, { hs6: '0702.00', label: 'Tomatoes' }, { hs6: '8708.29', label: 'Car body parts' }],
+  CA: [{ hs6: '4407.11', label: 'Softwood lumber' }, { hs6: '2709.00', label: 'Crude oil' }, { hs6: '0406.90', label: 'Cheese' }],
+  IN: [{ hs6: '3004.90', label: 'Generic medicines' }, { hs6: '7113.19', label: 'Gold jewelry' }, { hs6: '6302.60', label: 'Cotton towels' }],
+  DE: [{ hs6: '3004.90', label: 'Medicines' }, { hs6: '8481.80', label: 'Valves and taps' }, { hs6: '8703.80', label: 'Electric cars' }],
+  JP: [{ hs6: '8703.80', label: 'Electric cars' }, { hs6: '8429.52', label: 'Excavators' }, { hs6: '9006.59', label: 'Cameras' }],
+  KR: [{ hs6: '8507.60', label: 'Lithium-ion batteries' }, { hs6: '8542.32', label: 'Memory chips' }, { hs6: '8703.80', label: 'Electric cars' }],
+  TW: [{ hs6: '8542.31', label: 'Processor chips' }, { hs6: '8471.50', label: 'Servers and computer units' }],
+  TH: [{ hs6: '8471.70', label: 'Hard drives and storage units' }, { hs6: '4011.10', label: 'Car tires' }],
+  IT: [{ hs6: '2204.21', label: 'Wine' }, { hs6: '1509.20', label: 'Extra virgin olive oil' }],
+  FR: [{ hs6: '2204.21', label: 'Wine' }, { hs6: '3303.00', label: 'Perfume' }],
+  GB: [{ hs6: '2208.30', label: 'Whisky' }, { hs6: '8703.80', label: 'Electric cars' }],
+  BR: [{ hs6: '0901.11', label: 'Coffee' }, { hs6: '7207.12', label: 'Semi-finished steel' }],
+};
+
+async function resolveHs6(env: Env, hs6: string): Promise<HtsCandidateRow | null> {
+  return env.DB.prepare(`SELECT *, 0 AS score FROM hts_lines WHERE htsno LIKE ?1 AND TRIM(general_rate) != '' ORDER BY htsno LIMIT 1`)
+    .bind(`${hs6}%`)
+    .first<HtsCandidateRow>()
+    .catch(() => null);
+}
+// When a country has its own products, only these generic lines are kept, so the page makes no more database queries than before.
+const GENERIC_WITH_OWN = new Set(['7208.10.30.00', '7601.10.30.00', '8703.23.01']);
 
 // ---------------------------------------------------------------------------
 // Everything real, sourced data this app has about one country, in one call:
@@ -113,10 +142,16 @@ countryRoute.get('/country/:code', async (c) => {
       .first<{ n: number | null }>()
       .catch(() => null),
 
-    Promise.all(
-      REPRESENTATIVE_HTS.map(async ({ htsno, label }) => {
+    (async () => {
+      const ownDefs = (COUNTRY_SAMPLE_HS6[code] ?? []).slice(0, 3);
+      const own = await Promise.all(ownDefs.map(async (x) => ({ row: await resolveHs6(c.env, x.hs6), label: x.label })));
+      const resolved = own.filter((x): x is { row: HtsCandidateRow; label: string } => !!x.row).map((x) => ({ htsno: x.row.htsno, label: x.label, row: x.row as HtsCandidateRow | null }));
+      const generic = (resolved.length ? REPRESENTATIVE_HTS.filter((h) => GENERIC_WITH_OWN.has(h.htsno)) : REPRESENTATIVE_HTS).map((h) => ({ ...h, row: null as HtsCandidateRow | null }));
+      return [...resolved, ...generic];
+    })().then((samples) => Promise.all(
+      samples.map(async ({ htsno, label, row }) => {
         try {
-          const hts = await getRateBearingHtsLine(c.env, htsno);
+          const hts = row ?? (await getRateBearingHtsLine(c.env, htsno));
           if (!hts) return { htsno, label, description: null, totalPct: null, lines: [], error: 'This HTS line is not in the loaded schedule.' };
           const overlays = await getApplicableOverlays(c.env, htsno, code);
           const result = buildDutyStack(hts, code, null, overlays);
@@ -125,7 +160,7 @@ countryRoute.get('/country/:code', async (c) => {
           return { htsno, label, description: null, totalPct: null, lines: [], error: 'Could not compute this line right now.' };
         }
       })
-    ),
+    )),
 
     (async () => {
       const coverage = await getCountryCoverage(c.env, code).catch(() => null);

@@ -26,6 +26,46 @@ export interface SearchEntry {
 
 const PAGES: SearchEntry[] = [
   {
+    id: 'basics',
+    title: 'Basics: trade in plain English',
+    description: 'Start here if you are not a trade professional: prices, small packages, tariff lookup, U.S. vs China, glossary.',
+    keywords: ['start', 'beginner', 'explain', 'simple', 'help'],
+    type: 'Page',
+    url: '/basics',
+  },
+  {
+    id: 'prices',
+    title: 'Tariffs and your wallet',
+    description: 'Prices of groceries, medicine, appliances, cars, clothes and toys compared with a year ago; jobs in steel and cars; customs duties collected.',
+    keywords: ['prices', 'inflation', 'cpi', 'groceries', 'food', 'medicine', 'drugs', 'washing machine', 'appliances', 'cost of living', 'jobs', 'steel jobs', 'wallet', 'customs revenue', 'duties collected'],
+    type: 'Page',
+    url: '/prices',
+  },
+  {
+    id: 'lookup',
+    title: 'Tariff lookup (any product, any country)',
+    description: 'Search a product by words or HTS code and see every tariff layer from the country of origin. Free, no AI.',
+    keywords: ['hts', 'hts code', 'tariff code', 'my product', 'duty rate', 'cookware', 'beads', 'jewelry', 'landed cost', 'harmonized'],
+    type: 'Page',
+    url: '/lookup',
+  },
+  {
+    id: 'glossary',
+    title: 'Glossary',
+    description: 'Every term on the site in plain English: tariff, HTS, de minimis, sanctions, CPI and more.',
+    keywords: ['definition', 'define', 'meaning', 'what is', 'terms', 'sanction', 'tariff'],
+    type: 'Page',
+    url: '/glossary',
+  },
+  {
+    id: 'us-china',
+    title: 'U.S. and China, side by side',
+    description: 'Economy, military, trade, research and global opinion for both countries, with sources.',
+    keywords: ['us vs china', 'china vs us', 'competition', 'rivalry', 'superpower', 'compare'],
+    type: 'Page',
+    url: '/us-china',
+  },
+  {
     id: 'pulse',
     title: 'Wire',
     description: 'The live feed: new U.S. trade notices, mapped, with markets and news. Every country named in recent U.S. government notices on tariffs, sanctions or export limits.',
@@ -187,6 +227,14 @@ const ALLIANCES: SearchEntry[] = (Object.keys(BLOC_FULL_NAMES) as Bloc[]).map((b
 // on, since none of these has its own standalone page.
 const TOPICS: SearchEntry[] = [
   {
+    id: 'topic-travel',
+    title: 'Travel, exchange rates and sending money home',
+    description: "Each country page has a box for travelers and families: the exchange rate in words, its 1-year trend, a converter and the State Department travel advisory.",
+    type: 'Topic',
+    url: '/basics',
+    keywords: ['travel', 'trip', 'vacation', 'travel advisory', 'exchange rate', 'currency', 'remittance', 'send money', 'peso', 'yen', 'balikbayan', 'customs allowance'],
+  },
+  {
     id: 'topic-301',
     title: 'Section 301 forced-labor rate',
     description:
@@ -217,7 +265,7 @@ const TOPICS: SearchEntry[] = [
     description:
       'The $800 duty-free exemption for low-value shipments has been suspended for all shipments from all countries since 2025-08-29, and the law ends it on 2027-07-01. Every shipment now pays duty and the entry fee. See the notices.',
     type: 'Topic',
-    url: '/?tab=policy&q=de%20minimis',
+    url: '/de-minimis',
     keywords: ['section 321', '$800', 'duty-free', 'small package', 'parcel', 'postal', 'temu', 'aliexpress', 'shein', 'low-value'],
   },
   {
@@ -315,7 +363,7 @@ const TOPICS: SearchEntry[] = [
     description: 'Section 232 tariffs on passenger vehicles and auto parts, HTS chapter 87.',
     type: 'Topic',
     url: '/?tab=policy&q=automobile',
-    keywords: ['car', 'cars', 'auto', 'autos', 'automobile', 'vehicle', 'vehicles', 'auto parts', 'chapter 87', '8703', '8708'],
+    keywords: ['car', 'cars', 'auto', 'autos', 'automobile', 'vehicle', 'vehicles', 'auto parts', 'chapter 87', '8703', '8708', 'car prices'],
   },
   {
     id: 'topic-adcvd',

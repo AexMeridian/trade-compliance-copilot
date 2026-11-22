@@ -28,7 +28,9 @@ export interface RefreshResult {
     | 'pulse_commodities'
     | 'gta'
     | 'wro_findings'
-    | 'case_expiry';
+    | 'case_expiry'
+    | 'customs_duties'
+    | 'travel_advisories';
   rows: number;
   // Set when a bulk job found its upstream file identical to the last load and skipped the
   // (write-heavy) table rewrite. rows is 0 in that case.

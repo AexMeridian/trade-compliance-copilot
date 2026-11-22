@@ -35,6 +35,11 @@ export function PulseMacroStrip({ tiles }: { tiles: MarketTile[] }) {
               {t.label}
             </h3>
             <p className="text-xs text-ink-faint">as of {t.asOf.slice(0, 7)}</p>
+            {t.yoyChangePct !== null && (
+              <p className="text-[13px] text-ink-faint sm:hidden">
+                vs a year ago <PulseDelta change={t.yoyChangePct} text={`${Math.abs(t.yoyChangePct).toFixed(1)}%`} className="font-semibold" />
+              </p>
+            )}
           </div>
           <div className="text-right sm:text-left">
             <a href={t.sourceUrl} target="_blank" rel="noreferrer" className="display block text-[26px] text-ink no-underline hover:text-accent">

@@ -58,6 +58,10 @@ export const KEY_PARAMS: Record<string, Record<string, Param>> = {
   markets: { days: intParam(70, 30, 430) },
   news: { limit: intParam(30, 1, 60), category: oneOf(NEWS_CATEGORIES) },
   tempo: { months: intParam(24, 6, 120) },
+  everyday: {},
+  advisories: {},
+  'hts-search': { q: (raw) => (raw && raw.trim().length >= 2 && raw.length <= 80 ? raw.trim().toLowerCase() : null) },
+  duty: { hts: (raw) => (raw && /^[0-9.]{4,13}$/.test(raw) ? raw : null), country: code },
 };
 
 /** The key for a request to `/api/pulse/<endpoint>`: origin and path plus only the endpoint's own, normalized parameters. */

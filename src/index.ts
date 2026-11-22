@@ -63,6 +63,8 @@ for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCach
 // Large scans with tiny answers over data that changes weekly (coverage) or once a year (NATO spending): held much longer.
 app.use('/api/pulse/coverage', edgeCache(21600, pulseCacheKey('coverage')));
 app.use('/api/pulse/nato-defense', edgeCache(86400, pulseCacheKey('nato-defense')));
+// Everyday prices, customs receipts and travel advisories change at most daily; tariff lookups change only with the overlay table.
+for (const p of ['everyday', 'advisories', 'hts-search', 'duty']) app.use(`/api/pulse/${p}`, edgeCache(3600, pulseCacheKey(p)));
 // The home page's policy feed is read on every visit. A keyword search (`q`) is a text scan with free input, so it is left uncached.
 const feedCache = edgeCache(60, pulseCacheKey('feed'));
 app.use('/api/pulse/feed', (c, next) => (feedCacheable(new URL(c.req.url)) ? feedCache(c, next) : next()));

@@ -580,3 +580,8 @@
     }
   }
 }
+
+/* Text size control (components/TextSizeToggle.tsx): scales the page body, since many sizes are set in pixels. */
+html[data-text-zoom] body {
+  zoom: var(--text-zoom, 1);
+}
