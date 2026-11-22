@@ -909,7 +909,7 @@ export function PulseGlobe({
       {live && (
         <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-hero-ink-faint" title="Counts refresh about every five minutes while this page is open">
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-clear" aria-hidden="true" />
-          Live. Updated {new Date(live.asOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. {window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover or press'} an arc for the latest notices.
+          Map drawn {new Date(live.asOf).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })} ET from the latest collected notices. {window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Hover or press'} an arc for the latest notices.
         </p>
       )}
       {legend ? (

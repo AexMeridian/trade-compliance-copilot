@@ -48,6 +48,8 @@ casesRoute.get('/:id/report', async (c) => {
   return c.json({
     case_file: caseFile,
     verdict: computeVerdict(caseFile),
-    generated_at: new Date().toISOString(),
+    // When the case's results were produced (its last update), not when this page was opened: a stored sample read today must not
+    // look as if it was run today.
+    generated_at: caseFile.updated_at || caseFile.created_at,
   });
 });

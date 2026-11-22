@@ -33,7 +33,8 @@ import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
 import { quarterLabel } from '../lib/powerFormat';
-import { agoText, plainSummary } from '../lib/pulsePlain';
+import { collectedText, plainSummary } from '../lib/pulsePlain';
+import { downloadCsv } from '../lib/downloadCsv';
 import { SITE } from '../lib/site';
 import type { ActiveMeasure, PulseAction, PulseMarkets, PulseNewsResponse, PulseSummary, TempoPoint } from '../types/pulse';
 
@@ -90,6 +91,14 @@ export function HardPower() {
   // Guards against a slower, earlier range request resolving after a faster,
   // later one and overwriting it with stale data (e.g. clicking "6mo" then
   // quickly "2yr").
+  // A link that names a tab and the countries or country to show (from a country page, search or a shared URL) should open on
+  // that tab, not at the top of a long page the reader then has to scroll past.
+  useEffect(() => {
+    if (tab !== 'overview' && (params.has('countries') || params.has('country'))) {
+      requestAnimationFrame(() => document.getElementById('hard-tabs')?.scrollIntoView({ block: 'start' }));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const tempoRequestId = useRef(0);
   const handleTempoRangeChange = useCallback(async (id: TempoRangeId) => {
     setTempoRange(id);
@@ -195,7 +204,7 @@ export function HardPower() {
         recent={recentAll}
         news={news?.items ?? []}
         onExplore={() => setTab('trade', true)}
-        updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
+        updatedText={collectedText(lastSynced)}
         syncing={syncing}
         onRefresh={handleRefresh}
         coferPoints={coferPoints}
@@ -524,7 +533,22 @@ export function HardPower() {
                   ) : (
                     <>
                       <PowerCoferChart points={coferPoints} eur={coferEur} cny={coferCny} />
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const eur = new Map(coferEur.map(([d, v]) => [d, v]));
+                            const cny = new Map(coferCny.map(([d, v]) => [d, v]));
+                            downloadCsv(
+                              'aex-terminal-imf-cofer-reserve-shares.csv',
+                              ['quarter_end', 'quarter', 'usd_share_pct', 'eur_share_pct', 'cny_share_pct', 'unit', 'source', 'source_url'],
+                              coferPoints.map(([d, v]) => [d, quarterLabel(d), v, eur.get(d) ?? '', cny.get(d) ?? '', 'percent of allocated reserves', 'IMF COFER', 'https://data.imf.org'])
+                            );
+                          }}
+                          className="text-xs font-semibold text-ink-faint underline hover:text-ink"
+                        >
+                          Download CSV
+                        </button>
                         <CiteThisButton
                           chartType="cofer"
                           title="U.S. dollar's share of world FX reserves"

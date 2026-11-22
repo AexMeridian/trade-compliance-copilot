@@ -1,3 +1,4 @@
+import { CURRENCY_NAMES } from '../lib/fxWords';
 import { useEffect, useRef, useState } from 'react';
 import type { CurrencyRow } from '../types/pulse';
 import { PulseDelta } from './PulseDelta';
@@ -270,16 +271,7 @@ export function PulseLineChart({
 
 // ---------- Diverging bars: who moved most vs. the dollar ----------
 
-const CURRENCY_NAMES: Record<string, string> = {
-  EUR: 'Euro',
-  CNY: 'Chinese yuan',
-  JPY: 'Japanese yen',
-  MXN: 'Mexican peso',
-  CAD: 'Canadian dollar',
-  GBP: 'British pound',
-  INR: 'Indian rupee',
-  KRW: 'South Korean won',
-};
+
 
 interface Mover {
   key: string;

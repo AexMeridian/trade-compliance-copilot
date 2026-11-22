@@ -39,27 +39,36 @@ export function CiteThisButton({
       setState('idle');
       await copyLink(url);
     } catch {
+      // No snapshot (offline, rate limit): still hand over a citation that names the primary source, this page and today's date.
       setState('error');
+      await copyLink(window.location.href);
     }
   }
 
+  // A full citation, primary source first, not only a bare link: what a reporter or student pastes.
+  function citation(url: string): string {
+    const accessed = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return `${sourceNote}. "${title}," via Aex Terminal. Accessed ${accessed}. ${url}`;
+  }
+
   async function copyLink(url: string) {
+    const text = citation(url);
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
-      window.prompt('Copy this citable link:', url);
+      window.prompt('Copy this citation:', text);
     }
   }
 
   return (
     <span className="inline-flex items-center gap-2 text-xs">
       <button type="button" onClick={handleClick} disabled={state === 'loading'} className="font-semibold text-ink-faint underline decoration-dotted hover:text-ink disabled:cursor-wait">
-        {state === 'loading' ? 'Capturing…' : permalink ? 'Copy citable link' : 'Cite this chart'}
+        {state === 'loading' ? 'Capturing…' : permalink ? 'Copy citation' : 'Cite this chart'}
       </button>
-      {copied && <span className="text-clear">Link copied</span>}
-      {state === 'error' && <span className="text-stop">Couldn't capture a snapshot. Try again.</span>}
+      {copied && <span className="text-clear">Citation copied</span>}
+      {state === 'error' && <span className="text-stop">No frozen snapshot this time; the citation copied uses this page's link.</span>}
       {permalink && !copied && (
         <a href={permalink} className="text-ink-faint underline hover:text-ink">
           View snapshot

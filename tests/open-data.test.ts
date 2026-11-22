@@ -151,6 +151,19 @@ test('Section 301 continuation notices are tariffs, and routine notices are skip
   assert.ok(!NOT_TRADE_POLICY_RE.test('Adjusting Imports of Copper'));
 });
 
+test('Section 232 import notices from BIS are tariffs, and CBP importer rules are not "Other"', () => {
+  assert.equal(
+    tagDocument({ title: 'Agency Information Collection Activities; Section 232 National Security Investigation of Imports of Pharmaceuticals', abstract: null, agencySlugs: ['industry-and-security-bureau'] }),
+    'Tariff'
+  );
+  assert.equal(tagDocument({ title: 'Additions to the Entity List', abstract: null, agencySlugs: ['industry-and-security-bureau'] }), 'Export Control');
+  assert.equal(
+    tagDocument({ title: 'Heightened Requirements for Foreign Importers of Record', abstract: null, agencySlugs: ['u-s-customs-and-border-protection'] }),
+    'Tariff'
+  );
+  assert.equal(tagDocument({ title: 'Privacy Act of 1974; System of Records', abstract: null, agencySlugs: ['u-s-customs-and-border-protection'] }), 'Other');
+});
+
 if (failures) {
   console.error(`\n${failures} FAIL`);
   process.exit(1);

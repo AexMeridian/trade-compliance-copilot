@@ -153,7 +153,7 @@ export function Report() {
           Case {cf.id}, printed {new Date().toLocaleString()}. Not legal, customs, tax or financial advice. See the disclaimer at the end of this document.
         </p>
       </div>
-      <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} issues={issues} lead={lead} />
+      <VerdictBanner verdict={verdict} caseId={cf.id} generatedAt={generated_at} isSample={cf.is_sample} issues={issues} lead={lead} />
 
       <dl className="mt-4 grid grid-cols-2 gap-px border border-hairline bg-hairline text-sm sm:grid-cols-4">
         {glance.map((g) => (

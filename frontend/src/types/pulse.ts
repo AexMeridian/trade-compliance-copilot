@@ -187,9 +187,9 @@ export interface PulseCountryDetail {
     lastUpdated: string | null;
     rows: CountryChartRow[];
   };
-  sanctions: { sdnCount: number | null; cslCount: number | null; note: string };
-  retaliatoryMeasures: { rows: GtaInterventionRow[]; total: number; note: string };
-  forcedLaborEnforcement: { rows: WroFindingRow[]; total: number; note: string };
+  sanctions: { sdnCount: number | null; cslCount: number | null; unCount?: number | null; ukCount?: number | null; lists?: SourceFreshness[]; note: string };
+  retaliatoryMeasures: { rows: GtaInterventionRow[]; total: number; note: string; source?: SourceFreshness | null };
+  forcedLaborEnforcement: { rows: WroFindingRow[]; total: number; note: string; source?: SourceFreshness | null };
   // Region/income/capital/population/GDP baseline (migration 0022, World
   // Bank) -- null only for the handful of codes the World Bank itself has
   // no entry for (see that migration's comment), never fabricated.
@@ -291,4 +291,15 @@ export interface ConvergenceResponse {
   days: number;
   rows: ConvergenceRow[];
   note: string;
+}
+
+/** How current one refreshed source is (src/lib/listFreshness.ts). Shown beside the number it feeds. */
+export interface SourceFreshness {
+  source: string;
+  label: string;
+  state: 'ok' | 'stale' | 'not_loaded';
+  as_of: string | null;
+  age_days: number | null;
+  has_rows: boolean;
+  last_error: string | null;
 }

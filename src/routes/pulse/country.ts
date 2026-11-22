@@ -7,6 +7,8 @@ import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
 import { isNameOfCountry } from '../../lib/pulse/country.js';
 import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
+import { getSanctionTally } from './sanctionCounts.js';
+import { loadSourcesFreshness, type ListFreshness } from '../../lib/listFreshness.js';
 
 export const countryRoute: PulseApp = new Hono<{ Bindings: Env }>();
 
@@ -38,39 +40,6 @@ const REPRESENTATIVE_HTS: { htsno: string; label: string }[] = [
 // ---------------------------------------------------------------------------
 
 
-// The two address text-matches below scan every SDN and CSL row (~51,000 rows read per country). The lists reload weekly, so the
-// answer for a country is kept in pulse_feed_state for a week (one small row) instead of being recomputed for every visitor and crawler.
-const SANCTION_COUNT_TTL_MS = 7 * 86_400_000;
-async function cachedSanctionCounts(env: Env, countryName: string): Promise<{ sdn: number; csl: number } | null> {
-  const key = `sanc:${countryName.toLowerCase().slice(0, 60)}`; // names are validated against the code before they get here, so keys are bounded by the country list
-  const row = await env.DB.prepare('SELECT last_success_at, last_note FROM pulse_feed_state WHERE source_key = ?1')
-    .bind(key)
-    .first<{ last_success_at: string | null; last_note: string | null }>()
-    .catch(() => null);
-  if (row?.last_success_at && row.last_note && Date.now() - Date.parse(row.last_success_at) < SANCTION_COUNT_TTL_MS) {
-    try {
-      const v = JSON.parse(row.last_note) as { sdn: number; csl: number };
-      if (Number.isFinite(v.sdn) && Number.isFinite(v.csl)) return v;
-    } catch {
-      /* recompute below */
-    }
-  }
-  const [sdn, csl] = await Promise.all([
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM sdn_entries WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM csl_entries WHERE replace(addresses, 'New Mexico', '') LIKE '%' || ?1 || '%'`).bind(countryName).first<{ n: number }>().catch(() => null),
-  ]);
-  if (!sdn || !csl) return null; // a failed count is not cached
-  const value = { sdn: sdn.n, csl: csl.n };
-  await env.DB.prepare(
-    `INSERT INTO pulse_feed_state (source_key, last_success_at, last_note) VALUES (?1, ?2, ?3)
-     ON CONFLICT(source_key) DO UPDATE SET last_success_at = excluded.last_success_at, last_note = excluded.last_note`
-  )
-    .bind(key, new Date().toISOString(), JSON.stringify(value))
-    .run()
-    .catch(() => {});
-  return value;
-}
-
 countryRoute.get('/country/:code', async (c) => {
   const code = c.req.param('code').toUpperCase();
   // The frontend already resolves code -> full display name from its own
@@ -90,7 +59,7 @@ countryRoute.get('/country/:code', async (c) => {
   // already run their own internal steps concurrently) -- fetched together
   // with Promise.all instead of one D1 round trip at a time, since none of
   // these sections depends on another's result.
-  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings, snapshot] = await Promise.all([
+  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings, snapshot, sourceStates] = await Promise.all([
     c.env.DB.prepare(
       `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
        ORDER BY publication_date DESC, document_number DESC LIMIT 100`
@@ -164,16 +133,30 @@ countryRoute.get('/country/:code', async (c) => {
       return { coverage, chartRows };
     })(),
 
-    countryName
-      ? (async () => {
-          const counts = await cachedSanctionCounts(c.env, countryName);
-          return {
-            sdnCount: counts?.sdn ?? null,
-            cslCount: counts?.csl ?? null,
-            note: 'Text match on the OFAC/BIS address field, not a normalized country code. See the full sanctions list for exact hits.',
-          };
-        })()
-      : Promise.resolve({ sdnCount: null, cslCount: null, note: 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.' }),
+    // The same tally the Hard Power chart reads (every list's address text, matched to a country code), so one country never shows two
+    // numbers on two pages, and each count carries the date of the list it came from.
+    getSanctionTally(c.env)
+      .then((tally) => {
+        const row = tally.countries.find((r) => r.country === code);
+        // A list with no rows was never loaded: its count is unknown, not zero.
+        const loaded = (source: string) => tally.lists.find((l) => l.source === source)?.state !== 'not_loaded';
+        const count = (source: string, n: number | undefined) => (code === 'US' || !loaded(source) ? null : (n ?? 0));
+        const sdnCount = count('sdn', row?.bySource.sdn);
+        return {
+          sdnCount,
+          cslCount: count('csl', row?.bySource.csl),
+          unCount: count('un_sanctions', row?.bySource.un),
+          ukCount: count('uk_sanctions', row?.bySource.uk),
+          lists: tally.lists,
+          note:
+            code === 'US'
+              ? 'Not counted for the United States: this measure counts listed parties with an address abroad.'
+              : sdnCount === null
+                ? 'Data unavailable: the OFAC SDN list has not loaded on this site, so no count is shown rather than a zero.'
+                : 'Parties whose address or nationality text names this country, counted once per list (the same count as the Hard Power chart). Addresses are free text, so this is a text match, not a normalized country code.',
+        };
+      })
+      .catch(() => ({ sdnCount: null, cslCount: null, unCount: null, ukCount: null, lists: [] as ListFreshness[], note: 'Could not count sanctioned parties right now.' })),
 
     countryName
       ? (async () => {
@@ -240,7 +223,20 @@ countryRoute.get('/country/:code', async (c) => {
         lastUpdated: string;
       }>()
       .catch(() => null),
+
+    // Whether the forced-labor and Global Trade Alert tables have ever loaded, so an empty result reads "data unavailable", never "none".
+    loadSourcesFreshness(
+      c.env,
+      [
+        { source: 'wro_findings', label: 'CBP Withhold Release Orders and Findings', table: 'wro_findings' },
+        { source: 'gta', label: 'Global Trade Alert', table: 'gta_interventions' },
+      ],
+      undefined,
+      14
+    ).catch(() => [] as ListFreshness[]),
   ]);
+  const wroSource = sourceStates.find((s) => s.source === 'wro_findings') ?? null;
+  const gtaSource = sourceStates.find((s) => s.source === 'gta') ?? null;
 
   return c.json({
     code,
@@ -264,12 +260,14 @@ countryRoute.get('/country/:code', async (c) => {
     sanctions,
     retaliatoryMeasures: {
       ...retaliatoryMeasures,
+      source: gtaSource,
       note: countryName
         ? 'Independent research data from Global Trade Alert (globaltradealert.org), not a U.S. government source: measures this country has taken that GTA evaluates as harmful or likely-harmful to foreign commercial interests, affecting the United States, in roughly the last 3 years. Matched on GTA\'s own jurisdiction name, which can differ slightly from this country\'s display name.'
         : 'No country name provided, so this was skipped rather than matched against a bare 2-letter code.',
     },
     forcedLaborEnforcement: {
       ...wroFindings,
+      source: wroSource,
       note: 'CBP Withhold Release Orders & Findings (Section 307, 19 U.S.C. 1307) naming this country: a different, broader and older program than the DHS UFLPA Entity List, which this app does not ingest in bulk. Includes historical as well as active orders; check the status on each.',
     },
     snapshot: snapshot

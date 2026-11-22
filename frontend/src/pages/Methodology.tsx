@@ -615,7 +615,7 @@ export function Methodology() {
           produce a result for it.
         </li>
         <li>
-          <span className="text-ink">Sanctions lists are refreshed weekly,</span> and the official lists can change daily. Do not rely on this site for a
+          <span className="text-ink">Sanctions lists are meant to refresh weekly (the sources table above shows when each actually last did),</span> and the official lists can change daily. Do not rely on this site for a
           screening decision; use the official OFAC Sanctions List Search and your own counsel. Candidates are found by name similarity, and a model then judges
           each candidate from the name and listed fields only (it uses no dates of birth or other identifiers) as a true match, a false positive or inconclusive. That
           judgment can be wrong. The calculator does not apply ownership rules such as OFAC's 50 percent rule.

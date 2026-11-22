@@ -18,6 +18,13 @@ const EXPORT_CONTROL_RE = /export control|entity list|commerce control list|\bEA
 const TARIFF_RE =
   /\btariff|\bsection 301\b|\bsection 232\b|\bsection 338\b|antidumping|countervailing duty|tariff-rate quota|safeguard|\bIEEPA\b|reciprocal tariff|acts, policies,? and practices|product exclusions?|\bde minimis\b|low-value shipments/i;
 const TRADE_AGREEMENT_RE = /\bUSMCA\b|free trade agreement/i;
+// BIS also runs Section 232 investigations of imports (pharmaceuticals, polysilicon, robotics...). Those, and the paperwork notices
+// that go with them, are tariff actions: they must not inherit "Export Control" from the agency name.
+const SECTION_232_IMPORTS_RE = /\bsection 232\b|national security investigation of imports|effect of imports|adjusting imports|imports of [a-z]/i;
+const CBP_SLUG = 'u-s-customs-and-border-protection';
+// CBP rules that change what importers and brokers must do at entry: duties and obligations on imports, so Tariff, not "Other".
+const IMPORT_OBLIGATION_RE =
+  /importer(s)? of record|customs broker|entry (filing|procedures|summary)|informal entry|de minimis|low-value|merchandise processing fee|customs bond|withhold release|forced labor|duty|duties|drawback|foreign-trade zone/i;
 
 // Routine notices that match the search terms only in passing (a gauger accreditation, passenger-rail data, records access)
 // and are not trade policy; they are skipped at ingest so they do not crowd the feed or the RSS readers' lists.
@@ -35,6 +42,7 @@ export function tagDocument(doc: { title: string; abstract: string | null; agenc
   // trade controls, never by agency membership alone (verified empirically:
   // a plain "Privacy Act of 1974; System of Records" notice from State was
   // getting tagged Export Control before this check was narrowed).
+  if (SECTION_232_IMPORTS_RE.test(text) && !/entity list|export administration regulations|\bEAR\b/i.test(text)) return 'Tariff';
   if (doc.agencySlugs.includes(BIS_SLUG) || EXPORT_CONTROL_RE.test(text)) return 'Export Control';
   // ITA/ITC's core function is antidumping/countervailing-duty determinations
   // and other import-remedy actions -- these are additional import duties in
@@ -43,6 +51,7 @@ export function tagDocument(doc: { title: string; abstract: string | null; agenc
   // also lands here as the closest fit, not a fabricated 6th category).
   if (doc.agencySlugs.includes(ITA_SLUG) || doc.agencySlugs.includes(ITC_SLUG) || TARIFF_RE.test(text)) return 'Tariff';
   if (TRADE_AGREEMENT_RE.test(text)) return 'Trade Agreement';
+  if (doc.agencySlugs.includes(CBP_SLUG) && IMPORT_OBLIGATION_RE.test(text)) return 'Tariff';
   return 'Other';
 }
 

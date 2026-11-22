@@ -18,9 +18,18 @@ function GroupMeta({ a }: { a: PulseAction }) {
   );
 }
 
-export function PulseFeedList({ actions }: { actions: PulseAction[] }) {
+export function PulseFeedList({ actions, query, emptyText }: { actions: PulseAction[]; query?: string; emptyText?: string }) {
   if (actions.length === 0) {
-    return <p className="text-sm text-ink-faint">No actions in range yet. Try refreshing.</p>;
+    // An empty search is "no match", not a broken page: say so and suggest how to widen it.
+    if (query) {
+      return (
+        <p className="text-sm text-ink-muted">
+          No notices mention "{query}". Notices use official wording, so try a broader word (for example "steel" instead of "cookware", or "appliances"),
+          the product's HTS chapter number, a country, or an agency such as "Customs".
+        </p>
+      );
+    }
+    return <p className="text-sm text-ink-faint">{emptyText ?? 'No actions in this range.'}</p>;
   }
 
   const groups = groupByTitle(actions);
@@ -59,8 +68,8 @@ export function PulseFeedList({ actions }: { actions: PulseAction[] }) {
                   {g.title} <span className="text-sm text-ink-faint">&times;{g.items.length}</span>
                 </span>
                 <p className="mt-1 text-sm text-ink-faint">
-                  {g.items.length} separate actions under this same notice type. The Federal Register doesn't expose distinguishing detail beyond the linked
-                  document itself. Tap to list each one.
+                  {g.items.length} separate actions with this same title. Tap to list each one with its own summary (for Entity List rules, the summary
+                  says how many parties were added and from which countries).
                 </p>
               </summary>
               <ol className="mt-3 flex flex-col gap-1.5 border-l border-hairline pl-3">
@@ -73,8 +82,9 @@ export function PulseFeedList({ actions }: { actions: PulseAction[] }) {
                       className="flex gap-3 tabular-nums text-xs text-ink-muted no-underline hover:text-accent"
                     >
                       <span>{a.publication_date}</span>
-                      <span>{a.document_number}</span>
+                      <span>{a.citation ?? a.document_number}</span>
                     </a>
+                    {a.abstract && <p className="mt-0.5 line-clamp-3 text-xs leading-snug text-ink-faint">{a.abstract}</p>}
                   </li>
                 ))}
               </ol>

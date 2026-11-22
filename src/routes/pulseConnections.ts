@@ -5,6 +5,7 @@ import { topicsFor, topicHintForActionTag, TOPICS, type Topic } from '../lib/pul
 import { converge, findRelated, marketReaction, type ConnEvent, type EventKind, type MarketReaction, type SeriesPoint } from '../lib/pulse/links.js';
 import { CURRENCY_FOR, MARKET_TILE_FOR, TOPIC_COMMODITY } from '../lib/pulse/countryMarkets.js';
 import { extractCountries, focusCountries, isNameOfCountry } from '../lib/pulse/country.js';
+import { loadListFreshness, type ListFreshness } from '../lib/listFreshness.js';
 
 // Cross-domain connections. Everything here is derived from rows that already
 // exist (actions, news, trade barriers, forced-labor findings, market series)
@@ -182,7 +183,7 @@ function describe(seriesId: string, changePct: number): { label: string; reading
   if (seriesId.startsWith('FX:')) {
     const cur = seriesId.slice(3);
     // Series is "units of currency per 1 USD": up means the currency bought less.
-    return { label: `${cur} per $`, reading: flat ? `${cur} little changed against the dollar` : `${cur} ${changePct > 0 ? 'weakened' : 'strengthened'} ${abs}% against the dollar` };
+    return { label: `${cur} per $`, reading: flat ? `${cur} little changed against the dollar in the 5 days after` : `${cur} ${changePct > 0 ? 'weakened' : 'strengthened'} ${abs}% against the dollar in the 5 days after` };
   }
   const label = INDEX_LABELS[seriesId] ?? seriesId;
   return { label, reading: flat ? `${label} little changed` : `${label} ${changePct > 0 ? 'rose' : 'fell'} ${abs}%` };
@@ -373,10 +374,13 @@ connectionsRoute.get('/convergence', async (c) => {
 connectionsRoute.get('/recent-listings', async (c) => {
   const days = clampInt(c.req.query('days'), 30, 7, 90);
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
-  const events = (await loadAllSanctionEvents(c.env)).filter((e) => e.date >= since).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  const [all, lists] = await Promise.all([loadAllSanctionEvents(c.env), loadListFreshness(c.env).catch(() => [] as ListFreshness[])]);
+  const events = all.filter((e) => e.date >= since).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
   return c.json({
     days,
     total: events.length,
+    // The lists this panel reads (not SDN, which has no listing dates), so an empty result from a stale copy is labelled, never read as "nobody was listed".
+    lists: lists.filter((l) => l.source !== 'sdn'),
     items: events.slice(0, 40).map((e) => ({ id: e.id, date: e.date, title: e.title, url: e.url, source: e.source, countries: e.countries })),
   });
 });

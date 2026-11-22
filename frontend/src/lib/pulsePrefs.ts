@@ -110,6 +110,17 @@ export const PRESETS: Preset[] = [
       showMarkets: false,
     },
   },
+  {
+    id: 'press',
+    label: 'Journalist',
+    blurb: 'Every new tariff, sanctions and export-control action with its citation, plus official announcements; no market numbers.',
+    prefs: {
+      ...DEFAULT_PREFS,
+      tags: ['Tariff', 'Sanctions', 'Export Control', 'Trade Agreement'],
+      newsCats: ['Official', 'Elections & Politics', 'Trade & Supply Chain'],
+      showMarkets: false,
+    },
+  },
 ];
 
 export function samePrefs(a: PulsePrefs, b: PulsePrefs): boolean {

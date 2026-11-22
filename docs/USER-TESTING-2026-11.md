@@ -6,6 +6,29 @@ This follows the expert audit in `docs/AUDIT-2026-11.md`. That audit asked "is i
 
 One side effect: the Etsy-seller tester clicked "Start an import case", which created one empty case record (`/case/12af4d21-...`) with no model call. It can be deleted.
 
+## Status (2026-11-22): professionals' fixes
+
+The code-only fixes the six professionals asked for were made on 2026-11-22 and pass typecheck, unit tests and the frontend build; a local run confirmed the country, Compare and search pages. They are not deployed until pushed and built, and migrations 0034 and 0035 must be applied (OWNER-TODO #2). Done:
+
+- **Never "none" when a source has not loaded** (fix-first 1, 2): forced-labor orders and Global Trade Alert now say "Data unavailable" with the reason; every sanctions count (country pages, Hard Power, Compare, "Recently listed") carries an as-of line per list, and a list with no rows shows no count instead of 0. `src/lib/listFreshness.ts` (`loadSourcesFreshness`), `frontend/src/components/FreshnessNote.tsx`.
+- **One sanctions number per country** (6): country pages and Compare now read the same tally as the Hard Power chart (`getSanctionTally`), including UN and UK.
+- **China caveat and "at least" totals** (10): any duty stack with a NOT EVALUATED layer shows "At least X%"; China's tariff box and Compare column say the 2018-2019 Section 301 lists are not included. Canada's repeated Section 338 rows are de-duplicated.
+- **Compare** (7): up to five countries, a notice for any country left out (including the U.S. in the trade view), never "Both" with one country, opens scrolled to the comparison; country pages link to a sensible partner.
+- **Export-control status** (9): the empty "Verified export-control status" is replaced by the Country Chart columns marked for the destination; outdated "12 destinations" text removed.
+- **Sample report dates** (11): reports show when the case was run, and stored samples say "sample recorded YYYY-MM-DD, not re-run".
+- **Export decisions** (12): encryption items (5A002/5D002/5E002) now always prompt for mass-market and License Exception ENC; migration 0035 cites 15 CFR 746.8 for Russia and Belarus. The stored sample cases still need regenerating (paid, OWNER-TODO #6).
+- **Wire ranking and tags** (13, 14): "What matters most" now also weighs what an action does (duties, controls, sanctions, importer obligations up; paperwork, meetings, scheduling, cultural-property notices down). Section 232 import notices from BIS are tagged Tariff, and CBP rules on importers of record and brokers are tagged Tariff (new documents at ingest, stored ones by migration 0034).
+- **Currency moves in words** (15) on country pages ("The Mexican peso weakened 3.2% against the dollar over 30 days (a dollar buys more)"), with full currency names; the timeline says its 5-day window.
+- **Search** (3, 4, 5): the de minimis card states the suspension and opens the notices; matching is by word start ("car" no longer finds Madagascar); new topics for autos, USMCA notices, Section 301 exclusions, AD/CVD, Entity List and importer-of-record rules; an empty policy search says "No notices mention X" with suggestions, and results move above the dashboard while searching.
+- **One freshness wording** (19): "Notices last collected <date, time> ET (<ago>)" on the Wire and Hard Power; the globe and footer no longer claim to be the data date.
+- **Alerts**: country pages and policy searches link to the existing filtered RSS/JSON feeds (`/rss.xml?country=CN`, `/rss.xml?q=8708`), which already serve as a watchlist by keyword, HTS code and country.
+- **Key dates**: paperwork notices hidden by default, "See all", agency shown, and "Add to calendar (.ics)".
+- **Charts**: CSV on Policy tempo and the COFER chart (with euro and renminbi, quarter labels, unit and source); indicator CSVs now carry ISO code, year, unit, series code, rank and source per row; tempo axis shows years; "Cite this chart" copies a full citation (primary source first) and still works if a snapshot cannot be saved.
+- **Grouped notices** (Entity List and others) now show each item's citation and summary.
+- A "Journalist" feed preset; "Lists are refreshed weekly" reworded to say the actual dates are shown.
+
+Not done (needs new data sources, a paid run or a decision): HTS-and-country lookup with China 301 lists and AD/CVD orders, CSMS messages, Chapter 99 headings, CROSS rulings, effective tariff rate and Census trade data, customs duties, designation feed by party, WRO/UFLPA data load, freight indices, Country Groups, IEEPA status timeline, country-specific sample products (the HTS lines must be checked against the loaded schedule first), and regenerating the sample cases.
+
 ## The visitors
 
 | Persona | Who | Would come back? | The one change that would flip their answer |

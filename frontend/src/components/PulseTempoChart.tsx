@@ -1,9 +1,12 @@
 import type { TempoPoint } from '../types/pulse';
+import { downloadCsv } from '../lib/downloadCsv';
 
-function monthLabel(month: string): string {
+// The year is shown on the first label and every January, so a long axis is never a row of bare month names.
+function monthLabel(month: string, withYear: boolean): string {
   const [year, m] = month.split('-');
   const date = new Date(Number(year), Number(m) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short' });
+  const short = date.toLocaleDateString('en-US', { month: 'short' });
+  return withYear ? `${short} ${year.slice(2)}` : short;
 }
 
 // The month-count options this chart's range selector offers, and what each
@@ -42,7 +45,7 @@ export function PulseTempoChart({
   onRangeChange?: (id: TempoRangeId) => void;
 }) {
   if (months.length === 0) {
-    return <p className="text-sm text-ink-faint">No tempo data yet. Try refreshing.</p>;
+    return <p className="text-sm text-ink-faint">No U.S. actions naming this in the period shown.</p>;
   }
   const max = Math.max(...months.map((m) => m.count), 1);
 
@@ -79,12 +82,27 @@ export function PulseTempoChart({
         ))}
       </div>
       <div className="mt-2 flex gap-1 border-t border-hairline pt-1.5">
-        {months.map((m, i) => (
-          <div key={m.month} className="flex-1 text-center tabular-nums text-[10px] text-ink-faint">
-            {i % 3 === 0 ? monthLabel(m.month) : ''}
-          </div>
-        ))}
+        {months.map((m, i) => {
+          const show = i % 3 === 0;
+          const firstShown = i === 0;
+          const january = m.month.endsWith('-01');
+          return (
+            <div key={m.month} className="flex-1 whitespace-nowrap text-center tabular-nums text-[10px] text-ink-faint">
+              {show ? monthLabel(m.month, firstShown || january || months.slice(Math.max(0, i - 2), i).some((x) => x.month.endsWith('-01'))) : ''}
+            </div>
+          );
+        })}
       </div>
+      <p className="mt-1.5 text-[11px] text-ink-faint">
+        {months[0].month} to {months[months.length - 1].month}. The latest month is still accumulating.{' '}
+        <button
+          type="button"
+          onClick={() => downloadCsv('aex-terminal-policy-tempo.csv', ['month', 'actions', 'source'], months.map((m) => [m.month, m.count, 'Federal Register via Aex Terminal']))}
+          className="font-semibold text-ink-muted underline hover:text-ink"
+        >
+          Download CSV
+        </button>
+      </p>
       {trendPct !== null && (
         <p className="mt-3 text-xs text-ink-muted">
           <span className={`tabular-nums ${trendPct > 0 ? 'text-clear' : trendPct < 0 ? 'text-stop' : ''}`}>

@@ -63,8 +63,18 @@ export function freshnessCaveat(lists: ListFreshness[]): string | null {
 }
 
 export async function loadListFreshness(env: Env, today = new Date().toISOString().slice(0, 10)): Promise<ListFreshness[]> {
+  return loadSourcesFreshness(env, SANCTION_LISTS, today);
+}
+
+/** Same rules for any refreshed table (forced-labor orders, Global Trade Alert, ...), so an empty table is never shown as "none on file". */
+export async function loadSourcesFreshness(
+  env: Env,
+  sources: { source: string; label: string; table: string }[],
+  today = new Date().toISOString().slice(0, 10),
+  maxAgeDays = LIST_MAX_AGE_DAYS
+): Promise<ListFreshness[]> {
   const inputs = await Promise.all(
-    SANCTION_LISTS.map(async (l): Promise<ListFreshnessInput> => {
+    sources.map(async (l): Promise<ListFreshnessInput> => {
       const [ok, err, row, newest] = await Promise.all([
         env.DB.prepare(`SELECT MAX(finished_at) AS d FROM data_refresh_log WHERE source = ?1 AND status = 'success'`).bind(l.source).first<{ d: string | null }>().catch(() => null),
         env.DB.prepare(`SELECT finished_at AS d, error_message AS m FROM data_refresh_log WHERE source = ?1 AND status = 'error' ORDER BY finished_at DESC LIMIT 1`).bind(l.source).first<{ d: string | null; m: string | null }>().catch(() => null),
@@ -83,5 +93,5 @@ export async function loadListFreshness(env: Env, today = new Date().toISOString
       };
     })
   );
-  return evaluateListFreshness(inputs, today);
+  return evaluateListFreshness(inputs, today, maxAgeDays);
 }

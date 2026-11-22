@@ -43,6 +43,13 @@ export function agoText(iso: string | null | undefined): string {
   return days === 1 ? 'yesterday' : `${days} days ago`;
 }
 
+/** One wording for "how current is this", used everywhere on the Wire: exact time in U.S. Eastern plus how long ago, so a reader can cite it. */
+export function collectedText(iso: string | null | undefined, what = 'Notices last collected'): string {
+  if (!iso) return `${what}: not yet`;
+  const exact = new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return `${what} ${exact} ET (${agoText(iso)})`;
+}
+
 const DOC_PHRASE: Record<string, string> = {
   Rule: 'A final rule',
   'Proposed Rule': 'A proposed rule (not final yet)',
