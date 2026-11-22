@@ -12,6 +12,7 @@ import { PulseFeedList } from '../components/PulseFeedList';
 import { PulseGlossary } from '../components/PulseGlossary';
 import { PulseHero } from '../components/PulseHero';
 import { KeyDates } from '../components/KeyDates';
+import { PlainWeek } from '../components/PlainWeek';
 import { MostNamed } from '../components/MostNamed';
 import { RailModule } from '../components/RailModule';
 import { PulseGuide } from '../components/PulseGuide';
@@ -430,6 +431,7 @@ export function Pulse() {
       />
 
       <div className="page-glow mx-auto mt-0 max-w-7xl px-4 pb-8">
+        {tab === 'overview' && recentAll.length > 0 && <PlainWeek actions={recentAll} />}
         {!welcomed && !custom && (
           <PulseWelcome
             onPick={(p) => {
@@ -733,7 +735,7 @@ export function Pulse() {
 
           {tab === 'markets' && (
             <div className="flex flex-col gap-8">
-              <SectionHeader title="Markets" description="Stocks, commodities, interest rates and currencies that move with world trade." />
+              <SectionHeader title="Markets" description="Commodities, interest rates, currencies, prices and jobs that move with world trade. Stock indexes are not shown: there is no licensed free source." />
               {marketsFailed && !markets && <p className="text-sm text-ink-faint">Couldn't load market data right now.</p>}
 
               {prefs.markets.length > 0 && (

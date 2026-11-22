@@ -4,6 +4,9 @@ import { Link, useLocation } from 'react-router-dom';
 // Phone-width header: the five main pages are in the bottom tab bar (MobileTabBar); this menu holds the reference and legal pages.
 // Hidden from lg up, where the full nav shows.
 const LINKS = [
+  { to: '/about', label: 'About' },
+  { to: '/glossary', label: 'Glossary' },
+  { to: '/lookup', label: 'Tariff lookup' },
   { to: '/methodology', label: 'Methodology and sources' },
   { to: '/accessibility', label: 'Accessibility' },
   { to: '/terms', label: 'Terms of use' },

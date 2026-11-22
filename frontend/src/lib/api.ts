@@ -511,3 +511,54 @@ export interface TrendsResponse {
 export function getTrends() {
   return request<TrendsResponse>('/pulse/trends');
 }
+
+// --- Everyday data and the free tariff lookup (src/routes/pulse/everyday.ts) ---
+export interface EverydaySeries {
+  id: string;
+  label: string;
+  group: string | null;
+  unit: string | null;
+  source: string | null;
+  sourceUrl: string | null;
+  latest: [string, number] | null;
+  yoyPct: number | null;
+  points: [string, number][];
+}
+export interface EverydayResponse {
+  prices: EverydaySeries[];
+  jobs: EverydaySeries[];
+  customs: { gross: EverydaySeries; net: EverydaySeries };
+  tariffDates: { program: string; since: string; rate: number | null; legal_basis: string; source_url: string }[];
+}
+export function getEveryday() {
+  return request<EverydayResponse>('/pulse/everyday');
+}
+export interface TravelAdvisory {
+  country: string;
+  level: number;
+  title: string;
+  url: string;
+  updated: string | null;
+}
+export function getAdvisories() {
+  return request<{ asOf: string | null; source: string; items: TravelAdvisory[] }>('/pulse/advisories');
+}
+export function getFxHistory(code: string) {
+  return request<{ code: string; source: string; unit: string; points: [string, number][] }>(`/pulse/fx-history?code=${encodeURIComponent(code)}`);
+}
+export function searchHtsCodes(q: string) {
+  return request<{ results: { htsno: string; description: string; general_rate: string | null; chapter: string | null }[] }>(`/pulse/hts-search?q=${encodeURIComponent(q)}`);
+}
+export interface DutyLookup {
+  hts: string;
+  description: string;
+  country: string;
+  generalRate: string | null;
+  revision: string | null;
+  totalPct: number | null;
+  lines: import('../types/case').DutyStackLine[];
+  note: string;
+}
+export function lookupDuty(hts: string, country: string) {
+  return request<DutyLookup | { choices: { htsno: string; description: string; general_rate: string | null }[] }>(`/pulse/duty?hts=${encodeURIComponent(hts)}&country=${encodeURIComponent(country)}`);
+}

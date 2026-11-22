@@ -37,7 +37,7 @@ function tagValue(xml: string, tag: string): string | null {
   return v.length > 0 ? v : null;
 }
 
-function tagBlocks(xml: string, tag: string): string[] {
+export function tagBlocks(xml: string, tag: string): string[] {
   const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'g');
   const out: string[] = [];
   let m;
@@ -58,7 +58,7 @@ interface ParsedRecord {
   aliases: { alias: string; aliasType: string | null }[];
 }
 
-function parseIndividual(block: string): ParsedRecord {
+export function parseIndividual(block: string): ParsedRecord {
   const name = [tagValue(block, 'FIRST_NAME'), tagValue(block, 'SECOND_NAME'), tagValue(block, 'THIRD_NAME'), tagValue(block, 'FOURTH_NAME')]
     .filter(Boolean)
     .join(' ');
@@ -93,7 +93,7 @@ function parseIndividual(block: string): ParsedRecord {
   };
 }
 
-function parseEntity(block: string): ParsedRecord {
+export function parseEntity(block: string): ParsedRecord {
   // Entities only use FIRST_NAME (verified against the live file -- it holds
   // the full organization name, there is no SECOND_NAME/etc for ENTITY rows).
   const name = tagValue(block, 'FIRST_NAME') ?? '';

@@ -22,10 +22,10 @@ const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
 const envWith = (log: { source: string; biggest: number | null; last_ok: string | null; fails?: number }[]) =>
   ({ DB: { prepare: () => ({ all: async () => ({ results: log }) }) } }) as unknown as Env;
 
-await test('a fresh install runs the first (biggest, highest-priority) job alone', async () => {
+await test('the sanctions lists are not run in the Worker (they are synced by the GitHub workflow)', async () => {
   const picked = await pickDueBulkJobs(envWith([]), NOW);
-  assert.equal(picked[0].source, 'sdn');
-  assert.ok(picked.every((j) => j.source !== 'hts'), 'hts must not share a day with sdn');
+  assert.ok(picked.every((j) => !['sdn', 'csl', 'un_sanctions', 'uk_sanctions'].includes(j.source)));
+  assert.equal(picked[0].source, 'gta');
 });
 
 await test('nothing runs when every job succeeded within the week', async () => {
@@ -58,8 +58,8 @@ await test('a job last run 7 days ago is due; its size is capped by the daily bu
 });
 
 await test('a failed-only job (no success on record) is still due', async () => {
-  const picked = await pickDueBulkJobs(envWith([{ source: 'sdn', biggest: null, last_ok: null }]), NOW);
-  assert.equal(picked[0].source, 'sdn');
+  const picked = await pickDueBulkJobs(envWith([{ source: 'gta', biggest: null, last_ok: null }]), NOW);
+  assert.equal(picked[0].source, 'gta');
 });
 
 await test('every indicator job fits the 40-request budget on a fresh install (World Bank series are batched)', async () => {
@@ -80,17 +80,17 @@ await test('no indicator job is in the heavy reference-table group', async () =>
 });
 
 await test('a persistently failing first job does not starve the others', async () => {
-  const picked = await pickDueBulkJobs(envWith([{ source: 'sdn', biggest: null, last_ok: null, fails: 12 }]), NOW);
-  assert.notEqual(picked[0].source, 'sdn', 'a healthy due job must run before the failing one');
-  assert.ok(picked.length > 1, 'the day still runs several due jobs');
-  const at = picked.findIndex((j) => j.source === 'sdn');
-  assert.ok(at === -1 || at === picked.length - 1, 'a failing sdn goes last (or waits), never ahead of healthy jobs');
+  const picked = await pickDueBulkJobs(envWith([{ source: 'gta', biggest: null, last_ok: null, fails: 12 }]), NOW);
+  assert.notEqual(picked[0].source, 'gta', 'a healthy due job must run before the failing one');
+  assert.ok(picked.length > 0, 'the day still runs due jobs');
+  const at = picked.findIndex((j) => j.source === 'gta');
+  assert.ok(at === -1 || at === picked.length - 1, 'a failing job goes last (or waits), never ahead of healthy jobs');
 });
 
 await test('a failing job still runs when nothing else is due', async () => {
-  const others = ['csl', 'un_sanctions', 'uk_sanctions', 'gta', 'wro_findings', 'hts', 'schedule_b', 'xref'].map((source) => ({ source, biggest: 1000, last_ok: daysAgo(1) }));
-  const picked = await pickDueBulkJobs(envWith([{ source: 'sdn', biggest: null, last_ok: null, fails: 5 }, ...others]), NOW);
-  assert.deepEqual(picked.map((j) => j.source), ['sdn']);
+  const others = ['wro_findings', 'hts', 'schedule_b', 'xref'].map((source) => ({ source, biggest: 1000, last_ok: daysAgo(1) }));
+  const picked = await pickDueBulkJobs(envWith([{ source: 'gta', biggest: null, last_ok: null, fails: 5 }, ...others]), NOW);
+  assert.deepEqual(picked.map((j) => j.source), ['gta']);
 });
 
 if (failures) {

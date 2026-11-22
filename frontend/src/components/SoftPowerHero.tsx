@@ -179,7 +179,7 @@ export function SoftPowerHero({
 
   return (
     <MeasureHero
-      title="Footprints and reach"
+      title="Soft power: footprints and reach"
       sub="What people say, who gives aid, where students study, which countries tourists visit and where people move: footprints of reach, not proof of attraction. One sourced map at a time, never added into a score; a blank is a country nobody asked or counted, not a zero."
       measures={measures}
       active={current?.id ?? 'opinion'}

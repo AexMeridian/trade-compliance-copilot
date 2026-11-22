@@ -1,0 +1,57 @@
+name: Sanctions list sync
+
+# Daily: downloads the OFAC SDN, UN, Consolidated Screening List and UK sanctions files, and when any changed, commits a migration that
+# changes only the entries that differ (scripts/sync-lists.ts). The push to main deploys the site through Cloudflare Workers Builds,
+# whose build command applies the migration to the live database. No Cloudflare secret and no model call; the only token is the
+# automatic GITHUB_TOKEN, used to push the data commit.
+#
+# Why here and not in the Worker: the files are 17-30 MB, more than a Workers Free scheduled invocation can parse.
+on:
+  schedule:
+    - cron: '23 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lists-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Download the lists and write the changes
+        run: npx tsx scripts/sync-lists.ts | tee /tmp/sync.log
+      - name: Check the new migrations apply cleanly
+        run: |
+          npx tsx tests/migrations.test.ts
+          npx tsx tests/migrations-exec.test.ts
+      - name: Commit and push
+        run: |
+          if [ -z "$(git status --porcelain migrations data/lists)" ]; then
+            echo "No list changed."
+            exit 0
+          fi
+          git config user.name "aex-terminal-list-sync"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add migrations data/lists
+          {
+            echo "Data: sync sanctions lists $(date -u +%Y-%m-%d)"
+            echo
+            cat /tmp/sync.log
+          } > /tmp/msg.txt
+          git commit -q -F /tmp/msg.txt
+          git push origin HEAD:main

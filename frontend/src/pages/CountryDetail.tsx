@@ -13,6 +13,7 @@ import { PulseFeedList } from '../components/PulseFeedList';
 import { DutyStackTable } from '../components/DutyStackTable';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
 import { FreshnessNote, emptyIsUnknown } from '../components/FreshnessNote';
+import { TravelersBox } from '../components/TravelersBox';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { parseCountries, CURRENCY_FOR, STATUS_LABEL, COUNTRY_LABELS } from '../lib/pulseCountries';
@@ -163,6 +164,9 @@ export function CountryDetail() {
               >
                 <ConnectionsPanel code={code} name={name} />
               </PulsePanel>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <TravelersBox code={code} name={name} currency={currency} />
             </div>
             {data.snapshot && (
               <PulsePanel
@@ -542,7 +546,9 @@ export function CountryDetail() {
             )}
             <PulsePanel title={`Recent news naming ${name}`}>
               {countryNews.length === 0 ? (
-                <p className="text-sm text-ink-faint">No recent headlines name {name} in this site's news feed.</p>
+                <p className="text-sm text-ink-faint">
+                  None of the latest 60 headlines names {name}. Older news naming it is on the Overview tab's timeline.
+                </p>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {countryNews.map((n) => (

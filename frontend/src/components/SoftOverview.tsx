@@ -142,7 +142,7 @@ export function SoftOverview({ indicators, opinion, go }: { indicators: PowerInd
         </summary>
         <div className="mt-2 max-w-3xl pl-4 leading-relaxed">
           <p>
-            Soft power is the ability to get others to want what you want through attraction rather than payment or force. Joseph Nye, who coined the term (<em>Soft Power</em>, 2004), argues it rests on three things: a country's culture where it appeals to
+            Soft power is the ability to get others to want what you want through attraction rather than payment or force. Joseph Nye, who coined the term in 1990 (<em>Bound to Lead</em>) and developed it in <em>Soft Power</em> (2004), argues it rests on three things: a country's culture where it appeals to
             others, its political values when it lives up to them, and its foreign policy when others see it as legitimate. Surveys of what people actually think are the best test, so they come first here,
             and what a country has is shown apart from what people say about it.
           </p>

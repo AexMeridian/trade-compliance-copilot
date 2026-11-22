@@ -7,11 +7,8 @@ import { SITE } from '../lib/site';
 import type { PulseHome } from '../types/pulse';
 
 const MARKET_TERMS: [string, string][] = [
-  [
-    'Stock index',
-    'A single number that tracks a group of company shares, for example the S&P 500 (500 large U.S. companies). When it rises, those shares are worth more on average.',
-  ],
-  ['VIX', 'A gauge of how nervous investors are. Low numbers mean calm markets; high numbers mean people expect big swings.'],
+  ['Tariff', 'A tax on goods brought into a country, paid by the importer and often passed on in prices. See the full Glossary page for more terms.'],
+  ['Inflation', 'How fast prices are rising, usually given as the change in the Consumer Price Index from a year earlier.'],
   [
     'Commodity',
     'A raw material that is traded around the world, such as oil, natural gas, gold or copper. Prices matter for shipping and manufacturing costs.',
@@ -112,8 +109,8 @@ export function PulseGuide({ status }: { status: PulseHome['status'] | null }) {
       <Section title="How to use it">
         <ol className="list-decimal space-y-2 pl-5">
           <li>
-            <span className="text-ink">Start with the four highlights at the top.</span> They show the biggest U.S. trade action, the top headline, the dollar's
-            biggest move and how many proposed rules are open for public comment.
+            <span className="text-ink">Start with "This week in plain English" near the top.</span> It sums up the most important new U.S. trade actions of the
+            last seven days in a sentence each. New to all this? The "New here?" box beside it links to pages written for everyone.
           </li>
           <li>
             <span className="text-ink">Use the tabs to go deeper.</span> U.S. policy has the government actions, Markets has stocks, commodities and currencies,

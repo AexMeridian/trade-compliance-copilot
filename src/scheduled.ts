@@ -35,6 +35,7 @@ import { refreshUndp } from './lib/refresh/undp.js';
 import { refreshOpenAlex } from './lib/refresh/openalex.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
+import { refreshCustomsDuties, refreshTravelAdvisories } from './lib/pulse/everyday.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { runHealth } from './lib/healthRun.js';
 import { refreshCuratedWatch } from './lib/refresh/curatedWatch.js';
@@ -79,6 +80,9 @@ const DAILY_JOBS: RefreshJob[] = [
   { source: 'pulse_cofer', run: refreshCofer },
   { source: 'pulse_treasury', run: refreshTreasury },
   { source: 'pulse_commodities', run: refreshCommodities },
+  // Asked for in user testing: duties collected each month, and State Department travel advisories for country pages.
+  { source: 'customs_duties', run: refreshCustomsDuties },
+  { source: 'travel_advisories', run: refreshTravelAdvisories },
   // Privacy: remove calculator cases past their 30-day retention (src/lib/caseStore.ts).
   {
     source: 'case_expiry',
@@ -96,11 +100,12 @@ const DAILY_JOBS: RefreshJob[] = [
 // Priority order = sanctions first (a stale list is a real compliance risk).
 // `typicalRows` is the fallback size when a job has never logged a run.
 type SizedJob = RefreshJob & { typicalRows: number; /** Outbound requests one run makes, counted conservatively. */ fetches?: number };
+// The four sanctions lists (SDN, CSL, UN, UK) are no longer reloaded here: their files (17-30 MB) need more CPU than a Workers Free
+// invocation has, so the job was killed before it could even log the failure and the lists went stale. They are synced daily by
+// .github/workflows/lists-sync.yml (scripts/sync-lists.ts), which writes only the changes as a migration that the deploy applies.
+// The old in-Worker loaders are kept for a paid plan or a local run (they replace the table, so do not run them alongside the sync).
+export const WORKER_SKIPPED_LIST_JOBS = { refreshSdn, refreshCsl, refreshUnSanctions, refreshUkSanctions };
 const BULK_JOBS: SizedJob[] = [
-  { source: 'sdn', run: refreshSdn, typicalRows: 2_000 },
-  { source: 'csl', run: refreshCsl, typicalRows: 7_000 },
-  { source: 'un_sanctions', run: refreshUnSanctions, typicalRows: 3_000 },
-  { source: 'uk_sanctions', run: refreshUkSanctions, typicalRows: 8_000 },
   { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
   { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
   { source: 'hts', run: refreshHts, typicalRows: 32_000 },

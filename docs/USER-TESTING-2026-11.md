@@ -29,6 +29,15 @@ The code-only fixes the six professionals asked for were made on 2026-11-22 and 
 
 Not done (needs new data sources, a paid run or a decision): HTS-and-country lookup with China 301 lists and AD/CVD orders, CSMS messages, Chapter 99 headings, CROSS rulings, effective tariff rate and Census trade data, customs duties, designation feed by party, WRO/UFLPA data load, freight indices, Country Groups, IEEPA status timeline, country-specific sample products (the HTS lines must be checked against the loaded schedule first), and regenerating the sample cases.
 
+## Status (2026-11-22, second round): data fixed and everyday pages added
+
+- **Stale sanctions lists fixed at the root.** The SDN (30 MB), CSL (17 MB) and UK (22 MB) files need more CPU than a Workers Free scheduled run has, so those jobs were killed before they could log anything. They now sync daily in GitHub Actions (`.github/workflows/lists-sync.yml`, `scripts/sync-lists.ts`): only new, changed or removed entries are written, as a migration the deploy applies. The first sync (SDN and CSL, migrations 0037-0050) ships with this change; UN and UK follow on the next daily runs to stay inside D1's 100,000-writes-a-day limit. CSL entries now carry their own key (migration 0036).
+- **Not fixable from code:** CBP blocks automated downloads of its forced-labor list (the site says "data unavailable" and links to CBP); Global Trade Alert and the Census trade API need free keys only the owner can create (OWNER-TODO 4c).
+- **For everyone (new "Basics" section, in the header and mobile tab bar):** Tariffs and your wallet (`/prices`: groceries, medicine, appliances, furniture, cars, clothing, toys, coffee and gasoline year over year; steel, metal and auto jobs with tariff dates; customs duties collected monthly, gross and after refunds), a free tariff lookup (`/lookup`, no model), Small packages (`/de-minimis`), U.S. and China side by side (`/us-china`), a glossary (`/glossary`), and a "For travelers and families" box on country pages (exchange rate in words, 1-year trend, converter, State Department advisory).
+- **On the Wire:** "This week in plain English" and a "New here?" box; the ticker shows inflation as a yearly rate; Markets no longer promises stocks; a text-size control in the header.
+- **Wording:** Nye coined "soft power" in 1990; Soft Power heading names itself; 2020 tourism data carries a COVID caveat; the Philippines news contradiction is explained; the stock-index and VIX glossary entries are gone.
+- **For professionals:** country pages show products each partner actually ships (laptops and toys from China, furniture and phones from Vietnam, wire harnesses and tomatoes from Mexico...); every duty total shows a dollar example; the tariff lookup links CBP AD/CVD search, CBP rulings and an RSS feed for the code.
+
 ## The visitors
 
 | Persona | Who | Would come back? | The one change that would flip their answer |

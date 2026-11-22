@@ -92,7 +92,7 @@ export const INDICATORS: IndicatorDef[] = [
   {
     id: 'tourist_arrivals', provider: 'worldbank', code: 'ST.INT.ARVL', label: 'International tourist arrivals', unit: 'count', dimension: 'ties',
     definition: 'Overnight visitors arriving from abroad in a year.',
-    caveat: 'Counts trips, not residents’ opinions of the country. Border-crossing rules differ, and some countries report with long delays.',
+    caveat: 'The World Bank series stops in 2020, the year COVID closed borders, so most figures here are 2020 (or earlier) and far below normal years; compare countries, not years. Counts trips, not opinions of the country.',
     higherIs: 'more arrivals', minCountries: 150,
   },
   {

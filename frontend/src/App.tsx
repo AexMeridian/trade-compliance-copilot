@@ -6,6 +6,7 @@ import { Pulse } from './pages/Pulse';
 import { NotFound } from './pages/NotFound';
 import { PULSE_TABS } from './components/PulseTabs';
 import { ThemeToggle } from './components/ThemeToggle';
+import { TextSizeToggle } from './components/TextSizeToggle';
 import { SiteSearch } from './components/SiteSearch';
 import { BetaBanner } from './components/BetaBanner';
 import { MarketStrip } from './components/MarketStrip';
@@ -35,6 +36,12 @@ const Disclaimer = lazyPage(() => import('./pages/Disclaimer'), 'Disclaimer');
 const Copyright = lazyPage(() => import('./pages/Copyright'), 'Copyright');
 const Security = lazyPage(() => import('./pages/Security'), 'Security');
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
+const Basics = lazyPage(() => import('./pages/Basics'), 'Basics');
+const Prices = lazyPage(() => import('./pages/Prices'), 'Prices');
+const Lookup = lazyPage(() => import('./pages/Lookup'), 'Lookup');
+const DeMinimis = lazyPage(() => import('./pages/DeMinimis'), 'DeMinimis');
+const Glossary = lazyPage(() => import('./pages/Glossary'), 'Glossary');
+const UsChina = lazyPage(() => import('./pages/UsChina'), 'UsChina');
 
 
 
@@ -153,6 +160,9 @@ export default function App() {
             <NavLink to="/" end className={(s) => `${navClass(s)} hidden lg:block`}>
               Wire
             </NavLink>
+            <NavLink to="/basics" className={(s) => `${navClass(s)} hidden lg:block`}>
+              Basics
+            </NavLink>
             <NavLink to="/calculator" className={(s) => `${navClass(s)} hidden lg:block`}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
             </NavLink>
@@ -166,6 +176,7 @@ export default function App() {
               About
             </NavLink>
             <SiteSearch />
+            <TextSizeToggle />
             <ThemeToggle />
             <MobileMenu />
           </nav>
@@ -181,6 +192,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/calculator" element={<Landing />} />
+          <Route path="/basics" element={<Basics />} />
+          <Route path="/prices" element={<Prices />} />
+          <Route path="/lookup" element={<Lookup />} />
+          <Route path="/de-minimis" element={<DeMinimis />} />
+          <Route path="/glossary" element={<Glossary />} />
+          <Route path="/us-china" element={<UsChina />} />
           <Route path="/hard-power" element={<HardPower />} />
           <Route path="/soft-power" element={<SoftPower />} />
           {/* Old addresses keep working (the Worker also answers them with a 301): bookmarks, shared links and search results. */}

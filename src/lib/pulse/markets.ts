@@ -103,6 +103,7 @@ export const MARKET_META: MarketMeta[] = [
   quote('DX-Y.NYB', 'U.S. dollar index', 'index points', 'Rates & dollar'),
 ];
 
+
 const FX_WINDOW_DAYS = 45;
 const SPARK_CHUNK = 12; // Yahoo's spark endpoint accepts at most 20 symbols per request
 

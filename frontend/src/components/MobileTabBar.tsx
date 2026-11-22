@@ -7,7 +7,7 @@ const TABS = [
   { to: '/hard-power', label: 'Hard Power', end: false },
   { to: '/soft-power', label: 'Soft Power', end: false },
   { to: '/calculator', label: 'Calculator', end: false },
-  { to: '/about', label: 'About', end: false },
+  { to: '/basics', label: 'Basics', end: false },
 ];
 
 export function MobileTabBar() {

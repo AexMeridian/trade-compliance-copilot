@@ -19,7 +19,7 @@
 // require a free account and API key that only the site owner can create --
 // left for later rather than assumed here. See the Guide tab.
 import type { Env } from '../../types/env.js';
-import { writeSeries, type MarketMeta } from './markets.js';
+import { writeSeries, type MarketMeta, type SeriesMeta } from './markets.js';
 import type { RefreshResult } from '../refresh/types.js';
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -33,6 +33,32 @@ const MACRO_SERIES: { id: string; blsId: string; label: string; unit: string; ch
   { id: 'BLS:IMPORT_PX', blsId: 'EIUIR', label: 'Import prices', unit: 'index, 2000=100', changeMode: 'percent' },
   { id: 'BLS:EXPORT_PX', blsId: 'EIUIQ', label: 'Export prices', unit: 'index, 2000=100', changeMode: 'percent' },
 ];
+
+// Everyday prices and the jobs people ask about, for the "Tariffs and your wallet" page (/prices). Same request as the headline series
+// (BLS allows 25 series per request), so this adds no API call. Not part of MACRO_META, so the Markets strip is unchanged.
+export const EVERYDAY_SERIES: { id: string; blsId: string; label: string; unit: string; group: 'prices' | 'jobs' }[] = [
+  { id: 'BLS:CPI_FOOD_HOME', blsId: 'CUUR0000SAF11', label: 'Groceries (food at home)', unit: 'index, 1982-84=100', group: 'prices' },
+  { id: 'BLS:CPI_RX', blsId: 'CUUR0000SEMF01', label: 'Prescription drugs', unit: 'index, 1982-84=100', group: 'prices' },
+  { id: 'BLS:CPI_APPLIANCES', blsId: 'CUUR0000SEHK', label: 'Household appliances', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_FURNITURE', blsId: 'CUUR0000SEHJ', label: 'Furniture and bedding', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_NEW_CARS', blsId: 'CUUR0000SETA01', label: 'New cars and trucks', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_USED_CARS', blsId: 'CUUR0000SETA02', label: 'Used cars and trucks', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_APPAREL', blsId: 'CUUR0000SAA', label: 'Clothing and shoes', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_TOYS', blsId: 'CUUR0000SERE01', label: 'Toys', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_COFFEE', blsId: 'CUUR0000SEFP01', label: 'Coffee', unit: 'index', group: 'prices' },
+  { id: 'BLS:CPI_GASOLINE', blsId: 'CUUR0000SETB01', label: 'Gasoline', unit: 'index', group: 'prices' },
+  { id: 'BLS:JOBS_STEEL', blsId: 'CES3133110001', label: 'Iron and steel mills', unit: 'thousands of jobs', group: 'jobs' },
+  { id: 'BLS:JOBS_FAB_METAL', blsId: 'CES3133200001', label: 'Fabricated metal products', unit: 'thousands of jobs', group: 'jobs' },
+  { id: 'BLS:JOBS_AUTOS', blsId: 'CES3133600101', label: 'Motor vehicles and parts', unit: 'thousands of jobs', group: 'jobs' },
+  { id: 'BLS:JOBS_MFG', blsId: 'CES3000000001', label: 'All manufacturing', unit: 'thousands of jobs', group: 'jobs' },
+];
+export const EVERYDAY_META: SeriesMeta[] = EVERYDAY_SERIES.map((s) => ({
+  id: s.id,
+  label: s.label,
+  unit: s.unit,
+  source: 'U.S. Bureau of Labor Statistics',
+  sourceUrl: `https://data.bls.gov/timeseries/${s.blsId}`,
+}));
 
 export const MACRO_META: MarketMeta[] = MACRO_SERIES.map((s) => ({
   id: s.id,
@@ -59,8 +85,9 @@ interface BlsResponse {
 export async function refreshMacro(env: Env): Promise<RefreshResult> {
   const now = new Date();
   const body: Record<string, unknown> = {
-    seriesid: MACRO_SERIES.map((s) => s.blsId),
-    startyear: String(now.getUTCFullYear() - 2),
+    seriesid: [...MACRO_SERIES, ...EVERYDAY_SERIES].map((s) => s.blsId),
+    // Seven years, so the everyday price and jobs charts reach back before the 2018 tariffs. Stored values are only rewritten when they change.
+    startyear: String(now.getUTCFullYear() - 6),
     endyear: String(now.getUTCFullYear()),
   };
   if (env.BLS_API_KEY) body.registrationkey = env.BLS_API_KEY;
@@ -77,7 +104,7 @@ export async function refreshMacro(env: Env): Promise<RefreshResult> {
 
   const byBlsId = new Map(json.Results?.series.map((s) => [s.seriesID, s.data]) ?? []);
   const rows: { id: string; date: string; value: number }[] = [];
-  for (const s of MACRO_SERIES) {
+  for (const s of [...MACRO_SERIES, ...EVERYDAY_SERIES]) {
     for (const obs of byBlsId.get(s.blsId) ?? []) {
       if (!/^M(0[1-9]|1[0-2])$/.test(obs.period)) continue; // skip M13 (annual average)
       const value = Number(obs.value);
@@ -86,6 +113,6 @@ export async function refreshMacro(env: Env): Promise<RefreshResult> {
     }
   }
   if (rows.length === 0) throw new Error('BLS returned no usable observations');
-  await writeSeries(env, MACRO_META, rows);
+  await writeSeries(env, [...MACRO_META, ...EVERYDAY_META], rows);
   return { source: 'pulse_macro', rows: rows.length };
 }
