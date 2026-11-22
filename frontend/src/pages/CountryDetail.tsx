@@ -12,12 +12,14 @@ import { PulseTempoChart } from '../components/PulseTempoChart';
 import { PulseFeedList } from '../components/PulseFeedList';
 import { DutyStackTable } from '../components/DutyStackTable';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
+import { FreshnessNote, emptyIsUnknown } from '../components/FreshnessNote';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
-import { parseCountries, CURRENCY_FOR, STATUS_LABEL } from '../lib/pulseCountries';
+import { parseCountries, CURRENCY_FOR, STATUS_LABEL, COUNTRY_LABELS } from '../lib/pulseCountries';
 import { usdCompact } from '../lib/pulsePlain';
 import { blocsFor, BLOC_FULL_NAMES } from '../lib/pulseBlocs';
 import { freightNoteFor } from '../lib/freightNotes';
+import { fxMoveText, currencyName } from '../lib/fxWords';
 import type { PulseCountryDetail, PulseMarkets, NewsItem } from '../types/pulse';
 
 // The HTS source data's description field carries its own inline markup
@@ -41,7 +43,7 @@ export function CountryDetail() {
   const { code: rawCode } = useParams<{ code: string }>();
   const code = (rawCode ?? '').toUpperCase();
   const iso2 = code.length === 3 ? ISO3_TO_ISO2[code] : undefined;
-  const name = TARIFF_COUNTRY_LABELS[code] ?? code;
+  const name = TARIFF_COUNTRY_LABELS[code] ?? COUNTRY_LABELS[code] ?? (code === 'US' ? 'United States' : code);
   const redirectTo = iso2 ? `/country/${iso2.toLowerCase()}` : null;
 
   const [params, setParams] = useSearchParams();
@@ -136,9 +138,17 @@ export function CountryDetail() {
         Everything this site tracks about {name} in one place: U.S. policy actions naming it, the real tariff rates it faces, a sample duty-stack breakdown (every tariff layer added up for one product),
         export-control status, and a sanctioned-entity count. See the Guide on the main page for what each of these does and doesn't mean.
       </p>
-      <Link to={`/compare?countries=${code},${code === 'MX' ? 'CN' : 'MX'}`} className="mt-2 inline-block text-sm text-accent hover:underline">
+      <Link
+        to={code === 'US' ? '/soft-power?tab=compare&countries=US,CN' : `/hard-power?tab=compare&countries=${code},${code === 'CN' ? 'VN' : 'CN'}`}
+        className="mt-2 inline-block text-sm text-accent hover:underline"
+      >
         Compare {name} with another country &rarr;
       </Link>
+      {code !== 'US' && (
+        <a href={`/rss.xml?country=${code}`} className="ml-4 mt-2 inline-block text-sm text-accent hover:underline">
+          Follow U.S. actions naming {name} (RSS)
+        </a>
+      )}
 
       <CountryTabs active={tab} onChange={setTab} />
 
@@ -198,8 +208,18 @@ export function CountryDetail() {
             </PulsePanel>
             <PulsePanel title="Export-control status">
               <p className="text-base font-semibold text-ink">{STATUS_LABEL[exportControl.status]}</p>
+              {exportControl.status === 'curated' && exportControl.rows.length > 0 && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  Commerce Country Chart marks {exportControl.rows.length} column{exportControl.rows.length === 1 ? '' : 's'} for {name}:{' '}
+                  <span className="font-mono text-ink">{exportControl.rows.map((r) => r.reason_for_control).sort().join(', ')}</span>. An item whose ECCN lists one of
+                  these reasons needs a licence unless an exception applies.
+                </p>
+              )}
+              {exportControl.status === 'curated' && exportControl.rows.length === 0 && (
+                <p className="mt-1 text-sm text-ink-muted">No Country Chart column is marked for {name}, so most dual-use items need no licence (other rules can still apply).</p>
+              )}
               {exportControl.status === 'not_curated' && (
-                <p className="mt-1 text-sm text-ink-faint">Only 12 destinations are hand-verified in this site; see the Export controls tab.</p>
+                <p className="mt-1 text-sm text-ink-faint">This destination's Country Chart row is not loaded on this site yet; see the Export controls tab.</p>
               )}
             </PulsePanel>
             <PulsePanel title="Sanctioned entities (OFAC/BIS)">
@@ -209,17 +229,18 @@ export function CountryDetail() {
                   <p className="mt-1 text-sm text-ink-faint">
                     {sanctions.sdnCount} SDN, {sanctions.cslCount} CSL. {sanctions.note}
                   </p>
+                  <FreshnessNote sources={sanctions.lists?.filter((l) => l.source === 'sdn' || l.source === 'csl')} className="mt-1" />
                 </>
               ) : (
                 <p className="text-sm text-ink-faint">{sanctions.note}</p>
               )}
             </PulsePanel>
             {fxRow && (
-              <PulsePanel title={`USD / ${fxRow.quote}`}>
+              <PulsePanel title={`${currencyName(fxRow.quote)} per U.S. dollar`}>
                 <p className="text-3xl font-bold tabular-nums text-ink">{fxRow.rate.toFixed(2)}</p>
                 <p className="mt-1 text-sm text-ink-faint">
                   {currency === 'EUR' ? 'A Eurozone-wide rate, not specific to this country. ' : ''}
-                  {fxRow.change30dPct !== null ? `${fxRow.change30dPct >= 0 ? 'Up' : 'Down'} ${Math.abs(fxRow.change30dPct).toFixed(1)}% vs. 30 days ago.` : ''}
+                  {fxRow.change30dPct !== null ? fxMoveText(fxRow.quote, fxRow.change30dPct) : ''}
                 </p>
               </PulsePanel>
             )}
@@ -263,7 +284,10 @@ export function CountryDetail() {
               subtitle="Independent research data (Global Trade Alert), not a U.S. government source."
               help={data.retaliatoryMeasures.note}
             >
-              {data.retaliatoryMeasures.rows.length === 0 ? (
+              <FreshnessNote sources={[data.retaliatoryMeasures.source]} className="mb-2" />
+              {data.retaliatoryMeasures.rows.length === 0 && emptyIsUnknown(data.retaliatoryMeasures.source) ? (
+                <p className="text-sm font-semibold text-stop">Data unavailable: the Global Trade Alert data has not loaded on this site, so an empty list here means nothing.</p>
+              ) : data.retaliatoryMeasures.rows.length === 0 ? (
                 <p className="text-sm text-ink-faint">None matched in roughly the last 3 years, or not yet tracked for this country.</p>
               ) : (
                 <ul className="flex flex-col gap-3 text-sm">
@@ -296,6 +320,12 @@ export function CountryDetail() {
               title="Tariff programs"
               help="Section 301's forced-labor determination is the one program here that's both country-specific and broad: it applies across nearly the whole tariff schedule, not one product category. Section 338 (Canada) and the Section 232 metals country caps are real but narrower or a reduction, so they're shown as separate facts rather than folded into one misleadingly-precise total."
             >
+              {code === 'CN' && (
+                <p className="mb-3 border border-review/40 bg-review-soft px-3 py-2 text-sm font-semibold text-review">
+                  Goods from China usually also owe the 2018-2019 Section 301 duties (USTR Lists 1 to 4A, 7.5% to 100% depending on the product). Those lists are not
+                  loaded on this site, so they are not in any China figure here, and China's numbers are not comparable with other countries' as shown.
+                </p>
+              )}
               <ul className="flex flex-col gap-3 text-sm">
                 {tariffs.forcedLabor && (
                   <li>
@@ -306,7 +336,7 @@ export function CountryDetail() {
                     <span className="text-ink-faint">(as of {tariffs.forcedLabor.asOf})</span>
                   </li>
                 )}
-                {tariffs.extra.map((e, i) => (
+                {tariffs.extra.filter((e, i, all) => all.findIndex((x) => x.ratePct === e.ratePct && x.sourceUrl === e.sourceUrl) === i).map((e, i) => (
                   <li key={i}>
                     <span className="font-semibold text-ink">Section 338 extra duty: {e.ratePct}%</span> ({e.note}).{' '}
                     <a href={e.sourceUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
@@ -380,8 +410,8 @@ export function CountryDetail() {
           <PulsePanel title="Commerce Country Chart status">
             {exportControl.status === 'not_curated' ? (
               <p className="text-sm text-ink-muted">
-                This app has hand-verified export-control chart status for only 12 destinations so far. {name} isn't one of them yet, so no status is shown here
-                rather than a guessed one: an export case involving {name} should be flagged for manual review.
+                {name}'s Commerce Country Chart row is not loaded on this site yet, so no status is shown here rather than a guessed one: an export case
+                involving {name} should be flagged for manual review.
               </p>
             ) : (
               <>
@@ -396,8 +426,8 @@ export function CountryDetail() {
                   <table className="mt-4 w-full border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-hairline-strong text-left text-ink-muted">
-                        <th className="py-1.5 pr-3 font-normal">Reason for control</th>
-                        <th className="py-1.5 font-normal">Column</th>
+                        <th className="py-1.5 pr-3 font-normal">Reason for control (licence required)</th>
+                        <th className="py-1.5 font-normal">Chart code</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -423,9 +453,17 @@ export function CountryDetail() {
                   <p className="text-sm text-ink-muted">
                     <span className="font-semibold text-ink">{sanctions.sdnCount}</span> entries on OFAC's Specially Designated Nationals list and{' '}
                     <span className="font-semibold text-ink">{sanctions.cslCount}</span> on the Commerce/State Consolidated Screening List have an address
-                    naming {name}.
+                    naming {name}
+                    {sanctions.unCount != null && sanctions.ukCount != null ? (
+                      <>
+                        {' '}(plus <span className="font-semibold text-ink">{sanctions.unCount}</span> on the UN list and{' '}
+                        <span className="font-semibold text-ink">{sanctions.ukCount}</span> on the UK list)
+                      </>
+                    ) : null}
+                    .
                   </p>
                   <p className="mt-2 text-xs text-ink-faint">{sanctions.note}</p>
+                  <FreshnessNote sources={sanctions.lists} className="mt-1" />
                   <Link
                     to={`/hard-power?tab=sanctions&country=${encodeURIComponent(name)}`}
                     className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
@@ -440,11 +478,24 @@ export function CountryDetail() {
 
             <PulsePanel
               title="Forced-labor enforcement (CBP Section 307)"
-              subtitle={`${data.forcedLaborEnforcement.total} Withhold Release Order${data.forcedLaborEnforcement.total === 1 ? '' : 's'}/Findings naming ${name}, active and historical.`}
+              subtitle={
+                emptyIsUnknown(data.forcedLaborEnforcement.source)
+                  ? 'Withhold Release Orders and Findings naming this country: data unavailable.'
+                  : `${data.forcedLaborEnforcement.total} Withhold Release Order${data.forcedLaborEnforcement.total === 1 ? '' : 's'}/Findings naming ${name}, active and historical.`
+              }
               help={data.forcedLaborEnforcement.note}
             >
-              {data.forcedLaborEnforcement.rows.length === 0 ? (
-                <p className="text-sm text-ink-faint">None on file for {name}.</p>
+              <FreshnessNote sources={[data.forcedLaborEnforcement.source]} className="mb-2" />
+              {emptyIsUnknown(data.forcedLaborEnforcement.source) ? (
+                <p className="text-sm font-semibold text-stop">
+                  Data unavailable: CBP's forced-labor orders have not loaded on this site, so this section cannot say whether any name {name}. Check{' '}
+                  <a href="https://www.cbp.gov/trade/forced-labor/withhold-release-orders-and-findings" target="_blank" rel="noreferrer" className="text-accent underline">
+                    CBP's list
+                  </a>{' '}
+                  directly.
+                </p>
+              ) : data.forcedLaborEnforcement.rows.length === 0 ? (
+                <p className="text-sm text-ink-faint">None on file for {name} in CBP's list as loaded here.</p>
               ) : (
                 <ul className="flex flex-col gap-3 text-sm">
                   {data.forcedLaborEnforcement.rows.map((w) => (
@@ -484,13 +535,9 @@ export function CountryDetail() {
         {tab === 'markets' && (
           <div className="flex flex-col gap-6">
             {fxRow && (
-              <PulsePanel title={`USD / ${fxRow.quote}`} subtitle={currency === 'EUR' ? 'A Eurozone-wide rate, not specific to this country.' : undefined}>
+              <PulsePanel title={`${currencyName(fxRow.quote)} per U.S. dollar`} subtitle={currency === 'EUR' ? 'A Eurozone-wide rate, not specific to this country.' : undefined}>
                 <p className="text-3xl font-bold tabular-nums text-ink">{fxRow.rate.toFixed(4)}</p>
-                {fxRow.change30dPct !== null && (
-                  <p className="mt-1 text-sm text-ink-faint">
-                    {fxRow.change30dPct >= 0 ? 'Up' : 'Down'} {Math.abs(fxRow.change30dPct).toFixed(1)}% vs. 30 days ago.
-                  </p>
-                )}
+                {fxRow.change30dPct !== null && <p className="mt-1 text-sm text-ink-faint">{fxMoveText(fxRow.quote, fxRow.change30dPct)}</p>}
               </PulsePanel>
             )}
             <PulsePanel title={`Recent news naming ${name}`}>

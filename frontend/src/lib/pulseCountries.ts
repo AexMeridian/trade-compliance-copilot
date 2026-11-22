@@ -104,7 +104,7 @@ export const MARKET_TILE_FOR: Record<string, string> = {
 // PulseCountryCard.tsx (the globe's quick-look card), so the wording stays
 // identical in both places.
 export const STATUS_LABEL: Record<PulseCountryDetail['exportControl']['status'], string> = {
-  curated: 'Verified export-control status',
+  curated: 'Country Chart: licence needed for the columns marked',
   comprehensive_embargo: 'Comprehensively embargoed',
   broad_restriction_746_5: 'Near-comprehensive license requirement',
   not_curated: 'Not yet verified by this app',

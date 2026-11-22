@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getSanctionCounts, type SanctionCounts } from '../lib/api';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
+import { FreshnessNote } from './FreshnessNote';
 
 // The countries named on the most sanctions entries, as bars you can click to filter the table below. The count is a text match on each
 // entry's address field, so it says where parties are listed as located, not which governments are targeted.
@@ -27,6 +28,7 @@ export function SanctionsLeaders({ selected, onPick }: { selected: string; onPic
         {data.totals ? ` (OFAC SDN ${data.totals.sdn.toLocaleString('en-US')}, Commerce/State ${data.totals.csl.toLocaleString('en-US')}, UN ${data.totals.un.toLocaleString('en-US')}, UK ${data.totals.uk.toLocaleString('en-US')})` : ''}. A party on several lists
         counts once on each. Commerce/State entries are export-control listings, not OFAC sanctions. Hong Kong is counted separately from mainland China. Select a country to filter the table below.
       </p>
+      <FreshnessNote sources={data.lists} className="mb-2" />
       <ol>
         {rows.map((r) => {
           const name = COUNTRY_LABELS[r.country] ?? r.country;

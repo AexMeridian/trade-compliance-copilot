@@ -214,10 +214,11 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-de-minimis',
     title: 'De minimis (Section 321)',
-    description: 'A shipment valued under $800 is often, but not always, exempt from duty. The calculator discloses the real caveats for your case.',
+    description:
+      'The $800 duty-free exemption for low-value shipments has been suspended for all shipments from all countries since 2025-08-29, and the law ends it on 2027-07-01. Every shipment now pays duty and the entry fee. See the notices.',
     type: 'Topic',
-    url: '/calculator',
-    keywords: ['section 321', '$800', 'duty-free'],
+    url: '/?tab=policy&q=de%20minimis',
+    keywords: ['section 321', '$800', 'duty-free', 'small package', 'parcel', 'postal', 'temu', 'aliexpress', 'shein', 'low-value'],
   },
   {
     id: 'topic-sdn',
@@ -262,9 +263,9 @@ const TOPICS: SearchEntry[] = [
   {
     id: 'topic-export-control',
     title: 'Export-control status (Commerce Country Chart)',
-    description: "A destination country's license-requirement status. Hand-verified for a limited set of destinations so far.",
+    description: "A destination country's Commerce Country Chart row: which reason-for-control columns need a licence.",
     type: 'Topic',
-    url: '/compare',
+    url: '/hard-power?tab=compare',
     keywords: ['bis', 'commerce country chart', 'license'],
   },
   {
@@ -272,7 +273,7 @@ const TOPICS: SearchEntry[] = [
     title: 'Forced-labor enforcement (CBP Withhold Release Orders)',
     description: "CBP's Section 307 forced-labor enforcement actions by country. Distinct from DHS's own, separately-published UFLPA Entity List.",
     type: 'Topic',
-    url: '/compare',
+    url: '/?tab=policy&q=forced%20labor',
     keywords: ['uflpa', 'wro', 'cbp', 'forced labor'],
   },
   {
@@ -280,7 +281,7 @@ const TOPICS: SearchEntry[] = [
     title: "A country's own measures against the U.S.",
     description: "Independent research data (Global Trade Alert), not a U.S. government source: a foreign government's own retaliatory trade measures.",
     type: 'Topic',
-    url: '/compare',
+    url: '/hard-power?tab=compare',
     keywords: ['global trade alert', 'retaliation', 'retaliatory'],
   },
   {
@@ -290,6 +291,55 @@ const TOPICS: SearchEntry[] = [
     type: 'Topic',
     url: '/calculator',
     keywords: ['cross', 'rulings.cbp.gov', 'binding ruling'],
+  },
+  // Searches people actually type that should land on notices, not on an unrelated page.
+  {
+    id: 'topic-usmca',
+    title: 'USMCA notices (U.S.-Mexico-Canada Agreement)',
+    description: 'Federal Register notices about USMCA rules of origin, the 2026 joint review and USMCA treatment of tariffs.',
+    type: 'Topic',
+    url: '/?tab=policy&q=USMCA',
+    keywords: ['usmca', 'nafta', 'cusma', 't-mec', 'rules of origin'],
+  },
+  {
+    id: 'topic-301-exclusions',
+    title: 'Section 301 tariff exclusions',
+    description: "USTR's product exclusions from the China Section 301 tariffs (not Section 337 patent exclusion orders, which are a different program).",
+    type: 'Topic',
+    url: '/?tab=policy&q=Section%20301%20exclusions',
+    keywords: ['exclusion', 'exclusions', 'product exclusion', 'ustr'],
+  },
+  {
+    id: 'topic-autos',
+    title: 'Cars and auto parts tariffs (Section 232)',
+    description: 'Section 232 tariffs on passenger vehicles and auto parts, HTS chapter 87.',
+    type: 'Topic',
+    url: '/?tab=policy&q=automobile',
+    keywords: ['car', 'cars', 'auto', 'autos', 'automobile', 'vehicle', 'vehicles', 'auto parts', 'chapter 87', '8703', '8708'],
+  },
+  {
+    id: 'topic-adcvd',
+    title: 'Antidumping and countervailing duty notices',
+    description: 'Commerce and ITC notices on antidumping (AD) and countervailing (CVD) duty orders, reviews and scope rulings.',
+    type: 'Topic',
+    url: '/?tab=policy&q=antidumping',
+    keywords: ['antidumping', 'countervailing', 'ad/cvd', 'adcvd', 'dumping', 'subsidy'],
+  },
+  {
+    id: 'topic-entity-list',
+    title: 'Entity List additions',
+    description: 'BIS rules adding or removing parties on the Entity List, with Federal Register citations.',
+    type: 'Topic',
+    url: '/?tab=policy&q=Entity%20List',
+    keywords: ['entity list', 'bis', 'additions'],
+  },
+  {
+    id: 'topic-importer-record',
+    title: 'Importer of record and customs broker rules (CBP)',
+    description: 'CBP rules on what importers of record and licensed customs brokers must do at entry.',
+    type: 'Topic',
+    url: '/?tab=policy&q=importers%20of%20record',
+    keywords: ['importer of record', 'ior', 'customs broker', 'cbp', 'entry'],
   },
 ];
 
@@ -307,14 +357,21 @@ export const SEARCH_INDEX: SearchEntry[] = [
   })),
 ];
 
+// Matches at the start of a word only: "car" must not find Madagascar or Nicaragua.
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function wordStart(text: string, q: string): boolean {
+  return new RegExp(`(^|[^a-z0-9])${escapeRe(q)}`, 'i').test(text);
+}
+
 function score(entry: SearchEntry, q: string): number {
   const title = entry.title.toLowerCase();
   if (title === q) return 100;
+  if (entry.keywords?.some((k) => k.toLowerCase() === q)) return 100;
   if (title.startsWith(q)) return 80;
-  if (title.includes(q)) return 60;
+  if (wordStart(title, q)) return 60;
   if (entry.keywords?.some((k) => k.toLowerCase().startsWith(q))) return 50;
-  if (entry.keywords?.some((k) => k.toLowerCase().includes(q))) return 35;
-  if (entry.description.toLowerCase().includes(q)) return 20;
+  if (entry.keywords?.some((k) => wordStart(k, q))) return 35;
+  if (q.length >= 3 && wordStart(entry.description, q)) return 20;
   return 0;
 }
 
@@ -334,12 +391,15 @@ export function policySearchEntry(query: string): SearchEntry | null {
   };
 }
 
+const TYPE_ORDER: Record<SearchEntryType, number> = { Topic: 0, Country: 1, Page: 2, Alliance: 3, Search: 4 };
+
 export function searchSite(query: string, limit = 8): SearchEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   return SEARCH_INDEX.map((entry) => ({ entry, s: score(entry, q) }))
     .filter((r) => r.s > 0)
-    .sort((a, b) => b.s - a.s || a.entry.title.localeCompare(b.entry.title))
+    // On a tie, a topic that answers the question (notices, rules) comes before a page or an alliance profile that merely shares the word.
+    .sort((a, b) => b.s - a.s || TYPE_ORDER[a.entry.type] - TYPE_ORDER[b.entry.type] || a.entry.title.localeCompare(b.entry.title))
     .slice(0, limit)
     .map((r) => r.entry);
 }

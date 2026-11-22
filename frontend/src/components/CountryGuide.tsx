@@ -10,7 +10,7 @@ const QA: [string, string][] = [
   ],
   [
     'Why does "export controls" sometimes say nothing is curated?',
-    'This app has hand-verified Commerce Country Chart status for only 12 destinations. For every other country, it says so plainly rather than guessing. An export case involving an uncurated country should be flagged for manual review.',
+    'This app loads the Commerce Country Chart (15 CFR 738 Supp. 1) row for each destination it covers and lists the columns marked. Where a row is not loaded it says so plainly rather than guessing, and an export case involving that country should be flagged for manual review.',
   ],
   [
     'What does the sanctions count actually measure?',

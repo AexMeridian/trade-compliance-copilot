@@ -10,6 +10,7 @@ import { STATUS_LABEL as EXPORT_STATUS_LABEL } from '../lib/pulseCountries';
 import { freightNoteFor } from '../lib/freightNotes';
 import type { PulseCountryDetail } from '../types/pulse';
 import { PowerProfile } from '../components/PowerProfile';
+import { FreshnessNote } from '../components/FreshnessNote';
 import { POWER_CODES, POWER_LABELS } from '../lib/powerCountries';
 
 type View = 'trade' | 'power';
@@ -17,22 +18,29 @@ type View = 'trade' | 'power';
 // Two views share one country picker. Trade policy covers the countries the U.S. has trade data for (not the U.S. itself);
 // the power profile covers every country on the globe, the United States included, and compares up to four.
 const VIEWS = {
-  trade: { labels: TARIFF_COUNTRY_LABELS, max: 3, defaults: ['CN', 'MX'], codes: Object.keys(TARIFF_COUNTRY_LABELS).sort((a, b) => TARIFF_COUNTRY_LABELS[a].localeCompare(TARIFF_COUNTRY_LABELS[b])) },
-  power: { labels: POWER_LABELS, max: 4, defaults: ['US', 'CN'], codes: POWER_CODES },
+  trade: { labels: TARIFF_COUNTRY_LABELS, max: 5, defaults: ['CN', 'MX'], codes: Object.keys(TARIFF_COUNTRY_LABELS).sort((a, b) => TARIFF_COUNTRY_LABELS[a].localeCompare(TARIFF_COUNTRY_LABELS[b])) },
+  power: { labels: POWER_LABELS, max: 5, defaults: ['US', 'CN'], codes: POWER_CODES },
 } as const;
 
 function parseCodes(raw: string | null, view: View): string[] {
+  return parseCodesWithDropped(raw, view).codes;
+}
+
+/** The countries to show, plus any the reader asked for that could not be shown, so none disappears without a word. */
+function parseCodesWithDropped(raw: string | null, view: View): { codes: string[]; dropped: { code: string; reason: 'unknown' | 'over_max' }[] } {
   const { labels, max, defaults } = VIEWS[view];
-  if (!raw) return [...defaults];
-  const codes = [
-    ...new Set(
-      raw
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter((c) => labels[c]),
-    ),
-  ].slice(0, max);
-  return codes.length ? codes : [...defaults];
+  if (!raw) return { codes: [...defaults], dropped: [] };
+  const asked = [...new Set(raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean))];
+  const known = asked.filter((c) => labels[c]);
+  const dropped = [
+    ...asked.filter((c) => !labels[c]).map((code) => ({ code, reason: 'unknown' as const })),
+    ...known.slice(max).map((code) => ({ code, reason: 'over_max' as const })),
+  ];
+  let codes = known.slice(0, max);
+  // Always compare at least two: pad with a default partner rather than showing one country under "what they have in common".
+  if (codes.length === 0) codes = [...defaults];
+  else if (codes.length === 1) codes.push(defaults.find((d) => d !== codes[0]) ?? defaults[0]);
+  return { codes, dropped };
 }
 
 // A procurement reader comparing sourcing options wants this exact view --
@@ -45,7 +53,7 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
   const [params, setParams] = useSearchParams();
   const view: View = fixedView ?? (params.get('view') === 'power' ? 'power' : 'trade');
   const { labels, max: MAX_COUNTRIES, codes: SORTED_CODES } = VIEWS[view];
-  const codes = parseCodes(params.get('countries'), view);
+  const { codes, dropped } = parseCodesWithDropped(params.get('countries'), view);
 
   function setView(next: View) {
     const q = new URLSearchParams(params);
@@ -174,10 +182,29 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
         )}
       </div>
 
+      {dropped.length > 0 && (
+        <p className="mt-3 border border-review/40 bg-review-soft px-3 py-2 text-sm text-review">
+          {dropped.map((d) => {
+            const label = POWER_LABELS[d.code] ?? TARIFF_COUNTRY_LABELS[d.code] ?? d.code;
+            if (d.reason === 'over_max') return `${label} was left out: this view compares up to ${MAX_COUNTRIES} countries at once. `;
+            if (d.code === 'US' && view === 'trade') return 'The United States is not in this view, which compares what the U.S. applies to other countries; use Power profile to compare it. ';
+            return `${label} is not covered by this view. `;
+          })}
+        </p>
+      )}
+
+      {view === 'trade' && codes.includes('CN') && (
+        <p className="mt-3 border border-review/40 bg-review-soft px-3 py-2 text-sm font-semibold text-review">
+          China's column leaves out the 2018-2019 Section 301 duties (Lists 1 to 4A, 7.5% to 100% by product), which this site does not load. China's tariff exposure is
+          higher than shown, so do not read it as equal to a country with the same figures here.
+        </p>
+      )}
+
       {view === 'trade' && (() => {
         // What the countries share: blocs they all belong to, and topics all of
         // them were named under in the last 60 days. Only shown when there is
         // something real to say.
+        if (codes.length < 2) return null;
         const sharedBlocs = blocsFor(codes[0]).filter((b) => codes.every((c) => blocsFor(c).includes(b)));
         const loaded = codes.every((c) => topics[c]);
         const sharedTopics = loaded
@@ -207,7 +234,7 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
       ) : loading && codes.every((c) => !data[c]) ? (
         <p className="mt-10 text-sm text-ink-faint">Loading…</p>
       ) : (
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {codes.map((code) => {
             const d = data[code];
             if (!d) return null;
@@ -226,7 +253,8 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
                     <p className="font-semibold text-ink">Tariff programs</p>
                     <ul className="mt-1 flex flex-col gap-1.5 text-ink-muted">
                       {d.tariffs.forcedLabor && <li>Section 301 forced-labor determination: {d.tariffs.forcedLabor.ratePct}%.</li>}
-                      {d.tariffs.extra.map((e, i) => (
+                      {code === 'CN' && <li className="font-semibold text-review">Plus Section 301 Lists 1 to 4A (7.5% to 100%), not loaded here.</li>}
+                      {d.tariffs.extra.filter((e, i, all) => all.findIndex((x) => x.ratePct === e.ratePct && x.sourceUrl === e.sourceUrl) === i).map((e, i) => (
                         <li key={i}>
                           Section 338 extra duty: {e.ratePct}% ({e.note}).
                         </li>
@@ -250,8 +278,9 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
                   <div>
                     <p className="font-semibold text-ink">Sanctioned-entity mentions</p>
                     <p className="mt-1 text-ink-muted">
-                      {d.sanctions.sdnCount ?? 0} SDN, {d.sanctions.cslCount ?? 0} Commerce/State list
+                      {d.sanctions.sdnCount === null ? 'Data unavailable (list not loaded)' : `${d.sanctions.sdnCount} SDN, ${d.sanctions.cslCount ?? 'n/a'} Commerce/State list`}
                     </p>
+                    <FreshnessNote sources={d.sanctions.lists?.filter((l) => l.source === 'sdn' || l.source === 'csl')} className="mt-0.5" />
                   </div>
                   {(topics[code]?.length ?? 0) > 0 && (
                     <div>

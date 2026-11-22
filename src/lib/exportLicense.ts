@@ -43,7 +43,19 @@ export function parseReason(r: string): { family: string; column: string | null;
 const NOT_CONFIRMED_PARTIAL =
   'This app carries only a handful of the roughly 3,000 Commerce Control List entries, so it cannot confirm that no entry applies. Classify the item against the full list (15 CFR Part 774) before relying on this.';
 
+// For an encryption item the first questions are mass-market status and License Exception ENC, before any chart result: say so on every
+// decision for 5A002, 5D002 and 5E002 (except a denied-party hard stop, which no exception overrides).
+const ENCRYPTION_ECCN_RE = /^5[ADE]002/i;
+const ENCRYPTION_NOTE =
+  ' Encryption item: first check whether it qualifies as mass market (15 CFR 740.17(b)(1), then classified 5A992/5D992) and whether License Exception ENC (15 CFR 740.17) applies to this destination and end user; this app does not check either.';
+
 export function decideExportLicense(input: LicenseInput): LicenseDecision {
+  const decision = decideCore(input);
+  if (!input.hardStop && input.eccn && ENCRYPTION_ECCN_RE.test(input.eccn.eccn)) return { ...decision, note: decision.note + ENCRYPTION_NOTE };
+  return decision;
+}
+
+function decideCore(input: LicenseInput): LicenseDecision {
   const { country, hardStop, coverage, eccn, chartRows } = input;
   const reasons = eccn?.reasonsForControl ?? [];
   const noControl = !eccn || eccn.eccn === 'EAR99' || reasons.length === 0;

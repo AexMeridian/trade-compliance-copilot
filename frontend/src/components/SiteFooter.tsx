@@ -74,7 +74,7 @@ export function SiteFooter() {
         </p>
         <CitePage />
         <p className="mt-6 text-[13px] text-ink-faint">
-          &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. All rights reserved. Site last built {builtOn}.
+          &copy; {new Date().getFullYear()} {SITE.legalName || SITE.operator}. All rights reserved. Site code last deployed {builtOn} (data dates are shown beside the data).
         </p>
       </div>
     </footer>

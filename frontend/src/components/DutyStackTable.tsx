@@ -61,13 +61,21 @@ export function DutyStackTable({
   entryDate?: string | null;
 }) {
   const revision = lines[0]?.effective_date ?? null;
+  // A layer that applies but could not be evaluated (China's Section 301 lists) means the real total is higher than the sum shown:
+  // never print the sum as if it were the answer.
+  const notEvaluated = lines.filter((l) => /NOT EVALUATED/i.test(l.layer)).map((l) => l.layer.replace(/:\s*NOT EVALUATED/i, ''));
   const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border border-hairline-strong bg-paper px-4 py-3">
         <div>
           <p className="text-xs text-ink-faint">Total estimated duty</p>
-          {totalPct !== null ? (
+          {totalPct !== null && notEvaluated.length > 0 ? (
+            <>
+              <p className="font-display text-3xl font-bold tabular-nums text-review">At least {totalPct}%</p>
+              <p className="max-w-md text-xs font-semibold text-review">Plus {notEvaluated.join(' and ')}, not evaluated here and not in this figure.</p>
+            </>
+          ) : totalPct !== null ? (
             <p className="font-display text-3xl font-bold tabular-nums text-ink">{totalPct}%</p>
           ) : (
             <p className="text-base font-semibold text-review">Can't be totalled automatically</p>

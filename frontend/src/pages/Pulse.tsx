@@ -29,7 +29,7 @@ import { PulseSignalStrip } from '../components/PulseSignalStrip';
 import { PulseTempoChart, TEMPO_RANGES, type TempoRangeId } from '../components/PulseTempoChart';
 import { PulseTopSignals, rankSignals } from '../components/PulseTopSignals';
 import { COUNTRY_LABELS } from '../lib/pulseCountries';
-import { agoText } from '../lib/pulsePlain';
+import { collectedText } from '../lib/pulsePlain';
 import { CustomizeButton, CustomizePanel } from '../components/PulseCustomize';
 import {
   NEWS_TOPICS,
@@ -424,7 +424,7 @@ export function Pulse() {
         news={news?.items ?? []}
         lead={topAction}
         onExplore={() => setTab('policy', true)}
-        updatedText={lastSynced ? `Updated ${agoText(lastSynced)}` : 'Not updated yet'}
+        updatedText={collectedText(lastSynced)}
         syncing={syncing}
         onRefresh={handleRefresh}
       />
@@ -603,7 +603,7 @@ export function Pulse() {
                 )}
                 <RailModule title="About this data">
                   <p className="text-[13px] leading-relaxed text-ink-muted">
-                    {lastSynced ? `Updated ${agoText(lastSynced)}. ` : ''}Every item links to its official source.{' '}
+                    {lastSynced ? `${collectedText(lastSynced)}. ` : ''}Every item links to its official source.{' '}
                     <Link to="/methodology" className="text-accent hover:underline">
                       See methodology and source freshness
                     </Link>
@@ -630,8 +630,8 @@ export function Pulse() {
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel
                     title="What matters most"
-                    help="Actions that stand on their own, ranked by how weighty the document type is (a presidential order or final rule counts for more than a routine notice), then by date. It is a simple sort, not a judgment call by a computer model."
-                    subtitle={`Standalone actions only, ranked by document type and then date.${custom ? ' Filtered to your feed.' : ''}`}
+                    help="Actions that stand on their own, ranked by document type (a presidential order or final rule counts for more than a routine notice), then by what they do: actions that change duties, export controls, sanctions or what importers must do rank up, and routine paperwork, meeting and scheduling notices rank down. Then by date. Fixed word lists, the same for every item, not a judgment call by a computer model."
+                    subtitle={`Standalone actions, ranked by document type and effect on trade, then date.${custom ? ' Filtered to your feed.' : ''}`}
                   >
                     {loadingPanels ? (
                       loadingBlock
@@ -653,9 +653,9 @@ export function Pulse() {
                   </PulsePanel>
                 </div>
 
-                <div className="min-w-0 lg:col-span-8">
+                <div className={`min-w-0 lg:col-span-8 ${search ? 'order-first' : ''}`}>
                   <PulsePanel
-                    title="Full activity"
+                    title={search ? `Notices matching "${search}"` : 'Full activity'}
                     help="Everything collected, newest first. Use the buttons to narrow by topic, or search for a word such as steel or Mexico. Notices that repeat with the same title are grouped so they do not crowd the list."
                   >
                     {TagFilter}
@@ -665,8 +665,21 @@ export function Pulse() {
                       // Stays mounted while a filter reloads (dimmed) so the page
                       // doesn't shrink and pull the reader's scroll position up.
                       <div className={`max-h-[36rem] overflow-y-auto pr-1 ${loadingFeed ? 'opacity-50' : ''}`} aria-busy={loadingFeed}>
-                        <PulseFeedList actions={actions} />
+                        <PulseFeedList actions={actions} query={search} />
                       </div>
+                    )}
+                    {search && search.length >= 2 && (
+                      <p className="mt-2 text-[12px] text-ink-faint">
+                        Get new notices that mention "{search}":{' '}
+                        <a href={`/rss.xml?q=${encodeURIComponent(search)}`} className="text-accent hover:underline">
+                          RSS
+                        </a>{' '}
+                        ·{' '}
+                        <a href={`/feed.json?q=${encodeURIComponent(search)}`} className="text-accent hover:underline">
+                          JSON feed
+                        </a>
+                        . Add a country with &amp;country=CN, for example an HTS code plus a country.
+                      </p>
                     )}
                   </PulsePanel>
                 </div>

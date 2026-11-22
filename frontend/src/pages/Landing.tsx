@@ -47,7 +47,7 @@ function referenceData(c: Record<string, number | null>) {
       dataset: 'Sanctions and restricted-party lists',
       count: fmt(partyTotal) ? `${fmt(partyTotal)} listed parties` : 'Loading…',
       source: 'OFAC SDN, Commerce/State Consolidated Screening List, UN Security Council, UK Sanctions List',
-      note: 'Name matching with a written rationale on every candidate. Lists are refreshed weekly; use the official OFAC search for any real decision.',
+      note: 'Name matching with a written rationale on every candidate. Lists are meant to refresh weekly; every result shows the date each list was actually last loaded, and a stale list is marked. Use the official OFAC search for any real decision.',
     },
     {
       dataset: 'USMCA rules of origin',

@@ -31,12 +31,15 @@ export function VerdictBanner({
   verdict,
   caseId,
   generatedAt,
+  isSample = false,
   issues = [],
   lead = [],
 }: {
   verdict: Verdict;
   caseId: string;
   generatedAt?: string;
+  /** Stored samples were run once and are not re-run: say "recorded", never "generated". */
+  isSample?: boolean;
   issues?: string[];
   /** Findings that caused the verdict but aren't open issues (e.g. "License required"); listed first. */
   lead?: ParsedIssue[];
@@ -54,7 +57,11 @@ export function VerdictBanner({
         <h1 className={`display ${verdict === 'clear' ? 'text-2xl' : 'text-3xl'} ${cfg.fg}`}>{cfg.label}</h1>
         <span className="tabular-nums text-xs text-ink-muted">
           Case {caseId.slice(0, 8)}
-          {generatedAt ? `, generated ${new Date(generatedAt).toLocaleString()}` : ''}
+          {generatedAt
+            ? isSample
+              ? `, sample recorded ${generatedAt.slice(0, 10)}, not re-run`
+              : `, last run ${new Date(generatedAt).toLocaleString()}`
+            : ''}
         </span>
       </div>
       <p className="mt-1 text-sm text-ink-muted">{cfg.note}</p>

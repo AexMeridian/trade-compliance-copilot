@@ -218,6 +218,8 @@ export interface SanctionCounts {
   total: number;
   totals?: { sdn: number; csl: number; un: number; uk: number };
   countries: { country: string; count: number; bySource?: { sdn: number; csl: number; un: number; uk: number } }[];
+  /** How current each list is, so every count can carry its as-of date. */
+  lists?: import('../types/pulse').SourceFreshness[];
 }
 
 export function getSanctionCounts() {
@@ -447,6 +449,7 @@ export interface RecentListings {
   days: number;
   total: number;
   items: { id: string; date: string; title: string; url: string | null; source: string | null; countries: string[] }[];
+  lists?: import('../types/pulse').SourceFreshness[];
 }
 
 export function getRecentListings(days = 30) {

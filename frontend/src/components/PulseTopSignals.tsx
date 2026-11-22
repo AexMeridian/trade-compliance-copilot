@@ -13,7 +13,23 @@ import { friendlyDate } from '../lib/pulsePlain';
 // The yearly "Continuation of the National Emergency" renewals are presidential documents but routine: they extend an existing
 // sanctions program and change nothing, so they must not outrank a new proclamation or rule as the lead story.
 const ROUTINE_RENEWAL_RE = /^continuation of the national emergency/i;
-const weight = (a: PulseAction) => (ROUTINE_RENEWAL_RE.test(a.title) ? 1 : docTypeWeight(a.doc_type));
+
+// Document type alone put an import rule on Greek antiquities above a BIS semiconductor rule. Importance also depends on what the
+// action does for people who trade: these adjustments are fixed word lists, applied the same way to every item, no model call.
+// Routine paperwork and scheduling notices sink; actions that change duties, controls, sanctions or importer obligations rise.
+const ROUTINE_RE =
+  /agency information collection|paperwork reduction|sunshine act|meeting(s)? of|scheduling of|institution of (a )?five-year review|archaeological|ethnological|cultural property|privacy act|notice of (open|closed) meeting|request for nominations/i;
+const IMPORTANT_RE =
+  /tariff|duties|duty|section (232|301|338|201)|entity list|export (control|administration)|sanction|designation|de minimis|importer(s)? of record|forced labor|uflpa|withhold release|reciprocal|advanced (computing|semiconductor)|executive order|proclamation|exclusion(s)? (process|request)|general license/i;
+function importance(a: PulseAction): number {
+  const text = `${a.title} ${a.abstract ?? ''}`;
+  if (ROUTINE_RENEWAL_RE.test(a.title)) return 1;
+  let w = docTypeWeight(a.doc_type);
+  if (ROUTINE_RE.test(a.title)) w -= 3;
+  else if (IMPORTANT_RE.test(text)) w += 2;
+  return w;
+}
+const weight = importance;
 
 export function rankSignals(actions: PulseAction[], limit = 5): PulseAction[] {
   const standalone = groupByTitle(actions)

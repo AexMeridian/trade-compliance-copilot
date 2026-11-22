@@ -141,7 +141,12 @@ export function IndicatorExplorer({
             source={ind.source.name}
             sourceUrl={ind.source.url}
             asOf={ind.latestYear ? String(ind.latestYear) : undefined}
-            csv={{ filename: `aex-terminal-${ind.id}.csv`, header: ['Country', `${ind.label} (${ind.latestYear ?? ''})`], rows: ranked.map(([cc, v]) => [nameFor(cc), v]) }}
+            csv={{
+              filename: `aex-terminal-${ind.id}.csv`,
+              // One row per country with its own year, unit, series code and source, so the file stands on its own in a spreadsheet.
+              header: ['country_iso2', 'country', 'year', 'value', 'unit', 'indicator', 'series_code', 'rank', 'countries_ranked', 'source', 'source_url'],
+              rows: ranked.map(([cc, v], i) => [cc, nameFor(cc), ind.years?.[cc] ?? ind.latestYear ?? '', v, ind.unit, ind.label, ind.sourceCode, i + 1, ranked.length, ind.source.name, ind.source.url]),
+            }}
           />
         </div>
       </div>
