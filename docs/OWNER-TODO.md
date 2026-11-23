@@ -3,7 +3,59 @@
 Everything that Claude Code and VS Code cannot do on their own: dashboard settings, account actions, paid actions, decisions and reviews that need a person.
 Claude keeps this file current. When a new item comes up it is added here, and when you finish one it moves to "Done".
 
-Last updated: 2026-11-21 (after the expert audit fixes, see `docs/AUDIT-2026-11.md`)
+Last updated: 2026-11-23 (after the expert audit fixes and round two of data work)
+
+## Start here: everything you need to do, in order
+
+Verified 2026-11-23 from the live site: the deploy of f760e08 is live and its migrations took effect (the China Section 301 lines now show on lookups); CI and the post-deploy check passed. Wrangler in the terminal has no `CLOUDFLARE_API_TOKEN`, so Claude cannot run remote database checks; you can, or set the token in the terminal.
+
+**A. This week, in this order (about an hour in total)**
+
+1. **Run the "HTS and Schedule B sync" workflow once.** GitHub > Actions > "HTS and Schedule B sync" > Run workflow. First check Settings > Actions > General > Workflow permissions is "Read and write", and that `main` branch protection lets the Actions bot push (the sanctions sync already works this way). The full HTS takes about a week of daily runs; until then `hts` and `schedule_b` stay critical in `/api/pulse/data-status`.
+2. **Run "Commerce Control List pull request" once** (Actions tab). It should report no change. Also tick "Allow GitHub Actions to create and approve pull requests" (Settings > Actions > General) so the weekly bots can open pull requests.
+3. **Set a hard monthly spend limit** in the Anthropic console (Settings > Limits). The code now stops the calculator if its own spend check fails, but the console limit is the real backstop.
+4. **Replace the exposed Anthropic key:** console.anthropic.com > revoke the old keys, create a new one limited to this project, then `npx wrangler secret put ANTHROPIC_API_KEY`.
+5. **Create the Census key** at https://api.census.gov/data/key_signup.html, click the activation link in the email (an unactivated key returns an HTML page), then `npx wrangler secret put CENSUS_API_KEY`. After the next 05:30 UTC run, check `census_trade` and `census_acs` in `/api/pulse/data-status`; the effective tariff rate chart on /prices fills over the following days. Check that recent average rates look plausible, because the request shape has not been tested against the real API.
+6. **Request the Global Trade Alert key** at https://globaltradealert.org/api-access, then `npx wrangler secret put GTA_API_KEY`. After the 06:00 UTC bulk job runs, open /country/cn and check the "own actions affecting the U.S." panel.
+7. **Set two optional secrets:** `npx wrangler secret put SYNC_TOKEN` (any long random string; without it `POST /api/pulse/sync` refuses everyone) and `npx wrangler secret put DEMO_TOKEN` (send it as the `X-Demo-Token` header in demos to skip the per-visitor daily calculator quota). Optional: `OPENALEX_MAILTO` (a contact address for OpenAlex's polite pool).
+8. **Turn off Cloudflare Web Analytics auto-injection** (Cloudflare dashboard > Web Analytics, or Speed, for aexterminal.com). The site's security policy blocks its script, so every page logs a console error.
+9. **Turn on email alerts.** Cloudflare dashboard > aexmeridian.com > Email > Email Routing: enable it, add and verify CEO@aexmeridian.com. Set `ALERT_EMAIL`, `ALERT_TO`, `ALERT_FROM` as described in `docs/OPERATIONS.md`, uncomment `send_email` in `wrangler.jsonc` and push (or ask Claude). Until then critical findings appear only in `/api/pulse/data-status`.
+10. **Add an uptime monitor.** UptimeRobot (free): check `https://aexterminal.com/api/health` every 5 minutes.
+11. **Confirm workers.dev is disabled** for this Worker (Cloudflare dashboard > Workers > Settings > Domains and Routes), because rate limits key on the visitor IP header.
+12. **Optional build setting:** change the build command to `npm run build:frontend && npx wrangler d1 migrations apply trade-compliance-db --remote` (Workers & Pages > this Worker > Settings > Build) if migrations do not already apply on deploy; if it fails on permissions, edit the build token to allow "D1: Edit". The 0080 to 0085 migrations did take effect on the last deploy, so this may already be working.
+13. **After the next 08:00 UTC health run,** check `/api/pulse/data-status`: the criticals should shrink to `hts` and `schedule_b` (until step 1 finishes), plus `openalex` and `pulse_treasury` if their fixes have not taken hold. Tell Claude what remains.
+
+**B. Permissions and licences to ask for (before showing professionals)**
+
+14. **Pew Research Center:** ask in writing what reuse they allow. The site holds Pew series back to 2002 for about 60 countries and offers CSV downloads; Pew's terms allow excerpts.
+15. **SIPRI:** read the database terms of use (the military-spending series now credits SIPRI by name) and request permission if commercial or public reuse needs it.
+16. **RSF press freedom** (rsf.org): ask what reuse they allow if you want it added to Soft Power.
+17. **CBP forced-labor list:** CBP blocks automated downloads (HTTP 403). A CSV is published on its data portal (https://www.cbp.gov/document/stats/withhold-release-orders-findings). Either download it monthly and ask Claude to import it, or ask CBP whether a GitHub runner may fetch it. Claude will not route around the block.
+18. **Remittance corridors:** the U.S.-to-country file at remittanceprices.worldbank.org is behind a bot challenge. Download the Excel file in a browser, give it to Claude, and confirm its licence terms. For now country pages show the World Bank's all-sender average.
+19. **Traveler allowances:** CBP's pages do not state which countries get the $200, $800 or $1,600 exemptions, or exact alcohol and tobacco quantities. Ask CBP if you want them on /de-minimis.
+
+**C. Professional reviews**
+
+20. **A licensed customs broker** should review: the curated duty rates; the FY2027 informal-entry MPF amounts ($2.77 electronic, $8.30 manual, $12.45 CBP-prepared; taken from the audit, not read from FR 2026-15530) and whether "electronic" is the right default; the de minimis wording; and a spot-check of the China Section 301 data (about 10,000 rows, migrations 0080 to 0085) against the Chapter 99 PDF (hts.usitc.gov, release 2026HTSRev23). Lines with in-effect product exclusions (279) are sent to review on purpose.
+21. **A sanctions or export-controls lawyer** should review the screening wording and policy, re-verify the BIS Affiliates Rule suspension date (stated as 2027-01-10; unverified), and re-verify the Part 746 country rows other than Syria.
+22. **A Spanish speaker** should check `frontend/src/i18n/content/*.es.ts` (glossary terms and traveler allowances); then re-submit the sitemap in Search Console so the `/es/` pages and their hreflang alternates are picked up.
+
+**D. Decisions for you**
+
+23. **Export "no license required":** with the full control list, an export case with no ECCN match can reach "NLR" with a Part 744 and embargo caveat (never a bare "clear"; the verdict stays "review required"). To be stricter, tell Claude to change `decideCore` in `src/lib/exportLicense.ts`.
+24. **Monthly calculator budget:** default $30 (`MONTHLY_BUDGET_USD`). Tell Claude the number you want. Optional: set `REMINDER_DATES` (for example `anthropic key:2027-01-15,cloudflare token:2027-03-01`) so key and token expiries appear in the Monday summary.
+25. **Look and navigation:** Soft Power's accent is champagne gold, not teal (to change, edit the two `--color-soft` lines in `frontend/src/theme-midnight.css`); mobile navigation is a bottom tab bar (say if you prefer a scrollable top nav). Run a real Lighthouse mobile pass on the deployed site to confirm the speed work (not measured after the changes).
+26. **10-digit statistical suffix:** whether to extend the duty stack to it, which would remove most of the forced review on China lines with exclusions.
+
+**E. Tell Claude when you are ready (these cost money or need a fresh, narrow session)**
+
+27. **Regenerate the four sample cases.** You approved one paid run. Claude waits until this deploy is verified, then runs the seed script against the live site and flags the samples with a migration (wrangler cannot flag them without a token). Under the site's current model every non-USMCA import origin carries a 10 to 12.5% forced-labor Section 301 layer, so no import is verifiably clean until those annex exemptions are sourced; Claude will choose the clean-pass sample after checking the free lookup. Tester findings to confirm fixed: the pen-and-notebook gift set was classified as knives (8211.10); the Russia export sample cited 15 CFR 746.5 (should be 746.8) and lacked AT and an ENC/mass-market step; the Canadian bumper sample stacked a 10% forced-labor layer on a USMCA-qualifying good.
+28. **Finish the unfinished features** (stopped to save usage; some partial code is present): CBP CSMS feed on the Wire; "What changed" page with per-day permalinks and RSS (the page and its data file exist, with one day of history so far); IEEPA/"reciprocal" tariff timeline from primary sources (the site never mentions IEEPA); Chapter 99 heading numbers on duty layers; AD/CVD orders in the lookup (the table exists, the data load is not done); NY Fed GSCPI and IMF PortWatch; chart PNG/SVG export; Section 232 metals and autos (the real structure is in HTS note 16 and note 33 of the Chapter 99 PDF; lines that cannot be evaluated stay forced to review).
+29. **Smaller improvements:** the Prices page shows "no year-ago reading" for the October 2026 CPI cards (the federal CPI appears to have no October 2025 value); a fallback to the latest month with a year-ago value would read better. Add China's own trade tools (MOFCOM export controls, Unreliable Entity List) from primary documents, PPP GDP, Pew's EU/Russia/Japan/NATO/UN questions, V-Dem, per-capita maps, Tagalog pages. A `fast-xml-parser` low-severity audit finding remains (needs a major version bump). The account is at 5 cron triggers (the Workers Free maximum), so none can be added without removing one.
+
+---
+
+The sections below are the detailed reference list (older items; where they conflict with the section above, the section above is current).
 
 ## Do now, in this order
 
