@@ -1,7 +1,204 @@
 {
- "generatedAt": "2026-11-23T01:59:09.405Z",
+ "generatedAt": "2026-11-23T22:07:04.793Z",
  "days": {
   "2026-11-22": {
+   "csl": {
+    "added": [],
+    "removed": [],
+    "addedCount": 0,
+    "removedCount": 0,
+    "updatedCount": 1
+   }
+  },
+  "2026-11-23": {
+   "sdn": {
+    "added": [
+     {
+      "uid": "59110",
+      "name": "H N B TRADING CO LLC",
+      "detail": "[\"SDGT\",\"IFSR\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59110"
+     },
+     {
+      "uid": "59111",
+      "name": "GRAND TARGET HEAVY EQUIPMENT AND MACHINERY SPARE PARTS TRADING L.L.C",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59111"
+     },
+     {
+      "uid": "59112",
+      "name": "RECAZ STAR GENERAL TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59112"
+     },
+     {
+      "uid": "59113",
+      "name": "RAHBAR BAZARGANI NESIM BAHARAN QESHM COMPANY",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59113"
+     },
+     {
+      "uid": "59114",
+      "name": "HEMRAJ TRADING L.L.C",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59114"
+     },
+     {
+      "uid": "59116",
+      "name": "MINA FASHKI AND PARTNERS EXCHANGE COMPANY",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59116"
+     },
+     {
+      "uid": "59117",
+      "name": "OGA GLOBAL GENERAL TRADING L.L.C",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59117"
+     },
+     {
+      "uid": "59118",
+      "name": "EWAN AL MADEENA GENERAL TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59118"
+     },
+     {
+      "uid": "59119",
+      "name": "DEXTEROUS GLOBAL DMCC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59119"
+     },
+     {
+      "uid": "59120",
+      "name": "Ali KALHOR",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59120"
+     },
+     {
+      "uid": "59121",
+      "name": "GESPL INTERNATIONAL GENERAL TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59121"
+     },
+     {
+      "uid": "59122",
+      "name": "MEETHALE RAW MATERIALS TRADING COMPANY LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59122"
+     },
+     {
+      "uid": "59123",
+      "name": "Valiollah HEMMATI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59123"
+     },
+     {
+      "uid": "59124",
+      "name": "Sayyed Mohammad JALALI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59124"
+     },
+     {
+      "uid": "59125",
+      "name": "Mina FASHKI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59125"
+     },
+     {
+      "uid": "59126",
+      "name": "Farzad FASHKI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59126"
+     },
+     {
+      "uid": "59127",
+      "name": "BOGAZICI GUMRUKLEME ITHALAT IHRACAT TURIZM PETROL URUNLERI SANAYI VE TICARET LIMITED SIRKETI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59127"
+     },
+     {
+      "uid": "59128",
+      "name": "GRANDEZ TRADING LIMITED",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59128"
+     },
+     {
+      "uid": "59130",
+      "name": "KHORE AL HILAL GOODS WHOLESALERS TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59130"
+     },
+     {
+      "uid": "59178",
+      "name": "ROYAH ALTAHABIA TRADING L.L.C",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59178"
+     },
+     {
+      "uid": "59180",
+      "name": "NORDIC INTERNATIONAL TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59180"
+     },
+     {
+      "uid": "59183",
+      "name": "ALAM AL SAHRA BUILDING MATERIALS TRADING CO. L.L.C",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59183"
+     },
+     {
+      "uid": "59184",
+      "name": "BERKELEY TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59184"
+     },
+     {
+      "uid": "59185",
+      "name": "INTEGRAL PETRO ENERGY TRADING LLC",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59185"
+     },
+     {
+      "uid": "59186",
+      "name": "ROBUST TRADING LLC",
+      "detail": "[\"IRAN-EO13871\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59186"
+     },
+     {
+      "uid": "59187",
+      "name": "IRAN CENTER FOR EXCHANGE OF CURRENCY AND GOLD",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59187"
+     },
+     {
+      "uid": "59230",
+      "name": "MELLAT EXCHANGE COMPANY",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59230"
+     },
+     {
+      "uid": "59231",
+      "name": "Mahmoud AKHLAGHI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59231"
+     },
+     {
+      "uid": "59232",
+      "name": "Parviz FAZLJU",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59232"
+     },
+     {
+      "uid": "59233",
+      "name": "Mohammad Hossein ABBASI",
+      "detail": "[\"IRAN-EO13902\"]",
+      "url": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=59233"
+     }
+    ],
+    "removed": [],
+    "addedCount": 30,
+    "removedCount": 0,
+    "updatedCount": 1
+   },
    "csl": {
     "added": [],
     "removed": [],
