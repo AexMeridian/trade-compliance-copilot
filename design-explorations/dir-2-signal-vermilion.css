@@ -1,0 +1,56 @@
+/* Direction 2: Crisp white, one vermilion signal */
+:root:not([data-theme='dark']){
+  --color-paper:#ffffff; --color-paper-raised:#ffffff;
+  --color-ink:#0a0a0a; --color-ink-muted:#333333; --color-ink-faint:#575757;
+  --color-hairline:#e6e6e6; --color-hairline-strong:#6b6b6b;
+  --color-accent:#d9300c; --color-accent-hover:#b3250a; --color-accent-soft:#fff0eb;
+  --color-accent-2:#0a0a0a; --color-accent-2-ink:#0a0a0a; --color-accent-2-soft:#f2f2f2;
+  --color-mark:#0a0a0a;
+  --color-hue-indigo:#d9300c; --color-hue-indigo-ink:#d9300c;
+  --color-hue-blue-ink:#d9300c;
+  --color-hue-cyan:#0a0a0a; --color-hue-cyan-ink:#0a0a0a; --color-soft:#007a72; --color-soft-tint:#e3f4f2;
+  --color-hard:#d9300c; --color-hard-tint:#fff0eb;
+  --color-hero-bg:#ffffff; --color-hero-ink:#0a0a0a; --color-hero-ink-muted:#333333; --color-hero-ink-faint:#575757;
+  --color-hero-border:rgba(10,10,10,.28); --color-hero-border-strong:rgba(10,10,10,.6); --color-hero-divider:rgba(10,10,10,.12); --color-hero-card-bg:rgba(10,10,10,.05);
+  --color-hero-btn-bg:#d9300c; --color-hero-btn-text:#ffffff; --color-hero-btn-hover:#b3250a;
+  --hero-mask-rgb:255,255,255; --hero-glow-rgb:217,48,12; --hero-halo-2:none; --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
+  }
+:root[data-theme='dark']{
+  --color-paper:#0b0b0b; --color-paper-raised:#151515;
+  --color-ink:#fafafa; --color-ink-muted:#cfcfcf; --color-ink-faint:#9a9a9a;
+  --color-hairline:#2a2a2a; --color-hairline-strong:#585858;
+  --color-accent:#ff5a36; --color-accent-hover:#ff7a5c; --color-accent-soft:#2c120b;
+  --color-accent-2:#fafafa; --color-accent-2-ink:#fafafa; --color-accent-2-soft:#1d1d1d;
+  --color-mark:#fafafa;
+  --color-hue-indigo:#ff5a36; --color-hue-indigo-ink:#ff5a36;
+  --color-hue-blue-ink:#ff5a36;
+  --color-hue-cyan:#fafafa; --color-hue-cyan-ink:#fafafa; --color-soft:#3ed3c6; --color-soft-tint:#0d2826;
+  --color-hard:#ff5a36; --color-hard-tint:#2c120b;
+  --color-hero-bg:#0b0b0b; --color-hero-ink:#fff; --color-hero-ink-muted:#d4d4d4; --color-hero-ink-faint:#a3a3a3;
+  --color-hero-border:rgba(255,255,255,.28); --color-hero-border-strong:rgba(255,255,255,.6); --color-hero-divider:rgba(255,255,255,.12); --color-hero-card-bg:rgba(255,255,255,.05);
+  --color-hero-btn-bg:#ff5a36; --color-hero-btn-text:#0b0b0b; --color-hero-btn-hover:#ff7a5c;
+  --hero-mask-rgb:11,11,11; --hero-glow-rgb:255,90,54; --hero-halo-2:none; --globe-shadow-alpha:0.12; --hero-glow-alpha:.12;
+  }
+:root:not([data-theme='dark']) .stage{--color-hero-bg:#05070d}
+::selection{background:#ffd2c6}
+header.sticky{border-image:none;border-bottom:4px solid var(--color-accent)}
+footer{background-image:none}
+.edge-glow{background-image:none;background:var(--color-accent)}
+.page-glow::before{background-image:none}
+.btn-primary{background-image:none;box-shadow:none}
+.card-accent::before{background:var(--glow,var(--color-accent))}
+.card{box-shadow:none;border-color:var(--color-hairline);border-radius:2px}
+.card:hover{border-color:var(--color-hairline-strong)}
+
+.card{border:1px solid var(--color-ink)}
+:root[data-theme='dark'] .card{border-color:var(--color-hairline-strong)}
+.card:hover{border-color:var(--color-accent)}
+.card .display{color:var(--color-accent)}
+div.no-print.border-b{background:#0a0a0a;border-color:#0a0a0a;--color-ink:#fff;--color-ink-muted:#e0e0e0;--color-ink-faint:#c8c8c8;--color-clear:#4ade80;--color-stop:#ff8478;--color-hairline:#333}
+footer{border-top:4px solid var(--color-accent);background:var(--color-paper)}
+[role=tablist] [role=tab]{border-radius:2px;border-color:var(--color-ink);color:var(--color-ink)}
+[role=tablist] [role=tab][aria-selected=true]{background:var(--color-accent);border-color:var(--color-accent);color:#fff}
+:root[data-theme='dark'] [role=tablist] [role=tab]{border-color:var(--color-hairline-strong);color:var(--color-ink)}
+:root[data-theme='dark'] [role=tablist] [role=tab][aria-selected=true]{color:#0b0b0b}
+main h1:not(.text-center)::after{content:'';display:block;width:84px;height:7px;background:var(--color-accent);margin-top:16px}
+.btn-primary{border-radius:2px}
