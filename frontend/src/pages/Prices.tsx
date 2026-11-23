@@ -5,6 +5,8 @@ import { PulsePanel } from '../components/PulsePanel';
 import { Sparkline } from '../components/Sparkline';
 import { TrendChart, type ChartEvent, type ChartLine } from '../components/TrendChart';
 import { ChartFooter } from '../components/ChartFooter';
+import { EffectiveTariffRate } from '../components/CensusPanels';
+import { FreightPanel } from '../components/FreightPanel';
 import { getEveryday, type EverydayResponse, type EverydaySeries } from '../lib/api';
 
 // "Tariffs and your wallet": the question ordinary visitors in user testing came with ("are tariffs making my groceries, medicine,
@@ -199,6 +201,10 @@ export function Prices() {
               }}
             />
           </PulsePanel>
+
+          <EffectiveTariffRate partnerCodes />
+
+          <FreightPanel />
 
           <PulsePanel title="Check one product">
             <p className="text-sm text-ink-muted">

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
-import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
+import { getCaseFile, saveCaseFile, logCaseEvent, canWriteCase, CASE_TOKEN_HEADER, CASE_WRITE_FORBIDDEN } from '../lib/caseStore.js';
 import { findUsmcaRule } from '../lib/db.js';
 import { precheckRvc } from '../lib/originMath.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
@@ -14,6 +14,7 @@ originRoute.post('/:id/origin', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
+  if (!(await canWriteCase(c.env, caseId, c.req.header(CASE_TOKEN_HEADER)))) return c.json({ error: CASE_WRITE_FORBIDDEN }, 403);
   if (caseFile.classification.status !== 'complete') {
     return c.json({ error: 'Module 1 (classification) must be complete before Module 2 (origin).' }, 409);
   }

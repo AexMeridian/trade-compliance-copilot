@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
-import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
-import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows, getAllEccn } from '../lib/db.js';
-import { buildDutyStack, section232ScopeCheck, splitOverlaysByDate, USMCA_COUNTRIES } from '../lib/dutyStack.js';
+import { getCaseFile, saveCaseFile, logCaseEvent, canWriteCase, CASE_TOKEN_HEADER, CASE_WRITE_FORBIDDEN } from '../lib/caseStore.js';
+import { getRateBearingHtsLine, getApplicableOverlays, searchEccn, getEccnByCode, getCountryCoverage, getCountryChartRows, getAllEccn, countEccn, getCountryGroups } from '../lib/db.js';
+import { buildDutyStack, china301Assessment, section232ScopeCheck, splitOverlaysByDate, USMCA_COUNTRIES } from '../lib/dutyStack.js';
 import { computeEntryFees, deMinimisNote, TRANSPORT_MODES, type TransportMode } from '../lib/customsFees.js';
 import { describeAlerts, programsForOverlays, staleness } from '../lib/curatedWatch.js';
 import { curatedBaselines, getPendingAlerts } from '../lib/refresh/curatedWatch.js';
@@ -24,6 +24,7 @@ determinationRoute.post('/:id/determination', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
+  if (!(await canWriteCase(c.env, caseId, c.req.header(CASE_TOKEN_HEADER)))) return c.json({ error: CASE_WRITE_FORBIDDEN }, 403);
   // Origin (Module 2) is a USMCA/duty-stack input, which only the import
   // path uses -- an export determination turns on classification, screening
   // and destination, so requiring origin there blocked a real workflow for
@@ -79,7 +80,7 @@ determinationRoute.post('/:id/determination', async (c) => {
     const { active: overlays, inactive: inactiveOverlays } = splitOverlaysByDate(await getApplicableOverlays(c.env, code, country || null), today);
     await logCaseEvent(c.env, caseId, 'determination', 'candidate_set', { code, country, overlays });
 
-    const { lines, totalPct } = buildDutyStack(hts, country, caseFile.origin.qualifies, overlays);
+    const { lines, totalPct } = buildDutyStack(hts, country, caseFile.origin.qualifies, overlays, today);
 
     // Dollar figures depend on a declared value the user may or may not have supplied; both stay null without one, same "don't guess a
     // number nobody gave us" rule as totalPct itself. The figure is duty only: it leaves out the MPF, HMF, freight and insurance.
@@ -108,13 +109,17 @@ determinationRoute.post('/:id/determination', async (c) => {
     // China-origin goods can carry a Section 301 duty this app has no verified
     // data for (see dutyStack.ts) -- the estimate is knowingly incomplete, so
     // it can't be called "clear".
-    const china301Unevaluated = country === 'CN' && !overlays.some((o) => o.program === 'sec301_china');
+    const china301 = country === 'CN' ? china301Assessment(overlays, hts.htsno.replace(/\D/g, ''), today) : null;
+    const china301Unevaluated = china301?.state === 'unevaluated';
+    // A China line that needs the statistical suffix or an exclusion check is never called clear either.
+    const china301Review = china301?.state === 'review';
     // Section 232 metal-derivative and auto coverage this app cannot settle from the code alone also blocks a green verdict.
     const scope232 = section232ScopeCheck(code, country);
     const verdict: Verdict = hardStop
       ? 'stop'
       : caseFile.classification.ambiguous ||
           china301Unevaluated ||
+          china301Review ||
           scope232.forceReview ||
           (usmcaRelevant && caseFile.origin.qualifies === null) ||
           totalPct === null ||
@@ -156,6 +161,11 @@ determinationRoute.post('/:id/determination', async (c) => {
         'Determination: goods of China may be subject to an additional Section 301 duty that this app has no verified data for. The estimated total excludes it. Check the HTS code against the current USTR Section 301 lists (HTSUS Chapter 99) before relying on this figure.'
       );
     }
+    if (china301Review) {
+      caseFile.open_issues.push(
+        `Determination: China Section 301 duties on this line cannot be settled from the HTS code alone, so the estimated total excludes them. ${china301?.reviewReasons.join(' ') ?? ''}`
+      );
+    }
     for (const issue of scope232.issues) caseFile.open_issues.push(issue);
     for (const issue of describeAlerts(pendingAlerts)) caseFile.open_issues.push(issue);
     if (freshness && freshness.level !== 'ok') {
@@ -167,7 +177,7 @@ determinationRoute.post('/:id/determination', async (c) => {
       caseFile.open_issues.push(`Determination: the ${row.program.replace(/_/g, ' ')} rule for HTS ${row.hts_pattern} ${reason}, so it was not charged. Confirm whether a replacement applies.`);
     }
     caseFile.open_issues.push(
-      'Determination: the total covers the HTS rate and the Section 232, 301 and 338 layers loaded in this app. It does not model antidumping or countervailing duty orders, Section 232 derivative products and pending Section 232 actions (robotics, wind turbines, polysilicon, specialty pharmaceuticals), Section 301 China Lists 1-4A, or Section 201 safeguards. This is an estimate, not a binding ruling; request a CBP ruling under 19 CFR Part 177 for certainty.'
+      'Determination: the total covers the HTS rate and the Section 232, 301 and 338 layers loaded in this app. It does not model antidumping or countervailing duty orders, Section 232 derivative products and pending Section 232 actions (robotics, wind turbines, polysilicon, specialty pharmaceuticals), China Section 301 exclusions granted after HTS Revision 23, or Section 201 safeguards. This is an estimate, not a binding ruling; request a CBP ruling under 19 CFR Part 177 for certainty.'
     );
     if (totalPct === null) {
       caseFile.open_issues.push('Determination: one or more duty-stack lines have a non-ad-valorem (specific/compound) rate this app cannot sum automatically. Compute manually.');
@@ -189,9 +199,9 @@ determinationRoute.post('/:id/determination', async (c) => {
 
   // The curated ECCN table is small enough to give the model whole; if it ever grows past that, fall back to the text-search shortlist plus EAR99.
   const wholeTable = await getAllEccn(c.env);
-  // The Commerce Control List here is a handful of entries out of roughly 3,000. Until a full load lands (see docs/OWNER-TODO.md), the export path
-  // cannot confirm "EAR99" or "no license required", so it never returns a clear verdict (see CCL_COMPLETE_MIN_ENTRIES).
-  const cclComplete = (wholeTable?.length ?? 0) >= CCL_COMPLETE_MIN_ENTRIES;
+  // Complete only when the whole Commerce Control List (about 636 ECCNs, loaded from the eCFR by scripts/build-ccl.ts) is in the table; while it is
+  // partial the export path cannot confirm "EAR99" or "no license required" and never returns a clear verdict (see CCL_COMPLETE_MIN_ENTRIES).
+  const cclComplete = (await countEccn(c.env).catch(() => 0)) >= CCL_COMPLETE_MIN_ENTRIES;
   let allCandidates = wholeTable ?? (await searchEccn(c.env, caseFile.classification.product_description));
   if (!wholeTable) {
     const earCandidates = await getEccnByCode(c.env, 'EAR99');
@@ -226,8 +236,10 @@ determinationRoute.post('/:id/determination', async (c) => {
   const verifiedReasons = new Set(
     (await c.env.DB.prepare(`SELECT DISTINCT reason_for_control AS r FROM country_chart`).all<{ r: string }>()).results.map((x) => x.r.replace(/\d+$/, ''))
   );
+  const groupInfo = await getCountryGroups(c.env, country).catch(() => null);
   const decision = decideExportLicense({
     country,
+    countryGroups: groupInfo && groupInfo.asOf ? groupInfo.groups : undefined,
     hardStop,
     coverage,
     eccn: selected ? { eccn: selected.eccn, reasonsForControl, licenseExceptions: JSON.parse(selected.license_exceptions || '[]') } : null,
@@ -297,7 +309,9 @@ determinationRoute.post('/:id/determination', async (c) => {
   for (const issue of describeAlerts(exportAlerts)) caseFile.open_issues.push(issue);
   if (maybeElsewhere) {
     caseFile.open_issues.push(
-      'Determination: this product is in a field the Commerce Control List controls, and it did not match any of the few entries this app carries. EAR99 here means only "not one of those entries". Check the full Commerce Control List (15 CFR Part 774) before treating it as uncontrolled.'
+      cclComplete
+        ? 'Determination: this product is in a field the Commerce Control List controls, yet the shortlist of entries searched did not produce a match, so EAR99 here is unconfirmed. Read the Part 774 category for this kind of item before treating it as uncontrolled.'
+        : 'Determination: this product is in a field the Commerce Control List controls, and it did not match any of the few entries this app carries. EAR99 here means only "not one of those entries". Check the full Commerce Control List (15 CFR Part 774) before treating it as uncontrolled.'
     );
   }
   if (exportFreshness && exportFreshness.level !== 'ok') {
@@ -308,6 +322,11 @@ determinationRoute.post('/:id/determination', async (c) => {
   if (!cclComplete && licenseRequirement !== 'License Required') {
     caseFile.open_issues.push(
       'Determination: cannot confirm. The Commerce Control List loaded here is partial, so this tool cannot confirm EAR99 or "no license required", and never gives a clear verdict on an export. Classify the item against the full list (15 CFR Part 774) and confirm the Country Chart result.'
+    );
+  }
+  if (cclComplete && licenseRequirement === 'NLR') {
+    caseFile.open_issues.push(
+      'Determination: No License Required here rests on the classification and the Country Chart only. Part 744 end-use and end-user controls and any embargo or denied-party restriction still apply; this app screens the named parties but not the end use.'
     );
   }
   if (licenseRequirement === 'Insufficient Data') {

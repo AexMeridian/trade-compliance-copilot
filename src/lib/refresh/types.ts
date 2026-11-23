@@ -30,11 +30,17 @@ export interface RefreshResult {
     | 'wro_findings'
     | 'case_expiry'
     | 'customs_duties'
-    | 'travel_advisories';
+    | 'travel_advisories'
+    | 'csms'
+    | 'census_trade'
+    | 'census_acs'
+    | 'freight_indicators';
   rows: number;
   // Set when a bulk job found its upstream file identical to the last load and skipped the
   // (write-heavy) table rewrite. rows is 0 in that case.
   unchanged?: boolean;
+  // Set when a job needs a key or setting that is not there (e.g. "needs CENSUS_API_KEY"). rows is 0; the scheduler logs it as the note.
+  skipped?: string;
   // Set only by pulse sync -- keyword terms that hit the per-term pagination
   // cap with real results still beyond it, so a caller can surface "this
   // run may be missing some historical documents" instead of the gap being

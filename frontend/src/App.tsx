@@ -42,6 +42,7 @@ const Lookup = lazyPage(() => import('./pages/Lookup'), 'Lookup');
 const DeMinimis = lazyPage(() => import('./pages/DeMinimis'), 'DeMinimis');
 const Glossary = lazyPage(() => import('./pages/Glossary'), 'Glossary');
 const UsChina = lazyPage(() => import('./pages/UsChina'), 'UsChina');
+const Changes = lazyPage(() => import('./pages/Changes'), 'Changes');
 
 
 
@@ -56,6 +57,16 @@ function usePageMeta(pathname: string, tab: string | null) {
     document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description);
     document.querySelector('link[rel="canonical"]')?.setAttribute('href', meta.canonical);
     document.querySelector('meta[property="og:url"]')?.setAttribute('content', meta.canonical);
+    // Language of the page and its hreflang alternates (the Worker writes the same into the served HTML).
+    document.documentElement.lang = meta.lang ?? 'en';
+    document.querySelectorAll('link[rel="alternate"][hreflang]').forEach((el) => el.remove());
+    for (const a of meta.alternates ?? []) {
+      const link = document.createElement('link');
+      link.rel = 'alternate';
+      link.hreflang = a.hreflang;
+      link.href = a.href;
+      document.head.appendChild(link);
+    }
 
     let robots = document.querySelector('meta[name="robots"]');
     if (!meta.indexable) {
@@ -197,7 +208,13 @@ export default function App() {
           <Route path="/lookup" element={<Lookup />} />
           <Route path="/de-minimis" element={<DeMinimis />} />
           <Route path="/glossary" element={<Glossary />} />
+          {/* Spanish translations (frontend/src/i18n); the same pages read their language from the address. */}
+          <Route path="/es/basics" element={<Basics />} />
+          <Route path="/es/de-minimis" element={<DeMinimis />} />
+          <Route path="/es/glossary" element={<Glossary />} />
           <Route path="/us-china" element={<UsChina />} />
+          <Route path="/changes" element={<Changes />} />
+          <Route path="/changes/:date" element={<Changes />} />
           <Route path="/hard-power" element={<HardPower />} />
           <Route path="/soft-power" element={<SoftPower />} />
           {/* Old addresses keep working (the Worker also answers them with a 301): bookmarks, shared links and search results. */}

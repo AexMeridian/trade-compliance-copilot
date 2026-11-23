@@ -18,10 +18,17 @@ export interface LicenseInput {
   /** True only when the Commerce Control List loaded here is the whole list. While it is partial, "EAR99" or "no match" cannot be confirmed and the
    * result is never NLR. Defaults to false. */
   cclComplete?: boolean;
+  /** The destination's Country Groups (15 CFR 740 Supp. 1), e.g. ["A:1", "B"]; omitted when not loaded. Only named in notes: the conditions an ECCN sets by group are paragraph-specific and are not decided here. */
+  countryGroups?: readonly string[];
 }
 
-/** The curated table counts as the whole Commerce Control List only at or above this many entries (the real list has roughly 3,000 paragraphs). */
-export const CCL_COMPLETE_MIN_ENTRIES = 1000;
+/** The loaded table counts as the whole Commerce Control List only at or above this many ECCNs. Part 774 Supp. 1 has about 636 (the roughly 3,000 figure
+ * counts paragraphs within them), so a table that stopped short of most of the list stays "partial". */
+export const CCL_COMPLETE_MIN_ENTRIES = 600;
+
+/** Appended to every "no license required" result: a complete Commerce Control List settles only the item's classification, not who receives it or what it is for. */
+export const PART_744_CAVEAT =
+  ' This does not clear the transaction: Part 744 end-use and end-user controls (for example military end use, certain entities and weapons-related end uses) and any embargo, denied-party or OFAC restriction still apply and are only partly screened here.';
 
 /** Destinations whose embargo still lets EAR99 items go under License Exception SPP (15 CFR 746.9(b)(1), since 2025-09-02). */
 export const EAR99_SPP_DESTINATIONS: ReadonlySet<string> = new Set(['SY']);
@@ -48,6 +55,14 @@ const NOT_CONFIRMED_PARTIAL =
 const ENCRYPTION_ECCN_RE = /^5[ADE]002/i;
 const ENCRYPTION_NOTE =
   ' Encryption item: first check whether it qualifies as mass market (15 CFR 740.17(b)(1), then classified 5A992/5D992) and whether License Exception ENC (15 CFR 740.17) applies to this destination and end user; this app does not check either.';
+
+/** For the "verify" items that depend on country group, says which groups the destination is in so the reader can apply the entry's own wording. No decision is made from it. */
+function groupsSentence(groups: readonly string[] | undefined, verify: string[]): string {
+  if (!groups || !verify.some((v) => /country group/.test(v))) return '';
+  return groups.length > 0
+    ? ` The destination is in Country Group${groups.length > 1 ? 's' : ''} ${groups.join(', ')} (15 CFR 740 Supp. 1); apply the entry's own country-group wording to that.`
+    : ' The destination is in none of the Country Groups this app has loaded (15 CFR 740 Supp. 1); apply the country-group wording in the ECCN entry.';
+}
 
 export function decideExportLicense(input: LicenseInput): LicenseDecision {
   const decision = decideCore(input);
@@ -102,7 +117,11 @@ function decideCore(input: LicenseInput): LicenseDecision {
     }
     return {
       requirement: 'NLR',
-      note: 'EAR99 or no reason-for-control match: No License Required for standard commercial export, subject to standard embargo/denied-party/end-use screening.',
+      note:
+        (eccn
+          ? 'The item is EAR99 (not on the Commerce Control List): No License Required under the Country Chart for a standard commercial export.'
+          : 'No entry on the Commerce Control List matched this item, which supports treating it as EAR99 (No License Required under the Country Chart). That is a classification judgment to confirm against 15 CFR Part 774, not a finding.') +
+        PART_744_CAVEAT,
       matchedReason: null,
     };
   }
@@ -146,7 +165,7 @@ function decideCore(input: LicenseInput): LicenseDecision {
 
   if (hits.length > 0) {
     const exceptions = eccn!.licenseExceptions;
-    const extra = verify.length > 0 ? ` Also verify: ${verify.join('; ')}.` : '';
+    const extra = verify.length > 0 ? ` Also verify: ${verify.join('; ')}.${groupsSentence(input.countryGroups, verify)}` : '';
     return {
       requirement: exceptions.length > 0 ? 'Possible exception: verify' : 'License Required',
       note: `Destination "${country}" is marked on the Commerce Country Chart for ${hits.join(', ')}, which this ECCN is controlled for across the entire entry: a license is required.${extra} ${
@@ -160,7 +179,7 @@ function decideCore(input: LicenseInput): LicenseDecision {
   if (verify.length > 0) {
     return {
       requirement: 'Insufficient Data',
-      note: `Cannot confirm for "${country}": this ECCN has controls this app cannot settle on the Country Chart alone: ${verify.join('; ')}. Check the ECCN entry and 15 CFR 738 Supp. 1 for this destination.`,
+      note: `Cannot confirm for "${country}": this ECCN has controls this app cannot settle on the Country Chart alone: ${verify.join('; ')}.${groupsSentence(input.countryGroups, verify)} Check the ECCN entry and 15 CFR 738 Supp. 1 for this destination.`,
       matchedReason: null,
     };
   }
@@ -173,7 +192,7 @@ function decideCore(input: LicenseInput): LicenseDecision {
   }
   return {
     requirement: 'NLR',
-    note: `Destination "${country}" has curated Commerce Country Chart coverage, but none of its marked reasons-for-control match this ECCN's reasons_for_control (${reasons.join(', ')}): No License Required.`,
+    note: `Destination "${country}" has curated Commerce Country Chart coverage, but none of its marked reasons-for-control match this ECCN's reasons_for_control (${reasons.join(', ')}): No License Required under the Country Chart.${PART_744_CAVEAT}`,
     matchedReason: null,
   };
 }

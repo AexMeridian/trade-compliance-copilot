@@ -112,6 +112,8 @@ export interface DutyStackLine {
   reason_if_not_applied: string | null;
   caveat: string | null;
   source: Provenance | null;
+  /** Chapter 99 heading numbers, only where the mapping is certain. */
+  chapter99?: string[];
 }
 
 export interface DeterminationResult {

@@ -1,0 +1,1502 @@
+{
+ "asOf": "2026-11-19",
+ "countries": {
+  "AD": {
+   "name": "Andorra",
+   "groups": [
+    "B"
+   ]
+  },
+  "AE": {
+   "name": "United Arab Emirates",
+   "groups": [
+    "A:5",
+    "B"
+   ]
+  },
+  "AF": {
+   "name": "Afghanistan",
+   "groups": [
+    "B",
+    "D:3",
+    "D:5"
+   ]
+  },
+  "AG": {
+   "name": "Antigua and Barbuda",
+   "groups": [
+    "B"
+   ]
+  },
+  "AL": {
+   "name": "Albania",
+   "groups": [
+    "A:6",
+    "B"
+   ]
+  },
+  "AM": {
+   "name": "Armenia",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "AO": {
+   "name": "Angola",
+   "groups": [
+    "B"
+   ]
+  },
+  "AR": {
+   "name": "Argentina",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "AT": {
+   "name": "Austria",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "AU": {
+   "name": "Australia",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "AW": {
+   "name": "Aruba",
+   "groups": [
+    "B"
+   ]
+  },
+  "AZ": {
+   "name": "Azerbaijan",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "BA": {
+   "name": "Bosnia & Herzegovina",
+   "groups": [
+    "B"
+   ]
+  },
+  "BB": {
+   "name": "Barbados",
+   "groups": [
+    "B"
+   ]
+  },
+  "BD": {
+   "name": "Bangladesh",
+   "groups": [
+    "B"
+   ]
+  },
+  "BE": {
+   "name": "Belgium",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "BF": {
+   "name": "Burkina Faso",
+   "groups": [
+    "B"
+   ]
+  },
+  "BG": {
+   "name": "Bulgaria",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "BH": {
+   "name": "Bahrain",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "BI": {
+   "name": "Burundi",
+   "groups": [
+    "B"
+   ]
+  },
+  "BJ": {
+   "name": "Benin",
+   "groups": [
+    "B"
+   ]
+  },
+  "BN": {
+   "name": "Brunei",
+   "groups": [
+    "B"
+   ]
+  },
+  "BO": {
+   "name": "Bolivia",
+   "groups": [
+    "B"
+   ]
+  },
+  "BR": {
+   "name": "Brazil",
+   "groups": [
+    "A:2",
+    "A:4",
+    "B"
+   ]
+  },
+  "BS": {
+   "name": "The Bahamas",
+   "groups": [
+    "B"
+   ]
+  },
+  "BT": {
+   "name": "Bhutan",
+   "groups": [
+    "B"
+   ]
+  },
+  "BW": {
+   "name": "Botswana",
+   "groups": [
+    "B"
+   ]
+  },
+  "BY": {
+   "name": "Belarus",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "BZ": {
+   "name": "Belize",
+   "groups": [
+    "B"
+   ]
+  },
+  "CA": {
+   "name": "Canada",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "CD": {
+   "name": "Congo (Democratic Republic of)",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "CF": {
+   "name": "Central African Republic",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "CG": {
+   "name": "Congo (Republic of the)",
+   "groups": [
+    "B"
+   ]
+  },
+  "CH": {
+   "name": "Switzerland",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "CI": {
+   "name": "Cote d'lvoire",
+   "groups": [
+    "B"
+   ]
+  },
+  "CL": {
+   "name": "Chile",
+   "groups": [
+    "B"
+   ]
+  },
+  "CM": {
+   "name": "Cameroon",
+   "groups": [
+    "B"
+   ]
+  },
+  "CN": {
+   "name": "China (PRC)",
+   "groups": [
+    "D:1",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "CO": {
+   "name": "Colombia",
+   "groups": [
+    "B"
+   ]
+  },
+  "CR": {
+   "name": "Costa Rica",
+   "groups": [
+    "B"
+   ]
+  },
+  "CU": {
+   "name": "Cuba",
+   "groups": [
+    "D:2",
+    "D:3",
+    "D:5",
+    "E:2"
+   ]
+  },
+  "CV": {
+   "name": "Cape Verde",
+   "groups": [
+    "B"
+   ]
+  },
+  "CW": {
+   "name": "Curaçao",
+   "groups": [
+    "B"
+   ]
+  },
+  "CY": {
+   "name": "Cyprus",
+   "groups": [
+    "A:3",
+    "A:4",
+    "A:6",
+    "B"
+   ]
+  },
+  "CZ": {
+   "name": "Czech Republic",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "DE": {
+   "name": "Germany",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "DJ": {
+   "name": "Djibouti",
+   "groups": [
+    "B"
+   ]
+  },
+  "DK": {
+   "name": "Denmark",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "DM": {
+   "name": "Dominica",
+   "groups": [
+    "B"
+   ]
+  },
+  "DO": {
+   "name": "Dominican Republic",
+   "groups": [
+    "B"
+   ]
+  },
+  "DZ": {
+   "name": "Algeria",
+   "groups": [
+    "B"
+   ]
+  },
+  "EC": {
+   "name": "Ecuador",
+   "groups": [
+    "B"
+   ]
+  },
+  "EE": {
+   "name": "Estonia",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "EG": {
+   "name": "Egypt",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "EH": {
+   "name": "Western Sahara",
+   "groups": [
+    "B"
+   ]
+  },
+  "ER": {
+   "name": "Eritrea",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "ES": {
+   "name": "Spain",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "ET": {
+   "name": "Ethiopia",
+   "groups": [
+    "B"
+   ]
+  },
+  "FI": {
+   "name": "Finland",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "FJ": {
+   "name": "Fiji",
+   "groups": [
+    "B"
+   ]
+  },
+  "FM": {
+   "name": "Micronesia, Federated States of",
+   "groups": [
+    "B"
+   ]
+  },
+  "FR": {
+   "name": "France",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "GA": {
+   "name": "Gabon",
+   "groups": [
+    "B"
+   ]
+  },
+  "GB": {
+   "name": "United Kingdom",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "GD": {
+   "name": "Grenada",
+   "groups": [
+    "B"
+   ]
+  },
+  "GE": {
+   "name": "Georgia",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "GH": {
+   "name": "Ghana",
+   "groups": [
+    "B"
+   ]
+  },
+  "GM": {
+   "name": "Gambia, The",
+   "groups": [
+    "B"
+   ]
+  },
+  "GN": {
+   "name": "Guinea",
+   "groups": [
+    "B"
+   ]
+  },
+  "GQ": {
+   "name": "Equatorial Guinea",
+   "groups": [
+    "B"
+   ]
+  },
+  "GR": {
+   "name": "Greece",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "GT": {
+   "name": "Guatemala",
+   "groups": [
+    "B"
+   ]
+  },
+  "GW": {
+   "name": "Guinea-Bissau",
+   "groups": [
+    "B"
+   ]
+  },
+  "GY": {
+   "name": "Guyana",
+   "groups": [
+    "B"
+   ]
+  },
+  "HN": {
+   "name": "Honduras",
+   "groups": [
+    "B"
+   ]
+  },
+  "HR": {
+   "name": "Croatia",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "HT": {
+   "name": "Haiti",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "HU": {
+   "name": "Hungary",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "ID": {
+   "name": "Indonesia",
+   "groups": [
+    "B"
+   ]
+  },
+  "IE": {
+   "name": "Ireland",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "IL": {
+   "name": "Israel",
+   "groups": [
+    "A:6",
+    "B",
+    "D:2",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "IN": {
+   "name": "India",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:5",
+    "B"
+   ]
+  },
+  "IQ": {
+   "name": "Iraq",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "IR": {
+   "name": "Iran",
+   "groups": [
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5",
+    "E:1"
+   ]
+  },
+  "IS": {
+   "name": "Iceland",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "IT": {
+   "name": "Italy",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "JM": {
+   "name": "Jamaica",
+   "groups": [
+    "B"
+   ]
+  },
+  "JO": {
+   "name": "Jordan",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "JP": {
+   "name": "Japan",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "KE": {
+   "name": "Kenya",
+   "groups": [
+    "B"
+   ]
+  },
+  "KG": {
+   "name": "Kyrgyzstan",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "KH": {
+   "name": "Cambodia",
+   "groups": [
+    "D:1"
+   ]
+  },
+  "KI": {
+   "name": "Kiribati",
+   "groups": [
+    "B"
+   ]
+  },
+  "KM": {
+   "name": "Comoros",
+   "groups": [
+    "B"
+   ]
+  },
+  "KN": {
+   "name": "Saint Kitts & Nevis",
+   "groups": [
+    "B"
+   ]
+  },
+  "KP": {
+   "name": "Korea, North",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5",
+    "E:1"
+   ]
+  },
+  "KR": {
+   "name": "Korea, South",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "KW": {
+   "name": "Kuwait",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "KZ": {
+   "name": "Kazakhstan",
+   "groups": [
+    "A:4",
+    "D:1",
+    "D:3"
+   ]
+  },
+  "LA": {
+   "name": "Laos",
+   "groups": [
+    "D:1"
+   ]
+  },
+  "LB": {
+   "name": "Lebanon",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "LC": {
+   "name": "Saint Lucia",
+   "groups": [
+    "B"
+   ]
+  },
+  "LK": {
+   "name": "Sri Lanka",
+   "groups": [
+    "B"
+   ]
+  },
+  "LR": {
+   "name": "Liberia",
+   "groups": [
+    "B"
+   ]
+  },
+  "LS": {
+   "name": "Lesotho",
+   "groups": [
+    "B"
+   ]
+  },
+  "LT": {
+   "name": "Lithuania",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "LU": {
+   "name": "Luxembourg",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "LV": {
+   "name": "Latvia",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "LY": {
+   "name": "Libya",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "MA": {
+   "name": "Morocco",
+   "groups": [
+    "B"
+   ]
+  },
+  "MC": {
+   "name": "Monaco",
+   "groups": [
+    "B"
+   ]
+  },
+  "MD": {
+   "name": "Moldova",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "ME": {
+   "name": "Montenegro",
+   "groups": [
+    "B"
+   ]
+  },
+  "MG": {
+   "name": "Madagascar",
+   "groups": [
+    "B"
+   ]
+  },
+  "MH": {
+   "name": "Marshall Islands",
+   "groups": [
+    "B"
+   ]
+  },
+  "MK": {
+   "name": "North Macedonia",
+   "groups": [
+    "B"
+   ]
+  },
+  "ML": {
+   "name": "Mali",
+   "groups": [
+    "B"
+   ]
+  },
+  "MM": {
+   "name": "Burma",
+   "groups": [
+    "D:1",
+    "D:3",
+    "D:5"
+   ]
+  },
+  "MN": {
+   "name": "Mongolia",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "MO": {
+   "name": "Macau",
+   "groups": [
+    "D:1",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "MR": {
+   "name": "Mauritania",
+   "groups": [
+    "B"
+   ]
+  },
+  "MT": {
+   "name": "Malta",
+   "groups": [
+    "A:3",
+    "A:4",
+    "A:6",
+    "B"
+   ]
+  },
+  "MU": {
+   "name": "Mauritius",
+   "groups": [
+    "B"
+   ]
+  },
+  "MV": {
+   "name": "Maldives",
+   "groups": [
+    "B"
+   ]
+  },
+  "MW": {
+   "name": "Malawi",
+   "groups": [
+    "B"
+   ]
+  },
+  "MX": {
+   "name": "Mexico",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:6",
+    "B"
+   ]
+  },
+  "MY": {
+   "name": "Malaysia",
+   "groups": [
+    "B"
+   ]
+  },
+  "MZ": {
+   "name": "Mozambique",
+   "groups": [
+    "B"
+   ]
+  },
+  "NA": {
+   "name": "Namibia",
+   "groups": [
+    "B"
+   ]
+  },
+  "NE": {
+   "name": "Niger",
+   "groups": [
+    "B"
+   ]
+  },
+  "NG": {
+   "name": "Nigeria",
+   "groups": [
+    "B"
+   ]
+  },
+  "NI": {
+   "name": "Nicaragua",
+   "groups": [
+    "D:1",
+    "D:5"
+   ]
+  },
+  "NL": {
+   "name": "Netherlands",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "NO": {
+   "name": "Norway",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "NP": {
+   "name": "Nepal",
+   "groups": [
+    "B"
+   ]
+  },
+  "NR": {
+   "name": "Nauru",
+   "groups": [
+    "B"
+   ]
+  },
+  "NZ": {
+   "name": "New Zealand",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "OM": {
+   "name": "Oman",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "PA": {
+   "name": "Panama",
+   "groups": [
+    "B"
+   ]
+  },
+  "PE": {
+   "name": "Peru",
+   "groups": [
+    "B"
+   ]
+  },
+  "PG": {
+   "name": "Papua New Guinea",
+   "groups": [
+    "B"
+   ]
+  },
+  "PH": {
+   "name": "Philippines",
+   "groups": [
+    "B"
+   ]
+  },
+  "PK": {
+   "name": "Pakistan",
+   "groups": [
+    "B",
+    "D:2",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "PL": {
+   "name": "Poland",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "PT": {
+   "name": "Portugal",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "PW": {
+   "name": "Palau",
+   "groups": [
+    "B"
+   ]
+  },
+  "PY": {
+   "name": "Paraguay",
+   "groups": [
+    "B"
+   ]
+  },
+  "QA": {
+   "name": "Qatar",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "RO": {
+   "name": "Romania",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "RS": {
+   "name": "Serbia",
+   "groups": [
+    "A:4",
+    "B"
+   ]
+  },
+  "RU": {
+   "name": "Russia",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "RW": {
+   "name": "Rwanda",
+   "groups": [
+    "B"
+   ]
+  },
+  "SA": {
+   "name": "Saudi Arabia",
+   "groups": [
+    "B",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "SB": {
+   "name": "Solomon Islands",
+   "groups": [
+    "B"
+   ]
+  },
+  "SC": {
+   "name": "Seychelles",
+   "groups": [
+    "B"
+   ]
+  },
+  "SD": {
+   "name": "Sudan",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "SE": {
+   "name": "Sweden",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "SG": {
+   "name": "Singapore",
+   "groups": [
+    "A:6",
+    "B"
+   ]
+  },
+  "SI": {
+   "name": "Slovenia",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "SK": {
+   "name": "Slovakia",
+   "groups": [
+    "A:1",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "SL": {
+   "name": "Sierra Leone",
+   "groups": [
+    "B"
+   ]
+  },
+  "SM": {
+   "name": "San Marino",
+   "groups": [
+    "B"
+   ]
+  },
+  "SN": {
+   "name": "Senegal",
+   "groups": [
+    "B"
+   ]
+  },
+  "SO": {
+   "name": "Somalia",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "SR": {
+   "name": "Suriname",
+   "groups": [
+    "B"
+   ]
+  },
+  "SS": {
+   "name": "South Sudan, Republic of",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  },
+  "ST": {
+   "name": "Sao Tome & Principe",
+   "groups": [
+    "B"
+   ]
+  },
+  "SV": {
+   "name": "El Salvador",
+   "groups": [
+    "B"
+   ]
+  },
+  "SX": {
+   "name": "Sint Maarten (the Dutch two-fifths of the island of Saint Martin)",
+   "groups": [
+    "B"
+   ]
+  },
+  "SY": {
+   "name": "Syria",
+   "groups": [
+    "D:3",
+    "D:4",
+    "D:5",
+    "E:1"
+   ]
+  },
+  "SZ": {
+   "name": "Eswatini",
+   "groups": [
+    "B"
+   ]
+  },
+  "TD": {
+   "name": "Chad",
+   "groups": [
+    "B"
+   ]
+  },
+  "TG": {
+   "name": "Togo",
+   "groups": [
+    "B"
+   ]
+  },
+  "TH": {
+   "name": "Thailand",
+   "groups": [
+    "B"
+   ]
+  },
+  "TJ": {
+   "name": "Tajikistan",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "TL": {
+   "name": "Timor-Leste",
+   "groups": [
+    "B"
+   ]
+  },
+  "TM": {
+   "name": "Turkmenistan",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "TN": {
+   "name": "Tunisia",
+   "groups": [
+    "B"
+   ]
+  },
+  "TO": {
+   "name": "Tonga",
+   "groups": [
+    "B"
+   ]
+  },
+  "TR": {
+   "name": "Türkiye",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "A:5",
+    "B"
+   ]
+  },
+  "TT": {
+   "name": "Trinidad & Tobago",
+   "groups": [
+    "B"
+   ]
+  },
+  "TV": {
+   "name": "Tuvalu",
+   "groups": [
+    "B"
+   ]
+  },
+  "TW": {
+   "name": "Taiwan",
+   "groups": [
+    "A:6",
+    "B",
+    "D:3"
+   ]
+  },
+  "TZ": {
+   "name": "Tanzania",
+   "groups": [
+    "B"
+   ]
+  },
+  "UA": {
+   "name": "Ukraine",
+   "groups": [
+    "A:2",
+    "A:3",
+    "A:4",
+    "B"
+   ]
+  },
+  "UG": {
+   "name": "Uganda",
+   "groups": [
+    "B"
+   ]
+  },
+  "US": {
+   "name": "United States",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:3",
+    "A:4",
+    "B"
+   ]
+  },
+  "UY": {
+   "name": "Uruguay",
+   "groups": [
+    "B"
+   ]
+  },
+  "UZ": {
+   "name": "Uzbekistan",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "VA": {
+   "name": "Vatican City",
+   "groups": [
+    "B"
+   ]
+  },
+  "VC": {
+   "name": "Saint Vincent and the Grenadines",
+   "groups": [
+    "B"
+   ]
+  },
+  "VE": {
+   "name": "Venezuela",
+   "groups": [
+    "D:1",
+    "D:2",
+    "D:3",
+    "D:4",
+    "D:5"
+   ]
+  },
+  "VN": {
+   "name": "Vietnam",
+   "groups": [
+    "D:1",
+    "D:3"
+   ]
+  },
+  "VU": {
+   "name": "Vanuatu",
+   "groups": [
+    "B"
+   ]
+  },
+  "WS": {
+   "name": "Samoa",
+   "groups": [
+    "B"
+   ]
+  },
+  "XK": {
+   "name": "Kosovo",
+   "groups": [
+    "B"
+   ]
+  },
+  "YE": {
+   "name": "Yemen",
+   "groups": [
+    "D:1",
+    "D:3",
+    "D:4"
+   ]
+  },
+  "ZA": {
+   "name": "South Africa",
+   "groups": [
+    "A:1",
+    "A:2",
+    "A:4",
+    "A:6",
+    "B"
+   ]
+  },
+  "ZM": {
+   "name": "Zambia",
+   "groups": [
+    "B"
+   ]
+  },
+  "ZW": {
+   "name": "Zimbabwe",
+   "groups": [
+    "B",
+    "D:5"
+   ]
+  }
+ }
+}

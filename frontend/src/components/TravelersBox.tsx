@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAdvisories, getFxHistory, type TravelAdvisory } from '../lib/api';
+import { getAdvisories, getFxHistory, getRemittance, type RemittanceInfo, type TravelAdvisory } from '../lib/api';
 import { PulsePanel } from './PulsePanel';
 import { Sparkline } from './Sparkline';
 import { currencyName } from '../lib/fxWords';
@@ -20,12 +20,16 @@ export function TravelersBox({ code, name, currency }: { code: string; name: str
   const [advisory, setAdvisory] = useState<TravelAdvisory | null | 'none' | 'unavailable'>(null);
   const [fx, setFx] = useState<[string, number][] | null>(null);
   const [amount, setAmount] = useState('500');
+  const [remit, setRemit] = useState<RemittanceInfo | null>(null);
 
   useEffect(() => {
     let live = true;
     getAdvisories()
       .then((r) => live && setAdvisory(r.items.length === 0 ? 'unavailable' : (r.items.find((i) => i.country === code) ?? 'none')))
       .catch(() => live && setAdvisory('unavailable'));
+    getRemittance(code)
+      .then((r) => live && setRemit(r))
+      .catch(() => live && setRemit(null));
     if (currency && currency !== 'USD') {
       getFxHistory(currency)
         .then((r) => live && setFx(r.points))
@@ -97,13 +101,32 @@ export function TravelersBox({ code, name, currency }: { code: string; name: str
               {currency === 'USD' ? `${name} uses the U.S. dollar.` : `This site has no daily reference rate for ${name}'s currency.`}
             </p>
           )}
-          <p className="mt-3 text-xs text-ink-faint">
-            Sending money? Compare the real cost of transfer services on the{' '}
-            <a href="https://remittanceprices.worldbank.org" target="_blank" rel="noreferrer" className="text-accent hover:underline">
-              World Bank's Remittance Prices Worldwide
-            </a>
-            .
-          </p>
+          <div className="mt-3 text-sm text-ink-muted">
+            {remit?.status === 'ok' && remit.cost ? (
+              <>
+                <p className="text-base text-ink">
+                  Sending $200 to {name} costs about <span className="font-semibold tabular-nums">{fmt(remit.cost.pct, 1)}%</span> on average
+                  (about ${fmt((remit.cost.pct / 100) * 200)}) in {remit.cost.year}.
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Average over every provider and sending country the World Bank tracks, not only the U.S.
+                  {remit.usOutbound ? ` For comparison, sending $200 from the U.S. to anywhere averaged ${fmt(remit.usOutbound.pct, 1)}% in ${remit.usOutbound.year}.` : ''}{' '}
+                  Source:{' '}
+                  <a href={remit.sourceUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    World Bank, Remittance Prices Worldwide
+                  </a>
+                  , CC BY 4.0, data year {remit.cost.year}, checked {remit.checkedOn}.
+                </p>
+              </>
+            ) : null}
+            <p className="mt-1 text-xs text-ink-faint">
+              {remit?.status === 'ok' ? 'Compare providers' : 'Sending money? Compare the real cost of transfer services'} on the{' '}
+              <a href="https://remittanceprices.worldbank.org" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                World Bank's Remittance Prices Worldwide
+              </a>
+              {remit?.status === 'not_tracked' ? ' (this country is not in the database yet)' : ''}.
+            </p>
+          </div>
         </div>
         <div>
           {advisory === null ? (

@@ -1,0 +1,69 @@
+name: HTS and Schedule B sync
+
+# Daily: downloads the USITC tariff schedule (HTS), the Census Schedule B and builds the cross-reference between them, compares them with the snapshot of
+# what the database holds (data/bulk/*.json) and commits a migration that writes only the difference (scripts/sync-bulk-data.ts). The push to main
+# deploys the site through Cloudflare Workers Builds, whose build command applies the migration to the live database. Same mechanism as the sanctions-list
+# sync: no Cloudflare secret and no model call; the only token is the automatic GITHUB_TOKEN, used to push the data commit.
+#
+# Why here and not in the Worker: the HTS needs 96 downloads (a Workers Free invocation may make 50) and a full reload writes far more rows than D1 Free's
+# 100,000 per day. The first load of the whole schedule is therefore spread over several daily runs (each spends at most about 55,000 estimated writes);
+# after that, each run writes only what changed. A run also writes a data_refresh_log row every few days even when nothing changed, so /api/health sees it.
+on:
+  schedule:
+    - cron: '41 1 * * *' # early in the UTC day, when D1's daily write allowance has just reset
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Shares a group with the sanctions-list sync: both write numbered migrations and push to main, so they must not run at the same time.
+concurrency:
+  group: lists-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Download the files and write the changes
+        id: build
+        run: |
+          set +e
+          npx tsx scripts/sync-bulk-data.ts 2>&1 | tee /tmp/sync.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Check the new migrations apply cleanly
+        run: |
+          npx tsx tests/migrations.test.ts
+          npx tsx tests/migrations-exec.test.ts
+      - name: Commit and push
+        run: |
+          if [ -z "$(git status --porcelain migrations data/bulk)" ]; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git config user.name "aex-terminal-bulk-sync"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add migrations data/bulk
+          {
+            echo "Data: sync HTS and Schedule B $(date -u +%Y-%m-%d)"
+            echo
+            grep -v '^::' /tmp/sync.log | head -20
+          } > /tmp/msg.txt
+          git commit -q -F /tmp/msg.txt
+          git pull --rebase origin main
+          git push origin HEAD:main
+      # After the data is committed, so a chapter that failed to download turns the run red (GitHub emails the owner) without losing the chapters that worked.
+      - name: Fail the run if any download failed
+        if: steps.build.outputs.code != '0'
+        run: exit 1

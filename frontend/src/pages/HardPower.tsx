@@ -17,8 +17,10 @@ import { PulseSanctionsBrowser } from '../components/PulseSanctionsBrowser';
 import { PulseTariffBrowser } from '../components/PulseTariffBrowser';
 import { PulseExportChart } from '../components/PulseExportChart';
 import { CountryCompare } from './CountryCompare';
+import { EffectiveTariffRate } from '../components/CensusPanels';
 import { PowerCoferChart } from '../components/PowerCoferChart';
 import { CiteThisButton } from '../components/CiteThisButton';
+import { FreightPanel } from '../components/FreightPanel';
 import { SectionTabs } from '../components/SectionTabs';
 import { HARD_TABS, hardTabFrom, type HardTabId } from '../lib/powerTabs';
 import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
@@ -426,6 +428,8 @@ export function HardPower() {
               >
                 <ConvergencePanel />
               </PulsePanel>
+              <EffectiveTariffRate />
+              <FreightPanel />
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
                 <div className="min-w-0 lg:col-span-8">
                   <PulsePanel

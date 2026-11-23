@@ -10,7 +10,7 @@ import { writeSeries, type MarketMeta, type SeriesMeta } from './markets.js';
 import type { RefreshResult } from '../refresh/types.js';
 import { USER_AGENT as UA } from '../refresh/userAgent.js';
 
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 30_000; // the TIC table measured 10 s, so the old 10 s limit failed it on slow days
 // home.treasury.gov answers the yield-curve feed slowly (about 17 s measured), so it gets a longer limit.
 const YIELD_TIMEOUT_MS = 30_000;
 const YIELD_BASE = 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=';
@@ -57,10 +57,24 @@ const ticMeta = (id: string, label: string): SeriesMeta => ({
   sourceUrl: TIC_PAGE,
 });
 
-async function fetchText(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<string> {
-  const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(timeoutMs) });
-  if (!res.ok) throw new Error(`Treasury fetch failed (${url.split('?')[0]}): HTTP ${res.status}`);
-  return res.text();
+/**
+ * One Treasury request with a single retry. Both Treasury hosts are slow and occasionally time out: measured 2026-11-22, the yield-curve feed took 17 s and
+ * the TIC table 10 s, which is the old 10 s limit exactly, so the TIC request failed some days and the job logged a "partial" error (and critical in
+ * /api/pulse/data-status) although the data was fine. A failure reports its own cause (timeout or HTTP status) so the log says which request failed.
+ */
+export async function fetchText(url: string, timeoutMs = REQUEST_TIMEOUT_MS, attempts = 2): Promise<string> {
+  let last = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(timeoutMs) });
+      if (res.ok) return res.text();
+      last = `HTTP ${res.status}`;
+      if (res.status < 500 && res.status !== 429) break;
+    } catch (err) {
+      last = err instanceof Error && /timeout|abort/i.test(`${err.name} ${err.message}`) ? `no answer within ${Math.round(timeoutMs / 1000)} s` : err instanceof Error ? err.message : String(err);
+    }
+  }
+  throw new Error(`Treasury fetch failed (${url.split('?')[0]}): ${last}`);
 }
 
 export function parseYieldXml(xml: string): { id: string; date: string; value: number }[] {

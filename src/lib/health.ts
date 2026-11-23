@@ -5,21 +5,29 @@ import { staleness } from './curatedWatch.js';
 /** Every table the migrations create. tests/health.test.ts keeps this equal to what migrations/ actually creates. */
 export const EXPECTED_TABLES = [
   'hts_lines', 'schedule_b_lines', 'hts_schedule_b_xref', 'sdn_entries', 'sdn_aliases', 'csl_entries', 'csl_aliases', 'hts_search', 'schedule_b_search',
-  'sdn_name_search', 'sdn_alias_search', 'csl_name_search', 'csl_alias_search', 'usmca_rules', 'eccn_entries', 'eccn_search', 'country_chart',
+  'sdn_name_search', 'sdn_alias_search', 'csl_name_search', 'csl_alias_search', 'usmca_rules', 'eccn_entries', 'eccn_search', 'country_chart', 'country_groups',
   'country_chart_coverage', 'tariff_overlays', 'cases', 'case_events', 'data_refresh_log', 'trade_policy_actions', 'pulse_sync_state', 'market_series',
   'market_series_meta', 'world_news', 'pulse_feed_state', 'gta_interventions', 'wro_findings', 'un_sanctions_entries', 'un_sanctions_aliases',
   'un_name_search', 'un_alias_search', 'uk_sanctions_entries', 'uk_sanctions_aliases', 'uk_name_search', 'uk_alias_search', 'pulse_snapshots',
-  'country_snapshot', 'hts_path_search', 'indicator_snapshot', 'curated_change_alerts', 'model_cache', 'model_usage', 'alert_state',
+  'country_snapshot', 'hts_path_search', 'indicator_snapshot', 'curated_change_alerts', 'model_cache', 'model_usage', 'alert_state', 'census_trade', 'acs_foreign_born', 'adcvd_orders',
 ];
 
 /** The longest a source may go without a successful refresh before it is reported. Weekly jobs get two extra days for a late or skipped run. */
 export const SOURCE_MAX_AGE_DAYS: Record<string, number> = {
-  sdn: 9, csl: 9, un_sanctions: 9, uk_sanctions: 9, hts: 9, schedule_b: 9, xref: 9, wro_findings: 9, gta: 9,
+  sdn: 9, csl: 9, un_sanctions: 9, uk_sanctions: 9, wro_findings: 9, gta: 9,
+  // Loaded outside the Worker by the "HTS and Schedule B sync" GitHub workflow (daily; a run that changes nothing still logs every 4 days). The extra day
+  // covers a failed run being retried the next morning before it is reported. See EXTERNALLY_LOADED_SOURCES.
+  hts: 10, schedule_b: 10, xref: 10,
   // Weekly country indicators (the indicator cron).
   world_bank: 9, power_indicators: 9, un_voting: 9, uis_students: 9, unhcr: 9, nobel: 9, fts: 9, undp_hdr: 9, openalex: 9,
   // Daily jobs. A partial Treasury refresh is logged as an error, so it never counts as a success here.
   pulse: 3, curated_watch: 3, pulse_fx: 3, pulse_quotes: 3, pulse_news: 3, pulse_macro: 3, pulse_cofer: 3, pulse_treasury: 3, pulse_commodities: 3,
 };
+
+/** Sources the Worker's cron does not load (the free plan cannot): the GitHub workflow runs scripts/sync-bulk-data.ts and its migration writes their data_refresh_log rows. */
+export const EXTERNALLY_LOADED_SOURCES = ['hts', 'schedule_b', 'xref'] as const;
+const externalNote = (source: string) =>
+  (EXTERNALLY_LOADED_SOURCES as readonly string[]).includes(source) ? ' This source is loaded by the "HTS and Schedule B sync" GitHub workflow, not the Worker: check the latest run of that workflow.' : '';
 
 export type Severity = 'critical' | 'action' | 'warning';
 
@@ -52,12 +60,12 @@ export function checkSources(rows: SourceRow[], now: Date): Finding[] {
         key: `source:${source}`,
         severity: 'critical',
         title: `${source} has never refreshed successfully (${row.errorsSinceOk} failed attempt${row.errorsSinceOk === 1 ? '' : 's'})`,
-        detail: `No successful refresh of ${source} is on record.${row.lastError ? ` Last error: ${row.lastError.slice(0, 200)}` : ''}`,
+        detail: `No successful refresh of ${source} is on record.${row.lastError ? ` Last error: ${row.lastError.slice(0, 200)}` : ''}${externalNote(source)}`,
       });
       continue;
     }
     if (!row || !row.lastOk) {
-      out.push({ key: `source:${source}`, severity: 'warning', title: `${source} has not refreshed yet`, detail: `No successful refresh of ${source} is on record.` });
+      out.push({ key: `source:${source}`, severity: 'warning', title: `${source} has not refreshed yet`, detail: `No successful refresh of ${source} is on record.${externalNote(source)}` });
       continue;
     }
     const ageDays = Math.floor((now.getTime() - Date.parse(row.lastOk)) / DAY);
@@ -66,7 +74,7 @@ export function checkSources(rows: SourceRow[], now: Date): Finding[] {
         key: `source:${source}`,
         severity: 'critical',
         title: `${source} is ${ageDays} days old`,
-        detail: `Last successful refresh ${row.lastOk.slice(0, 10)}; the limit is ${limit} days.${row.lastError ? ` Last error: ${row.lastError.slice(0, 200)}` : ''}`,
+        detail: `Last successful refresh ${row.lastOk.slice(0, 10)}; the limit is ${limit} days.${row.lastError ? ` Last error: ${row.lastError.slice(0, 200)}` : ''}${externalNote(source)}`,
       });
     } else if (row.errorsSinceOk >= 2) {
       out.push({

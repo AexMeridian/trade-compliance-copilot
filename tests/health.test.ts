@@ -51,7 +51,16 @@ test('a source inside its limit with one error is quiet; two in a row is critica
 test('a source past its age limit is critical', () => {
   const f = checkSources([{ source: 'hts', lastOk: daysAgo(SOURCE_MAX_AGE_DAYS.hts + 1), errorsSinceOk: 0, lastError: null }], now).find((x) => x.key === 'source:hts');
   assert.equal(f?.severity, 'critical');
-  assert.match(f!.title, /10 days old/);
+  assert.match(f!.title, new RegExp(`${SOURCE_MAX_AGE_DAYS.hts + 1} days old`));
+});
+test('the externally loaded sources point at the GitHub workflow in their findings', () => {
+  const stale = checkSources([{ source: 'schedule_b', lastOk: daysAgo(30), errorsSinceOk: 0, lastError: null }], now).find((x) => x.key === 'source:schedule_b');
+  assert.match(stale!.detail, /HTS and Schedule B sync/);
+  const never = checkSources([{ source: 'hts', lastOk: null, errorsSinceOk: 3, lastError: 'old Worker error' }], now).find((x) => x.key === 'source:hts');
+  assert.equal(never?.severity, 'critical');
+  assert.match(never!.detail, /GitHub workflow/);
+  const other = checkSources([{ source: 'sdn', lastOk: daysAgo(30), errorsSinceOk: 0, lastError: null }], now).find((x) => x.key === 'source:sdn');
+  assert.doesNotMatch(other!.detail, /GitHub workflow/);
 });
 test('a source that has never refreshed is a warning, not an email', () => {
   const f = checkSources([], now).find((x) => x.key === 'source:sdn');

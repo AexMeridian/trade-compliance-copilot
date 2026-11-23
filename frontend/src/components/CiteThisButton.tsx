@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createSnapshot } from '../lib/api';
+import { ChartExport } from './ChartExport';
 
 // Freezes exactly what the chart is showing right now into its own citable
 // row (see migrations/0021_schema_pulse_snapshots.sql) and hands back a
@@ -13,12 +14,15 @@ export function CiteThisButton({
   params,
   data,
   sourceNote,
+  withExport = true,
 }: {
   chartType: 'tempo' | 'markets' | 'cofer' | 'power';
   title: string;
   params: unknown;
   data?: unknown;
   sourceNote: string;
+  /** Adds Save PNG / Save SVG / Copy chart link; pass false where a ChartFooter beside it already has them. */
+  withExport?: boolean;
 }) {
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [permalink, setPermalink] = useState<string | null>(null);
@@ -69,6 +73,7 @@ export function CiteThisButton({
       </button>
       {copied && <span className="text-clear">Citation copied</span>}
       {state === 'error' && <span className="text-stop">No frozen snapshot this time; the citation copied uses this page's link.</span>}
+      {withExport && <ChartExport source={sourceNote} title={title} />}
       {permalink && !copied && (
         <a href={permalink} className="text-ink-faint underline hover:text-ink">
           View snapshot

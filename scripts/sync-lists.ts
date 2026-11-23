@@ -23,12 +23,22 @@ import { toRecord, type SdnEntry } from '../src/lib/refresh/sdn.js';
 import { tagBlocks, parseIndividual, parseEntity } from '../src/lib/refresh/unSanctions.js';
 import { parseDesignation } from '../src/lib/refresh/ukSanctions.js';
 import { USER_AGENT } from '../src/lib/refresh/userAgent.js';
+import { entryUrl, recordChanges, EMPTY_CHANGES, MAX_NAMED, type ChangeParty, type ChangesFile, type ListDay, type ListSource } from '../src/lib/listChanges.js';
 
 const DAILY_WRITE_BUDGET = 70_000;
 const MAX_FILE_BYTES = 1_500_000; // one migration file per ~1.5 MB of SQL; each file is applied in its own transaction
 const MAX_STATEMENT_BYTES = 80_000; // D1 refuses a single statement over 100 KB
 const SNAPSHOT_DIR = 'data/lists';
 const MIGRATIONS_DIR = 'migrations';
+// "What changed" (src/lib/listChanges.ts): names of every entry as last synced (so a removed entry can be named), and the per-day changes.
+const NAMES_FILE = `${SNAPSHOT_DIR}/names.json`;
+const CHANGES_FILE = `${SNAPSHOT_DIR}/changes.json`;
+
+function party(source: ListSource, r: Rec): ChangeParty {
+  const v = r.values;
+  const detail = source === 'sdn' ? v.programs : source === 'csl' ? v.source_list : source === 'un_sanctions' ? v.un_list_type : v.regime_name;
+  return { uid: r.uid, name: String(v.primary_name ?? v.name ?? ''), detail: detail == null ? null : String(detail), url: entryUrl(source, r.uid, source === 'csl' ? String(v.source_url ?? '') : null) };
+}
 
 type Value = string | number | null;
 interface Rec {
@@ -362,6 +372,12 @@ async function main() {
   const statements: { source: string; sql: string[] }[] = [];
   const snapshots: Snapshot[] = [];
   const summary: string[] = [];
+  const readJson = <T>(path: string, fallback: T): T => (existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as T) : fallback);
+  const names: Record<string, Record<string, string>> = readJson(NAMES_FILE, {});
+  let changes: ChangesFile = readJson(CHANGES_FILE, EMPTY_CHANGES);
+  const newNames: Record<string, Record<string, string>> = {};
+  const pendingChanges: { source: ListSource; day: ListDay }[] = [];
+  const nameMap = (records: Rec[]) => Object.fromEntries(records.map((r) => [r.uid, String(r.values.primary_name ?? r.values.name ?? '')]));
 
   for (const spec of LISTS) {
     if (only.length && !only.includes(spec.source)) continue;
@@ -391,6 +407,7 @@ async function main() {
       changed = changedRecs.length + removed.length;
       if (changed === 0) {
         summary.push(`${spec.source}: unchanged (${records.length} entries)`);
+        newNames[spec.source] = nameMap(records);
         continue;
       }
       sql = buildSql(spec, changedRecs, { mode: 'explicit', uids: removed }, today);
@@ -415,6 +432,22 @@ async function main() {
       continue;
     }
     budget -= estimate;
+    if (prev) {
+      const addedRecs = records.filter((r) => !(r.uid in prev.sigs));
+      const removedUids = Object.keys(prev.sigs).filter((u) => !(u in sigs));
+      const old = names[spec.source] ?? {};
+      pendingChanges.push({
+        source: spec.source,
+        day: {
+          added: addedRecs.slice(0, MAX_NAMED).map((r) => party(spec.source, r)),
+          removed: removedUids.slice(0, MAX_NAMED).map((u) => ({ uid: u, name: old[u] ?? null, url: entryUrl(spec.source, u, null) })),
+          addedCount: addedRecs.length,
+          removedCount: removedUids.length,
+          updatedCount: records.filter((r) => prev.sigs[r.uid] && prev.sigs[r.uid] !== sigs[r.uid]).length,
+        },
+      });
+    }
+    newNames[spec.source] = nameMap(records);
     sql.push(
       `INSERT INTO data_refresh_log (source, status, rows_affected, error_message, started_at, finished_at) VALUES (${sqlString(spec.source)}, 'success', ${changed}, ${sqlString(
         `Loaded by the daily list sync (GitHub Actions)${publishDate ? `; list published ${publishDate}` : ''}`
@@ -426,7 +459,14 @@ async function main() {
   }
 
   console.log(summary.join('\n'));
-  if (statements.length === 0 || dryRun) return;
+  if (dryRun) return;
+  if (Object.keys(newNames).length) writeFileSync(NAMES_FILE, JSON.stringify({ ...names, ...newNames }) + '\n');
+  if (pendingChanges.length) {
+    const nowIso = new Date().toISOString();
+    for (const p of pendingChanges) changes = recordChanges(changes, today, p.source, p.day, nowIso);
+    writeFileSync(CHANGES_FILE, JSON.stringify(changes, null, 1) + '\n');
+  }
+  if (statements.length === 0) return;
 
   // Group into files under MAX_FILE_BYTES, never splitting a list's log row from its own statements' file order.
   let n = nextMigrationNumber();

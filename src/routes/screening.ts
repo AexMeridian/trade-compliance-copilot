@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
-import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
+import { getCaseFile, saveCaseFile, logCaseEvent, canWriteCase, CASE_TOKEN_HEADER, CASE_WRITE_FORBIDDEN } from '../lib/caseStore.js';
 import { searchPartyCandidates, getSdnEntry, getCslEntry, getUnEntry, getUkEntry } from '../lib/db.js';
 import { rankCandidates } from '../lib/fuzzyMatch.js';
 import { loadListFreshness, freshnessCaveat } from '../lib/listFreshness.js';
@@ -68,6 +68,7 @@ screeningRoute.post('/:id/screening', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
+  if (!(await canWriteCase(c.env, caseId, c.req.header(CASE_TOKEN_HEADER)))) return c.json({ error: CASE_WRITE_FORBIDDEN }, 403);
 
   const body = await readObject<{ parties: { role: PartyRole; name: string }[]; deemed_export_flag: boolean }>(c.req);
   if (!Array.isArray(body.parties) || body.parties.length === 0) {
@@ -82,9 +83,9 @@ screeningRoute.post('/:id/screening', async (c) => {
   // party fails the whole request, as before.
   let partyResults: PartyScreeningResult[];
   try {
-  partyResults = await Promise.all(body.parties.map(async (party): Promise<PartyScreeningResult> => {
+  partyResults = await Promise.all(body.parties.map(async (party, partyIndex): Promise<PartyScreeningResult> => {
     const [rawCandidates, ownership] = await Promise.all([searchPartyCandidates(c.env, party.name), ownershipHint(c.env, party.name)]);
-    await logCaseEvent(c.env, caseId, 'screening', 'candidate_set', { party: party.name, rawCandidates });
+    await logCaseEvent(c.env, caseId, 'screening', 'candidate_set', { party_number: partyIndex + 1, rawCandidates });
 
     // Dedupe by (source, entity_id), keeping the highest-scoring name match per entity.
     const dedupedMap = new Map<string, { source: 'SDN' | 'CSL' | 'UN' | 'UK'; entity_id: number; name: string; matched_via: 'primary_name' | 'alias' }>();
@@ -234,7 +235,7 @@ screeningRoute.post('/:id/screening', async (c) => {
       };
     });
 
-    await logCaseEvent(c.env, caseId, 'screening', 'claude_response', { party: party.name, output });
+    await logCaseEvent(c.env, caseId, 'screening', 'claude_response', { party_number: partyIndex + 1, output });
     return { role: party.role, input_name: party.name, matches, ...(ownership ? { ownership } : {}) };
   }));
   } catch (err) {

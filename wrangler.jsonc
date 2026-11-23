@@ -119,6 +119,6 @@
   // Curated legal content (USMCA rules, tariff overlays, country chart, ECCN) is
   // NOT on this schedule -- see the comment at the top of src/scheduled.ts.
   "triggers": {
-    "crons": ["0 5 * * *", "0 6 * * *", "0 7 * * *", "0 8 * * *"]
+    "crons": ["0 5 * * *", "0 6 * * *", "0 7 * * *", "0 8 * * *", "30 5 * * *"]
   }
 }

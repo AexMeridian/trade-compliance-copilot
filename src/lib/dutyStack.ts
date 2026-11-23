@@ -7,6 +7,7 @@
 
 import { EU_MEMBER_CODES, type HtsCandidateRow, type TariffOverlayRow } from './db.js';
 import type { DutyStackLine } from '../types/case.js';
+import { annotateChapter99 } from './chapter99.js';
 
 /** The two USMCA member countries besides the U.S. itself. Shared so this
  * file's and determination.ts's "is USMCA even relevant here" checks can't
@@ -82,11 +83,55 @@ export interface BuildDutyStackResult {
   totalPct: number | null; // null if any applicable line has an unparseable (specific/compound) rate
 }
 
+export interface China301Assessment {
+  /** unevaluated: the China line data is not loaded. not_covered: loaded, and this line is in none of the actions. covered: every row is a firm rate.
+   * review: a row needs the statistical suffix or an exclusion check, or the code is too short to say. */
+  state: 'unevaluated' | 'not_covered' | 'covered' | 'review';
+  rows: TariffOverlayRow[];
+  marker: TariffOverlayRow | null;
+  reviewReasons: string[];
+}
+
+/** A China Section 301 row that only a statistical suffix or an exclusion check can settle carries exclusions text starting "REVIEW:". */
+function china301ReviewText(row: TariffOverlayRow): string | null {
+  if (!row.exclusions) return null;
+  try {
+    const first = (JSON.parse(row.exclusions) as string[]).find((s) => typeof s === 'string' && s.startsWith('REVIEW:'));
+    return first ? first.slice('REVIEW:'.length).trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What the loaded Section 301 China data says about one HTS line. Rows not yet in force on `onDate` (YYYY-MM-DD, default today) are ignored.
+ * Conservative by design: any row that needs the 10-digit suffix or an exclusion check, and any code shorter than 8 digits with covered lines
+ * under it, is "review", never a guessed rate.
+ */
+export function china301Assessment(overlays: TariffOverlayRow[], htsDigits: string, onDate?: string): China301Assessment {
+  const today = onDate ?? new Date().toISOString().slice(0, 10);
+  const marker = overlays.find((o) => o.program === 'sec301_china_coverage') ?? null;
+  const rows = overlays.filter((o) => o.program === 'sec301_china' && o.effective_date <= today && (!o.expiration_date || o.expiration_date >= today));
+  if (!marker && rows.length === 0) return { state: 'unevaluated', rows, marker, reviewReasons: [] };
+  if (rows.length === 0) return { state: 'not_covered', rows, marker, reviewReasons: [] };
+  const reviewReasons: string[] = [];
+  if (htsDigits.length < 8) {
+    reviewReasons.push(`this is a heading or subheading (${htsDigits}), and ${rows.length} of the 8-digit lines under it are covered by China Section 301 actions, so which one applies depends on the exact line.`);
+  }
+  for (const row of rows) {
+    const t = china301ReviewText(row);
+    if (t) reviewReasons.push(`${row.hts_pattern.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1.$2.$3')}: ${t}`);
+  }
+  if (reviewReasons.length > 0) return { state: 'review', rows, marker, reviewReasons: [...new Set(reviewReasons)] };
+  return { state: 'covered', rows, marker, reviewReasons: [] };
+}
+
 export function buildDutyStack(
   hts: HtsCandidateRow,
   country: string,
   usmcaQualifies: boolean | null,
-  overlays: TariffOverlayRow[]
+  overlays: TariffOverlayRow[],
+  onDate?: string
 ): BuildDutyStackResult {
   const lines: DutyStackLine[] = [];
   let unparseable = false;
@@ -192,26 +237,6 @@ export function buildDutyStack(
     }
   }
 
-  // Section 301 China tariff actions (Lists 1-4A and later modifications) are
-  // product-specific and have changed repeatedly; this app carries no
-  // verified list for them (no sec301_china rows are seeded). Rather than
-  // omit the layer and let a China-origin good read as fully priced, say so
-  // explicitly. rate_pct is null and applies is false, so the total is not
-  // poisoned -- determination.ts separately forces review for this case.
-  if (country === 'CN' && !overlays.some((o) => o.program === 'sec301_china')) {
-    lines.push({
-      layer: 'Section 301 (China tariff actions): NOT EVALUATED',
-      rate_pct: null,
-      rate_type: 'ad_valorem',
-      legal_basis: 'Section 301 of the Trade Act of 1974; USTR China action Lists 1-4A and later modifications',
-      effective_date: hts.revision,
-      applies: false,
-      reason_if_not_applied: 'This app has no verified Section 301 China product lists loaded, so it cannot say whether this HTS line is covered or at what rate.',
-      caveat: 'Goods of China are often subject to an additional Section 301 duty (historically 7.5%-100% depending on the product and list). The total below does NOT include it. Check this HTS code against the current USTR lists / HTSUS Chapter 99 before relying on the estimate.',
-      source: null,
-    });
-  }
-
   // Section 232 metals: apply baseline, then cap if a per-country cap row exists.
   const metalsPrograms = ['sec232_steel', 'sec232_aluminum', 'sec232_copper'];
   const metalsBaseline = overlays.find((o) => metalsPrograms.includes(o.program));
@@ -262,6 +287,60 @@ export function buildDutyStack(
     });
     if (row.rate_pct === null) unparseable = true;
     else total += row.rate_pct;
+  }
+
+  // Section 301 China tariff actions (Lists 1, 2, 3, 4A and the 2024-2026 increases in note 31), read from HTS chapter 99. Placed after the
+  // Section 232 layers because the metals cap above is a target for the Column 1 rate plus the 232 duty only.
+  if (country === 'CN') {
+    const china = china301Assessment(overlays, hts.htsno.replace(/\D/g, ''), onDate);
+    if (china.state === 'unevaluated' || china.state === 'review') {
+      lines.push({
+        layer: 'Section 301 (China tariff actions): NOT EVALUATED',
+        rate_pct: null,
+        rate_type: 'ad_valorem',
+        legal_basis: 'Section 301 of the Trade Act of 1974; USTR China actions (HTSUS 9903.88.01 to 9903.88.04, 9903.88.15, 9903.91.xx, 9903.92.10)',
+        effective_date: hts.revision,
+        applies: false,
+        reason_if_not_applied:
+          china.state === 'unevaluated'
+            ? 'This app has no verified Section 301 China product lists loaded, so it cannot say whether this HTS line is covered or at what rate.'
+            : `This line cannot be settled from the HTS code alone: ${china.reviewReasons.join(' ')}`,
+        caveat:
+          china.state === 'unevaluated'
+            ? 'Goods of China are often subject to an additional Section 301 duty (historically 7.5%-100% depending on the product and list). The total below does NOT include it. Check this HTS code against the current USTR lists / HTSUS Chapter 99 before relying on the estimate.'
+            : 'Goods of China on this line may owe an additional Section 301 duty (7.5% to 100% depending on the heading), or may be excluded. The total below does NOT include it. Check the cited U.S. notes before relying on the estimate.',
+        source: china.rows[0] ? { source_url: china.rows[0].source_url, source_tier: china.rows[0].source_tier as 1 | 2 | 3, last_updated: china.rows[0].last_updated, data_as_of: china.rows[0].data_as_of } : null,
+      });
+    } else if (china.state === 'not_covered') {
+      lines.push({
+        layer: 'Section 301 (China tariff actions): not covered',
+        rate_pct: null,
+        rate_type: 'ad_valorem',
+        legal_basis: 'Section 301 of the Trade Act of 1974; HTSUS chapter 99 subchapter III, U.S. notes 20 and 31 (HTS 2026 Revision 23)',
+        effective_date: hts.revision,
+        applies: false,
+        reason_if_not_applied: 'This 8-digit line is not in Lists 1, 2, 3 or 4A or in the 2024-2026 increases (U.S. notes 20 and 31 of chapter 99, HTS 2026 Revision 23), so no China Section 301 duty is added here.',
+        caveat: 'Lists 4B and later actions that are suspended or not yet in the HTS are not counted. Confirm against the current HTSUS chapter 99 before relying on the estimate.',
+        source: china.marker ? { source_url: china.marker.source_url, source_tier: china.marker.source_tier as 1 | 2 | 3, last_updated: china.marker.last_updated, data_as_of: china.marker.data_as_of } : null,
+      });
+    } else {
+      for (const row of china.rows) {
+        const m = /^Section 301, China, ([^:]+): HTSUS heading (9903\.\d\d\.\d\d)/.exec(row.legal_basis);
+        lines.push({
+          layer: m ? `Section 301 (China, ${m[1]}, heading ${m[2]})` : 'Section 301 (China tariff actions)',
+          rate_pct: row.rate_pct,
+          rate_type: row.rate_type,
+          legal_basis: row.legal_basis,
+          effective_date: row.effective_date,
+          applies: true,
+          reason_if_not_applied: null,
+          caveat: [overlayCaveat(row), 'USTR product exclusions (U.S. notes 20(vvv) and 20(www)) do not list this 8-digit line; confirm no later exclusion applies.'].filter(Boolean).join(' '),
+          source: { source_url: row.source_url, source_tier: row.source_tier as 1 | 2 | 3, last_updated: row.last_updated, data_as_of: row.data_as_of },
+        });
+        if (row.rate_pct === null) unparseable = true;
+        else total += row.rate_pct;
+      }
+    }
   }
 
   // Section 301 forced labor
@@ -354,6 +433,7 @@ export function buildDutyStack(
     }
   }
 
+  annotateChapter99(lines, hts.htsno.replace(/\D/g, ''));
   return { lines, totalPct: unparseable ? null : Math.round(total * 100) / 100 };
 }
 

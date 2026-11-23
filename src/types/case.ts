@@ -122,6 +122,8 @@ export interface DutyStackLine {
   reason_if_not_applied: string | null;
   caveat: string | null; // scope/precision caveats (e.g. "chapter-level approximation, line-item confirmation required") shown regardless of applies
   source: Provenance | null;
+  /** Chapter 99 heading numbers for this layer (e.g. ["9903.88.03"]), only where the mapping is certain (src/lib/chapter99.ts). */
+  chapter99?: string[];
 }
 
 export interface DeterminationResult {

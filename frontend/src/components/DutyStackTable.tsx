@@ -15,7 +15,7 @@ import { ProvenanceBadge } from './ProvenanceBadge';
 const NOT_MODELED = [
   'Antidumping and countervailing duty orders',
   'Section 232 derivative products (steel, aluminum and copper content in goods outside chapters 72, 74 and 76) and pending Section 232 actions: robotics, wind turbines, polysilicon, specialty pharmaceuticals',
-  'Section 301 China Lists 1 to 4A',
+  'China Section 301 exclusions granted after HTS Revision 23 (the 2018-2019 Lists 1 to 4A and the 2024-2026 increases are evaluated for goods of China; a line that needs its 10-digit statistical number or an exclusion check is marked not evaluated)',
   'Section 201 safeguards and entry-level exclusions',
   'Freight, insurance and other costs, and drawback, foreign-trade zone or bonded-warehouse treatment',
 ];
@@ -23,7 +23,7 @@ const NOT_MODELED = [
 function ModeledScope() {
   return (
     <div className="mt-3 border border-hairline bg-paper px-4 py-3">
-      <p className="text-sm font-semibold text-ink">Modeled scope: the HTS rate and the Section 232 (chapters 72, 74, 76 and autos), Section 301 forced-labor and Section 338 layers loaded in this app</p>
+      <p className="text-sm font-semibold text-ink">Modeled scope: the HTS rate and the Section 232 (chapters 72, 74, 76 and autos), Section 301 China (Lists 1 to 4A), Section 301 forced-labor and Section 338 layers loaded in this app</p>
       <p className="mt-2 text-xs font-semibold text-ink-muted">Not evaluated, and not included in the total:</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] leading-snug text-ink-muted">
         {NOT_MODELED.map((t) => (
@@ -116,6 +116,17 @@ export function DutyStackTable({
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                 {line.source && <ProvenanceBadge source={line.source} />}
                 <span className="text-xs tabular-nums text-ink-faint">{effectiveLabel(line.effective_date)}</span>
+                {line.chapter99 && line.chapter99.length > 0 && (
+                  <a
+                    href={`https://hts.usitc.gov/search?query=${encodeURIComponent(line.chapter99[0])}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="HTS chapter 99 heading to report on the entry for this duty (USITC HTS, fetched 2026-11-22)"
+                    className="border border-hairline bg-paper-raised px-1.5 py-0.5 text-xs tabular-nums text-ink-muted no-underline hover:border-accent hover:text-accent"
+                  >
+                    HTS {line.chapter99.join(', ')}
+                  </a>
+                )}
               </div>
             </div>
             <div className="text-right">

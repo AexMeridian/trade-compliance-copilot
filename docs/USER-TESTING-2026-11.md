@@ -162,3 +162,9 @@ Counts are how many of the eleven asked for it independently. Sources are free a
 5. **Later:** traveler box, freight indicators, China's own tools, translation.
 
 Check licences before adding Freightos, Drewry, S&P or Pew-derived exports (Pew is already OWNER-TODO #11).
+
+## Status (2026-11-23): verification and the next round of data
+
+Verified on the live site (public endpoints and a browser pass): the four sanctions lists loaded and synced on 2026-11-22 (SDN 19,599, consolidated screening list 6,699, UN 1,007, UK 6,448); the everyday series have about 81 points each and advisories return 163 items; the ten listed pages return 200 on desktop and phone with no script errors; all 15 country pages with sample products load. Not checked (needs a Cloudflare token, not available in this environment): the remote migration list, the deployments list, the `uid IS NULL` and test-case SQL checks, and `wrangler tail`.
+
+Built on this branch (tests, typecheck and build pass; not yet applied or deployed): the full Commerce Control List (636 ECCNs, eCFR) and Country Groups; China Section 301 Lists 1-4A and the note 31 increases from the USITC Chapter 99 PDF (about 10,000 rows); Census imports/duties and the effective tariff rate, ACS foreign-born, Global Trade Alert fixes (all key-gated); HTS and Schedule B off the Worker via a daily workflow; write metering; case-link privacy and delete-token checks; remittance costs (World Bank average, not U.S.-specific), traveler allowances, Spanish pages. Started but unfinished (stopped to save usage, present only as partial code): CBP CSMS feed, a "What changed" list-diff page, an IEEPA timeline, Chapter 99 heading numbers on duty layers, AD/CVD orders, NY Fed GSCPI and IMF PortWatch freight series, chart PNG/SVG export, and Section 232 metals and autos. These need a finish-and-verify pass before they count as done.

@@ -9,6 +9,7 @@ import { PulseAgencyBreakdown } from '../components/PulseAgencyBreakdown';
 import { PulseCountryTariffs } from '../components/PulseCountryTariffs';
 import { PulseCurrencies } from '../components/PulseCurrencies';
 import { PulseFeedList } from '../components/PulseFeedList';
+import { CsmsPanel } from '../components/CsmsPanel';
 import { PulseGlossary } from '../components/PulseGlossary';
 import { PulseHero } from '../components/PulseHero';
 import { KeyDates } from '../components/KeyDates';
@@ -693,6 +694,7 @@ export function Pulse() {
                   >
                     {loadingPanels ? loadingBlock : <ActiveMeasuresTable overlays={overlays} />}
                   </PulsePanel>
+                  <CsmsPanel />
                   <PulsePanel
                     title="Activity by agency"
                     help="Which government office published each action in the last 30 days. A few offices publish most of them."
@@ -718,6 +720,7 @@ export function Pulse() {
                         >
                           <CiteThisButton
                             chartType="tempo"
+                            withExport={false}
                             title="Policy tempo: U.S. trade-policy actions per month"
                             params={{ range: tempoRange, months: TEMPO_RANGES.find((r) => r.id === tempoRange)?.months ?? 24 }}
                             data={{ months, trendPct: summary?.trendPct ?? null }}

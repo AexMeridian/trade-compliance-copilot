@@ -14,6 +14,7 @@ import { opinionRoute } from './pulse/opinion.js';
 import { tiesRoute } from './pulse/ties.js';
 import { trendsRoute } from './pulse/trends.js';
 import { everydayRoute } from './pulse/everyday.js';
+import { watchRoute } from './pulse/watch.js';
 import { connectionsRoute } from './pulseConnections.js';
 
 // The Pulse read API, composed from one module per area (see ./pulse/):
@@ -41,5 +42,6 @@ pulseRoute.route('/', opinionRoute);
 pulseRoute.route('/', tiesRoute);
 pulseRoute.route('/', trendsRoute);
 pulseRoute.route('/', everydayRoute);
+pulseRoute.route('/', watchRoute);
 // /home calls the other routes in-process, so it is given the composed router.
 pulseRoute.route('/', homeRoute(pulseRoute));

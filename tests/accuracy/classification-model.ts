@@ -37,8 +37,8 @@ const allItems = [...labelled, ...vague].slice(0, limit);
 const items = allItems.slice(skip);
 
 async function classify(description: string) {
-  const created = (await (await fetch(`${BASE}/api/cases`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ direction: 'import' }) })).json()) as { id: string };
-  const res = await fetch(`${BASE}/api/cases/${created.id}/classification`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ product_description: description }) });
+  const created = (await (await fetch(`${BASE}/api/cases`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ direction: 'import' }) })).json()) as { id: string; delete_token?: string };
+  const res = await fetch(`${BASE}/api/cases/${created.id}/classification`, { method: 'POST', headers: { 'content-type': 'application/json', 'X-Delete-Token': created.delete_token ?? '' }, body: JSON.stringify({ product_description: description }) });
   if (!res.ok) return { error: `HTTP ${res.status}` } as const;
   const body = (await res.json()) as { classification: { status: string; selected_code: string | null; ambiguous: boolean } };
   return { c: body.classification } as const;

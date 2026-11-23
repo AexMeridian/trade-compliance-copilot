@@ -57,7 +57,7 @@ export function Terms() {
         suggestions, and may be wrong. Classification, origin and duty outputs are suggestions to be verified, not determinations, and a screening result is
         not a clearance: use the official OFAC Sanctions List Search and your own counsel. You are responsible for the accuracy of what you enter. Do not
         enter personal data, trade secrets, confidential or privileged business information, or anything you are not free to share with us and our service
-        providers. A case can be opened by anyone who has its link; keep the link private.
+        providers. A case, including the party names you screened, can be read by anyone who has its link; keep the link private. Only the browser that created a case holds the secret token that lets it add to the case or delete it early, and the case is deleted automatically after 30 days.
       </p>
 
       <H>5. Acceptable use</H>

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../types/env.js';
-import { getCaseFile, saveCaseFile, logCaseEvent } from '../lib/caseStore.js';
+import { getCaseFile, saveCaseFile, logCaseEvent, canWriteCase, CASE_TOKEN_HEADER, CASE_WRITE_FORBIDDEN } from '../lib/caseStore.js';
 import { searchHts, searchScheduleB, getCrossReferenceForHts, getCrossReferenceForScheduleB, attachHtsAncestors } from '../lib/db.js';
 import { shownCandidates } from '../lib/candidateList.js';
 import { callClaudeTool, ClaudeGroundingError } from '../lib/anthropic.js';
@@ -20,6 +20,7 @@ classificationRoute.post('/:id/classification', async (c) => {
   const caseId = c.req.param('id');
   const caseFile = await getCaseFile(c.env, caseId);
   if (!caseFile) return c.json({ error: 'Case not found' }, 404);
+  if (!(await canWriteCase(c.env, caseId, c.req.header(CASE_TOKEN_HEADER)))) return c.json({ error: CASE_WRITE_FORBIDDEN }, 403);
 
   const body = await c.req.json<{ product_description: string }>().catch(() => null);
   const productDescription = typeof body?.product_description === 'string' ? body.product_description.trim() : '';
@@ -34,7 +35,7 @@ classificationRoute.post('/:id/classification', async (c) => {
   const allCandidates = candidates.map((cand) => ({ code: 'htsno' in cand ? cand.htsno : cand.code, description: cand.description, score: cand.score }));
   const candidateCodes = candidates.map((cand) => ('htsno' in cand ? cand.htsno : cand.code));
 
-  await logCaseEvent(c.env, caseId, 'classification', 'candidate_set', { productDescription, candidateCodes });
+  await logCaseEvent(c.env, caseId, 'classification', 'candidate_set', { descriptionChars: productDescription.length, candidateCodes });
 
   if (candidateCodes.length === 0) {
     caseFile.classification = {

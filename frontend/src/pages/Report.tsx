@@ -5,6 +5,7 @@ import type { CaseFile, PartyMatch, Verdict } from '../types/case';
 import { deleteCase, getReport, hasCaseToken, submitScreening } from '../lib/api';
 import { VerdictBanner } from '../components/VerdictBanner';
 import { DutyStackTable } from '../components/DutyStackTable';
+import { AdcvdNotice } from '../components/AdcvdNotice';
 import { LicensePath } from '../components/LicensePath';
 import { ReasoningPanel } from '../components/ReasoningPanel';
 import { ScreeningRedFlags } from '../components/ScreeningRedFlags';
@@ -270,6 +271,7 @@ export function Report() {
             <LicensePath determination={det} />
           )}
         </div>
+        {isImport && det.duty_stack && cls.selected_code && org.final_assembly_country && <AdcvdNotice hts={cls.selected_code} country={org.final_assembly_country.toUpperCase()} />}
         {det.reasoning && <ReasoningPanel reasoning={det.reasoning} />}
       </ReportSection>
 
@@ -307,7 +309,10 @@ export function Report() {
         certainty, and consult a licensed customs broker or trade attorney before relying on this for an actual transaction.
       </p>
       <div className="no-print mt-4 flex max-w-prose flex-wrap items-center gap-3 text-xs text-ink-faint">
-        <span>This case is kept for 30 days and then deleted automatically. Anyone with the link can open it.</span>
+        <span>
+          Anyone with this link can read this case, including the product description and any party names. It is kept for 30 days and then deleted
+          automatically. The browser that created it can delete it now; the secret for that stays only in that browser.
+        </span>
         {id && hasCaseToken(id) && (
           <button type="button" onClick={handleDelete} disabled={deleting} className="btn text-xs">
             {deleting ? 'Deleting…' : 'Delete this case now'}

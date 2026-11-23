@@ -12,6 +12,7 @@ import type { PulseCountryDetail } from '../types/pulse';
 import { PowerProfile } from '../components/PowerProfile';
 import { FreshnessNote } from '../components/FreshnessNote';
 import { POWER_CODES, POWER_LABELS } from '../lib/powerCountries';
+import { TradeWithUs, useCensusCompare } from '../components/CensusPanels';
 
 type View = 'trade' | 'power';
 
@@ -65,6 +66,7 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
   const [data, setData] = useState<Record<string, PulseCountryDetail | 'error'>>({});
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<Record<string, { topic: string; count: number }[]>>({});
+  const census = useCensusCompare(view === 'trade' ? codes : []);
 
   useEffect(() => {
     if (view !== 'trade') return;
@@ -195,8 +197,8 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
 
       {view === 'trade' && codes.includes('CN') && (
         <p className="mt-3 border border-review/40 bg-review-soft px-3 py-2 text-sm font-semibold text-review">
-          China's column leaves out the 2018-2019 Section 301 duties (Lists 1 to 4A, 7.5% to 100% by product), which this site does not load. China's tariff exposure is
-          higher than shown, so do not read it as equal to a country with the same figures here.
+          China's column here covers the 2026 forced-labor action only. The 2018-onward Section 301 duties on China (Lists 1 to 4A and the 2024-2026 increases, 7.5% to 100% by product) are
+          loaded product by product in the tariff lookup and the calculator, not in this country figure. China's tariff exposure is higher than shown, so do not read it as equal to a country with the same figures here.
         </p>
       )}
 
@@ -253,7 +255,7 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
                     <p className="font-semibold text-ink">Tariff programs</p>
                     <ul className="mt-1 flex flex-col gap-1.5 text-ink-muted">
                       {d.tariffs.forcedLabor && <li>Section 301 forced-labor determination: {d.tariffs.forcedLabor.ratePct}%.</li>}
-                      {code === 'CN' && <li className="font-semibold text-review">Plus Section 301 Lists 1 to 4A (7.5% to 100%), not loaded here.</li>}
+                      {code === 'CN' && <li className="font-semibold text-review">Plus Section 301 Lists 1 to 4A (7.5% to 100% by product), counted per product in the duty lookup, not in this figure.</li>}
                       {d.tariffs.extra.filter((e, i, all) => all.findIndex((x) => x.ratePct === e.ratePct && x.sourceUrl === e.sourceUrl) === i).map((e, i) => (
                         <li key={i}>
                           Section 338 extra duty: {e.ratePct}% ({e.note}).
@@ -268,6 +270,10 @@ export function CountryCompare({ view: fixedView, embedded = false }: { view?: V
                         <li>No country-specific tariff program applies right now.</li>
                       )}
                     </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-ink">Trade with the United States</p>
+                    <TradeWithUs stats={census?.countries[code]} asOf={census?.asOf ?? null} sourceUrl={census?.sourceUrl ?? 'https://www.census.gov/foreign-trade/data/index.html'} status={census?.status ?? 'not_loaded'} />
                   </div>
                   <div>
                     <p className="font-semibold text-ink">Export control</p>

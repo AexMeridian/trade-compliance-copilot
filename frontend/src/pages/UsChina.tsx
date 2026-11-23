@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { PulsePanel } from '../components/PulsePanel';
+import { IeepaTimeline } from '../components/IeepaTimeline';
 import { ChartFooter } from '../components/ChartFooter';
 import { getPower, type PowerResponse } from '../lib/api';
 import { formatValue, ordinal } from '../lib/powerFormat';
@@ -37,9 +38,16 @@ export function UsChina() {
         <Link to="/country/cn" className="rounded-full border border-hairline-strong px-3 py-1 text-ink-muted hover:text-ink">
           U.S. trade actions on China &rarr;
         </Link>
+        <a href="#ieepa" className="rounded-full border border-hairline-strong px-3 py-1 text-ink-muted hover:text-ink">
+          IEEPA and &quot;reciprocal&quot; tariffs: status &rarr;
+        </a>
         <Link to="/glossary" className="rounded-full border border-hairline-strong px-3 py-1 text-ink-muted hover:text-ink">
           Glossary &rarr;
         </Link>
+      </div>
+
+      <div className="mt-8">
+        <IeepaTimeline />
       </div>
 
       {failed && <p className="mt-6 text-sm text-stop">Could not load the comparison right now.</p>}

@@ -62,6 +62,15 @@ async function shell(c: Context<{ Bindings: Env }>, url: URL, meta: ReturnType<t
       .on('meta[name="twitter:title"]', setAttr('content', meta.title))
       .on('meta[name="twitter:description"]', setAttr('content', meta.description));
   }
+  if (meta.lang) rewriter = rewriter.on('html', setAttr('lang', meta.lang));
+  if (meta.alternates) {
+    const links = meta.alternates.map((a) => `<link rel="alternate" hreflang="${a.hreflang}" href="${a.href}">`).join('');
+    rewriter = rewriter.on('head', {
+      element(el) {
+        el.append(links, { html: true });
+      },
+    });
+  }
   if (!meta.indexable) {
     rewriter = rewriter.on('head', {
       element(el) {

@@ -11,9 +11,6 @@
 // detect-and-flag for human review, never auto-apply -- see README.md's
 // "Known limitations".
 import type { Env } from './types/env.js';
-import { refreshHts } from './lib/refresh/hts.js';
-import { refreshScheduleB } from './lib/refresh/scheduleB.js';
-import { refreshXref } from './lib/refresh/xref.js';
 import { refreshSdn } from './lib/refresh/sdn.js';
 import { refreshCsl } from './lib/refresh/csl.js';
 import { refreshUnSanctions } from './lib/refresh/unSanctions.js';
@@ -36,10 +33,14 @@ import { refreshOpenAlex } from './lib/refresh/openalex.js';
 import { refreshTreasury } from './lib/pulse/treasury.js';
 import { refreshCommodities } from './lib/pulse/commodities.js';
 import { refreshCustomsDuties, refreshTravelAdvisories } from './lib/pulse/everyday.js';
+import { refreshFreight } from './lib/pulse/freight.js';
+import { refreshCsms } from './lib/pulse/csms.js';
+import { refreshCensusTrade, refreshAcsForeignBorn } from './lib/pulse/census.js';
 import { refreshGlobalTradeAlert } from './lib/pulse/globalTradeAlert.js';
 import { runHealth } from './lib/healthRun.js';
 import { refreshCuratedWatch } from './lib/refresh/curatedWatch.js';
 import { logRefresh } from './lib/refresh/log.js';
+import { meterDb, isWriteQuotaError } from './lib/refresh/meter.js';
 import { purgeExpiredCases } from './lib/caseStore.js';
 import type { RefreshResult } from './lib/refresh/types.js';
 
@@ -49,6 +50,7 @@ import type { RefreshResult } from './lib/refresh/types.js';
 export const DAILY_CRON = '0 5 * * *';
 export const BULK_CRON = '0 6 * * *';
 export const INDICATOR_CRON = '0 7 * * *';
+export const CENSUS_CRON = '30 5 * * *'; // own invocation: up to ~40 Census requests a run while the 2018-onward history backfills
 export const HEALTH_CRON = '0 8 * * *'; // after the others have run: checks what they did, emails what needs a person
 
 interface RefreshJob {
@@ -62,7 +64,7 @@ interface RefreshJob {
 // allows only 100,000 rows written per day account-wide -- counting index and
 // search-index entries -- so running them all on one Monday blew the quota and
 // starved everything else that day. Instead each bulk job is "due" once a week, and a
-// day only runs due jobs while their combined last-known size fits BULK_ROW_BUDGET
+// day only runs due jobs while their combined last-known size fits BULK_WRITE_BUDGET
 // (always at least one), most safety-critical first. They therefore spread themselves
 // across the week automatically, and each also skips its rewrite entirely when the
 // upstream file is unchanged (see lib/refresh/changeGate.ts). This also uses one
@@ -83,6 +85,10 @@ const DAILY_JOBS: RefreshJob[] = [
   // Asked for in user testing: duties collected each month, and State Department travel advisories for country pages.
   { source: 'customs_duties', run: refreshCustomsDuties },
   { source: 'travel_advisories', run: refreshTravelAdvisories },
+  // NY Fed supply-chain pressure index and IMF PortWatch chokepoint transits (3 requests, a few rows a day once loaded).
+  { source: 'freight_indicators', run: refreshFreight },
+  // CBP's CSMS bulletins (official GovDelivery feed), tagged by program for the Wire.
+  { source: 'csms', run: refreshCsms },
   // Privacy: remove calculator cases past their 30-day retention (src/lib/caseStore.ts).
   {
     source: 'case_expiry',
@@ -97,48 +103,103 @@ const DAILY_JOBS: RefreshJob[] = [
   },
 ];
 
+// Both skip with a clear status ("needs CENSUS_API_KEY") until the owner sets the key, and write only changed rows.
+const CENSUS_JOBS: RefreshJob[] = [
+  { source: 'census_trade', run: refreshCensusTrade },
+  { source: 'census_acs', run: refreshAcsForeignBorn },
+];
+
 // Priority order = sanctions first (a stale list is a real compliance risk).
-// `typicalRows` is the fallback size when a job has never logged a run.
-type SizedJob = RefreshJob & { typicalRows: number; /** Outbound requests one run makes, counted conservatively. */ fetches?: number };
+// `typicalWrites` is the fallback D1 write cost (rows written, index and search entries included) when a job has no measured run yet.
+type SizedJob = RefreshJob & { typicalWrites: number; /** Outbound requests one run makes, counted conservatively. */ fetches?: number };
 // The four sanctions lists (SDN, CSL, UN, UK) are no longer reloaded here: their files (17-30 MB) need more CPU than a Workers Free
 // invocation has, so the job was killed before it could even log the failure and the lists went stale. They are synced daily by
 // .github/workflows/lists-sync.yml (scripts/sync-lists.ts), which writes only the changes as a migration that the deploy applies.
 // The old in-Worker loaders are kept for a paid plan or a local run (they replace the table, so do not run them alongside the sync).
 export const WORKER_SKIPPED_LIST_JOBS = { refreshSdn, refreshCsl, refreshUnSanctions, refreshUkSanctions };
+// HTS, Schedule B and the cross-reference are NOT here: the HTS load needs 96 requests (the free plan allows 50) and a full reload writes far more rows than
+// a free-plan day can absorb, so the "HTS and Schedule B sync" GitHub workflow (.github/workflows/bulk-sync.yml, scripts/sync-bulk-data.ts) loads them as
+// migrations and writes their data_refresh_log rows. The Worker loaders (lib/refresh/hts.ts, scheduleB.ts, xref.ts) are kept for a paid plan, where they
+// can be added back to this list.
+export { refreshHts } from './lib/refresh/hts.js';
+export { refreshScheduleB } from './lib/refresh/scheduleB.js';
+export { refreshXref } from './lib/refresh/xref.js';
 const BULK_JOBS: SizedJob[] = [
-  { source: 'gta', run: refreshGlobalTradeAlert, typicalRows: 3_000 },
-  { source: 'wro_findings', run: refreshWroFindings, typicalRows: 100 },
-  { source: 'hts', run: refreshHts, typicalRows: 32_000 },
-  { source: 'schedule_b', run: refreshScheduleB, typicalRows: 15_000 },
-  { source: 'xref', run: refreshXref, typicalRows: 30_000 },
+  { source: 'gta', run: refreshGlobalTradeAlert, typicalWrites: 9_000 },
+  { source: 'wro_findings', run: refreshWroFindings, typicalWrites: 500 },
 ];
 
 // Country indicators: weekly, tiny writes but many outbound requests (one per World Bank series, one per year of humanitarian
 // funding...). They run in their own invocation, at most INDICATOR_FETCH_BUDGET requests per day, so whatever does not fit
 // waits for the next day instead of failing with "too many subrequests".
 const INDICATOR_JOBS: SizedJob[] = [
-  { source: 'world_bank', run: refreshWorldBank, typicalRows: 400, fetches: 2 },
-  { source: 'power_indicators', run: refreshPowerIndicators, typicalRows: 50, fetches: 9 },
-  { source: 'un_voting', run: refreshUnVoting, typicalRows: 1, fetches: 2 },
-  { source: 'uis_students', run: refreshUisStudents, typicalRows: 2, fetches: 2 },
-  { source: 'unhcr', run: refreshUnhcr, typicalRows: 1, fetches: 2 },
-  { source: 'nobel', run: refreshNobel, typicalRows: 2, fetches: 4 },
-  { source: 'fts', run: refreshFts, typicalRows: 1, fetches: 9 },
-  { source: 'undp_hdr', run: refreshUndp, typicalRows: 3, fetches: 2 },
-  { source: 'openalex', run: refreshOpenAlex, typicalRows: 4, fetches: 6 },
+  { source: 'world_bank', run: refreshWorldBank, typicalWrites: 1200, fetches: 2 },
+  { source: 'power_indicators', run: refreshPowerIndicators, typicalWrites: 150, fetches: 9 },
+  { source: 'un_voting', run: refreshUnVoting, typicalWrites: 3, fetches: 2 },
+  { source: 'uis_students', run: refreshUisStudents, typicalWrites: 6, fetches: 2 },
+  { source: 'unhcr', run: refreshUnhcr, typicalWrites: 3, fetches: 2 },
+  { source: 'nobel', run: refreshNobel, typicalWrites: 6, fetches: 4 },
+  { source: 'fts', run: refreshFts, typicalWrites: 3, fetches: 9 },
+  { source: 'undp_hdr', run: refreshUndp, typicalWrites: 9, fetches: 2 },
+  { source: 'openalex', run: refreshOpenAlex, typicalWrites: 12, fetches: 6 },
 ];
 const INDICATOR_FETCH_BUDGET = 40;
 const BULK_DUE_AFTER_MS = 7 * 86_400_000 - 3_600_000; // a day-late cron must not slip a whole extra week
-const BULK_ROW_BUDGET = 30_000; // rows per day; with indexes and search tables each costs several writes
+// D1 Free allows 100,000 rows written per day for the whole account. The bulk reloads may use at most BULK_WRITE_BUDGET of it, and DAILY_WRITE_RESERVE is
+// always left for everything else (case creation, health and refresh log rows, the Claude call counter, alerts), so those small writes still succeed on a
+// day a big reload ran. Budgets are in measured writes (meta.rows_written, see lib/refresh/meter.ts), not declared rows.
+export const D1_DAILY_WRITE_CAP = 100_000;
+export const DAILY_WRITE_RESERVE = 20_000;
+export const BULK_WRITE_BUDGET = 30_000;
+const LEGACY_WRITES_PER_ROW = 5; // for log rows from before rows_written was recorded: rows x (base + indexes + search entries)
 
-async function pickDue(env: Env, jobs: SizedJob[], limits: { rows: number; fetches?: number }, now: number): Promise<SizedJob[]> {
-  const { results } = await env.DB.prepare(
-    `SELECT source, MAX(rows_affected) AS biggest,
+interface LogSummary {
+  source: string;
+  biggest: number | null;
+  written?: number | null;
+  last_ok: string | null;
+  fails?: number | null;
+}
+
+async function readLogSummary(env: Env): Promise<LogSummary[]> {
+  const sql = (writtenColumn: string) =>
+    `SELECT source, MAX(rows_affected) AS biggest, ${writtenColumn}
             MAX(CASE WHEN status = 'success' THEN finished_at END) AS last_ok,
             SUM(CASE WHEN status = 'error' AND finished_at > COALESCE((SELECT MAX(l2.finished_at) FROM data_refresh_log l2 WHERE l2.source = l.source AND l2.status = 'success'), '') THEN 1 ELSE 0 END) AS fails
-     FROM data_refresh_log l GROUP BY source`
-  ).all<{ source: string; biggest: number | null; last_ok: string | null; fails?: number | null }>();
-  const seen = new Map(results.map((r) => [r.source, r]));
+     FROM data_refresh_log l GROUP BY source`;
+  try {
+    return (await env.DB.prepare(sql('MAX(rows_written) AS written,')).all<LogSummary>()).results;
+  } catch {
+    // Migration 0090 (rows_written) not applied yet: fall back to declared rows.
+    return (await env.DB.prepare(sql('')).all<LogSummary>()).results;
+  }
+}
+
+/** Writes already spent today (UTC), from the measured figures in the refresh log. 0 when it cannot be read. */
+export async function writesSpentToday(env: Env): Promise<number> {
+  try {
+    const row = await env.DB.prepare(`SELECT COALESCE(SUM(rows_written), 0) AS spent FROM data_refresh_log WHERE finished_at >= date('now')`).first<{ spent: number }>();
+    return Number(row?.spent ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** The write cost to plan for: the largest measured run, else the largest declared row count times a per-row factor, else the typical size. */
+export function plannedWrites(row: LogSummary | undefined, typicalWrites: number): number {
+  if (row?.written != null && row.written > 0) return row.written;
+  return Math.max((row?.biggest ?? 0) * LEGACY_WRITES_PER_ROW, typicalWrites);
+}
+
+/** Budget for one bulk invocation: the fixed bulk allowance, cut down by what today already used and by the reserve kept for small writes. */
+export function bulkWriteLimit(spentToday: number): number {
+  return Math.max(0, Math.min(BULK_WRITE_BUDGET, D1_DAILY_WRITE_CAP - DAILY_WRITE_RESERVE - spentToday));
+}
+
+async function pickDue(env: Env, jobs: SizedJob[], limits: { writes: number; fetches?: number }, now: number): Promise<SizedJob[]> {
+  // No headroom left today (the reserve for small writes is already being eaten): run nothing heavy until tomorrow.
+  if (limits.writes <= 0) return [];
+  const seen = new Map((await readLogSummary(env)).map((r) => [r.source, r]));
 
   // A job that keeps failing must not starve the others: jobs with a failure since their last success go to the back of the
   // line (stable sort keeps priority order within each group), so a healthy due job is always picked first and the failing one
@@ -153,8 +214,8 @@ async function pickDue(env: Env, jobs: SizedJob[], limits: { rows: number; fetch
     const row = seen.get(job.source);
     const lastOk = row?.last_ok ? Date.parse(row.last_ok) : 0;
     if (now - lastOk < BULK_DUE_AFTER_MS) continue;
-    const cost = Math.max(row?.biggest ?? 0, job.typicalRows);
-    if (picked.length > 0 && spent + cost > limits.rows) continue;
+    const cost = plannedWrites(row, job.typicalWrites);
+    if (picked.length > 0 && spent + cost > limits.writes) continue;
     if (limits.fetches !== undefined && picked.length > 0 && requests + (job.fetches ?? 1) > limits.fetches) continue;
     picked.push(job);
     spent += cost;
@@ -163,8 +224,8 @@ async function pickDue(env: Env, jobs: SizedJob[], limits: { rows: number; fetch
   return picked;
 }
 
-export const pickDueBulkJobs = (env: Env, now = Date.now()) => pickDue(env, BULK_JOBS, { rows: BULK_ROW_BUDGET }, now);
-export const pickDueIndicatorJobs = (env: Env, now = Date.now()) => pickDue(env, INDICATOR_JOBS, { rows: BULK_ROW_BUDGET, fetches: INDICATOR_FETCH_BUDGET }, now);
+export const pickDueBulkJobs = async (env: Env, now = Date.now()) => pickDue(env, BULK_JOBS, { writes: bulkWriteLimit(await writesSpentToday(env)) }, now);
+export const pickDueIndicatorJobs = (env: Env, now = Date.now()) => pickDue(env, INDICATOR_JOBS, { writes: BULK_WRITE_BUDGET, fetches: INDICATOR_FETCH_BUDGET }, now);
 
 export async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
   let jobs: RefreshJob[];
@@ -172,6 +233,7 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
     if (controller.cron === DAILY_CRON) jobs = DAILY_JOBS;
     else if (controller.cron === BULK_CRON) jobs = await pickDueBulkJobs(env);
     else if (controller.cron === INDICATOR_CRON) jobs = await pickDueIndicatorJobs(env);
+    else if (controller.cron === CENSUS_CRON) jobs = CENSUS_JOBS;
     else if (controller.cron === HEALTH_CRON) jobs = [{ source: 'health', run: runHealth }];
     else {
       console.error(`No refresh jobs mapped for cron pattern "${controller.cron}" -- check wrangler.jsonc against src/scheduled.ts`);
@@ -184,16 +246,20 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
 
   for (const job of jobs) {
     const startedAt = new Date().toISOString();
+    const meter = meterDb(env.DB);
+    const jobEnv = { ...env, DB: meter.db } as Env;
     try {
-      const result = await job.run(env);
+      const result = await job.run(jobEnv);
       // truncatedTerms is only ever set by pulse -- every other job leaves
       // it undefined, so this stays a no-op note for them.
-      const note = result.truncatedTerms?.length
+      const note = result.skipped
+        ? result.skipped
+        : result.truncatedTerms?.length
         ? `Pagination cap reached for: ${result.truncatedTerms.join(', ')} -- some historical documents may be missing.`
         : result.unchanged
           ? 'Source unchanged since the last load; skipped the rewrite to save database writes.'
           : null;
-      await logRefresh(env, result.source, 'success', result.rows, note, startedAt);
+      await logRefresh(env, result.source, 'success', result.rows, note, startedAt, meter.written());
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Scheduled refresh failed for "${job.source}":`, message);
@@ -202,7 +268,12 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
       // header comment -- so a failure here means the live table was never
       // touched, and it doesn't prevent the next job in this same
       // invocation from running.
-      await logRefresh(env, job.source, 'error', null, message, startedAt);
+      await logRefresh(env, job.source, 'error', null, message, startedAt, meter.written());
+      // Out of D1 writes for the day: the remaining jobs would fail the same way and each attempt wastes a log write. The next invocation picks them up.
+      if (isWriteQuotaError(err)) {
+        console.error('D1 write allowance looks exhausted; skipping the remaining jobs in this invocation.');
+        break;
+      }
     }
   }
 }

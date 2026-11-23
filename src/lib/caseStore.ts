@@ -50,16 +50,36 @@ export async function getCaseFile(env: Env, id: string): Promise<CaseFile | null
   return JSON.parse(repairMojibake(row.case_file)) as CaseFile;
 }
 
+/** Compares a token with the stored hash over the full length, without early exit. */
+async function tokenMatches(token: string, storedHash: string): Promise<boolean> {
+  const given = await sha256Hex(token);
+  let diff = given.length ^ storedHash.length;
+  for (let i = 0; i < Math.max(given.length, storedHash.length); i++) diff |= (given.charCodeAt(i) || 0) ^ (storedHash.charCodeAt(i) || 0);
+  return diff === 0;
+}
+
+/**
+ * Whether a request may change a case: it must carry the case's delete token (the browser that created the case holds it; see frontend/src/lib/api.ts).
+ * Anyone with the case LINK can read the case and its report, but only the holder of the token can add to it. Seeded samples are read-only. A case with
+ * no stored token (created before tokens existed, or by a local test script) stays open, so nothing already stored is locked out.
+ */
+export async function canWriteCase(env: Env, id: string, token: string | undefined): Promise<boolean> {
+  const row = await env.DB.prepare(`SELECT delete_token_hash, is_sample FROM cases WHERE id = ?1`).bind(id).first<{ delete_token_hash: string | null; is_sample: number }>();
+  if (!row) return true; // the route's own lookup answers "not found"
+  if (row.is_sample) return false;
+  if (!row.delete_token_hash) return true;
+  return token ? tokenMatches(token, row.delete_token_hash) : false;
+}
+
+export const CASE_TOKEN_HEADER = 'X-Delete-Token';
+export const CASE_WRITE_FORBIDDEN = 'This case can only be changed from the browser that created it (it holds the secret token that was made with the case). Anyone with the link can read it, but not add to it.';
+
 /** Deletes a case and its audit events if (and only if) the token matches. */
 export async function deleteCase(env: Env, id: string, token: string): Promise<'deleted' | 'forbidden' | 'missing'> {
   const row = await env.DB.prepare(`SELECT delete_token_hash, is_sample FROM cases WHERE id = ?1`).bind(id).first<{ delete_token_hash: string | null; is_sample: number }>();
   if (!row) return 'missing';
   if (row.is_sample || !row.delete_token_hash) return 'forbidden';
-  const given = await sha256Hex(token);
-  // Compare full-length hex digests without early exit.
-  let diff = given.length ^ row.delete_token_hash.length;
-  for (let i = 0; i < Math.max(given.length, row.delete_token_hash.length); i++) diff |= (given.charCodeAt(i) || 0) ^ (row.delete_token_hash.charCodeAt(i) || 0);
-  if (diff !== 0) return 'forbidden';
+  if (!(await tokenMatches(token, row.delete_token_hash))) return 'forbidden';
   await env.DB.batch([env.DB.prepare(`DELETE FROM case_events WHERE case_id = ?1`).bind(id), env.DB.prepare(`DELETE FROM cases WHERE id = ?1`).bind(id)]);
   return 'deleted';
 }

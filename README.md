@@ -217,7 +217,7 @@ tests/                    golden-cases.json + the live accuracy runner (test:gol
 | `wro_findings` | [CBP Withhold Release Orders & Findings](https://www.cbp.gov/document/stats/withhold-release-orders-findings) | 1 | Full list, Section 307 forced-labor actions |
 | `usmca_rules` | HTSUS General Note 11 / USMCA Annex 4-B, curated | 1 | Chapters 84, 85, 87, 61, 62, 63 — **partial by design**, see below |
 | `country_chart` / `country_chart_coverage` | 15 CFR 738 Supp. 1 / Part 746, curated | 1 | the official Country Chart loaded from the eCFR (see migration 0030 for its amendment date) plus the Part 746 destinations; counts: /api/pulse/stats |
-| `eccn_entries` | 15 CFR 774 Supp. 1, curated | 1/3 | a handful of entries re-derived from the eCFR (not the whole list, which has roughly 3,000), with Country Chart columns; export results that depend on the rest say "cannot confirm" |
+| `eccn_entries` | 15 CFR 774 Supp. 1, built from the eCFR by `scripts/build-ccl.ts` (weekly PR by `ccl-pr.yml`) | 1 | the whole Commerce Control List (about 636 ECCNs) with Country Chart columns; paragraph- or group-dependent controls carry a `?` and are answered "verify"; nine entries hand-checked in 0032 stay authoritative. `country_groups` (15 CFR 740 Supp. 1) is built the same way |
 | `tariff_overlays` | Federal Register (Section 232/301/338 proclamations), curated | 1 | Full breadth for Sec. 301 forced-labor (all 60 named economies); chapter-level approximation for Sec. 338 and Sec. 232 |
 
 Every row also carries `last_updated` and (for tariff overlays) `data_as_of`,

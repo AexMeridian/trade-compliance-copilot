@@ -1,0 +1,139 @@
+{
+ "variables": {
+  "B05006_001E": {
+   "label": "Estimate!!Total:",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_002E": {
+   "label": "Estimate!!Total:!!Europe:",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_008E": {
+   "label": "Estimate!!Total:!!Europe:!!Northern Europe:!!United Kingdom (inc. Crown Dependencies):",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_009E": {
+   "label": "Estimate!!Total:!!Europe:!!Northern Europe:!!United Kingdom (inc. Crown Dependencies):!!United Kingdom, excluding England and Scotland",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_010E": {
+   "label": "Estimate!!Total:!!Europe:!!Northern Europe:!!United Kingdom (inc. Crown Dependencies):!!England",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_017E": {
+   "label": "Estimate!!Total:!!Europe:!!Western Europe:!!Germany",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_024E": {
+   "label": "Estimate!!Total:!!Europe:!!Southern Europe:!!Portugal",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_025E": {
+   "label": "Estimate!!Total:!!Europe:!!Southern Europe:!!Portugal!!Azores Islands",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_040E": {
+   "label": "Estimate!!Total:!!Europe:!!Eastern Europe:!!Poland",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_042E": {
+   "label": "Estimate!!Total:!!Europe:!!Eastern Europe:!!Russia",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_048E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_049E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!China:",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_050E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!China:!!China, excluding Hong Kong and Taiwan",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_051E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!China:!!Hong Kong",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_052E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!China:!!Taiwan",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_053E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!Japan",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_054E": {
+   "label": "Estimate!!Total:!!Asia:!!Eastern Asia:!!Korea",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_060E": {
+   "label": "Estimate!!Total:!!Asia:!!South Central Asia:!!India",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_067E": {
+   "label": "Estimate!!Total:!!Asia:!!South Central Asia:!!Other South Central Asia",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_074E": {
+   "label": "Estimate!!Total:!!Asia:!!South Eastern Asia:!!Philippines",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_077E": {
+   "label": "Estimate!!Total:!!Asia:!!South Eastern Asia:!!Vietnam",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_160E": {
+   "label": "Estimate!!Total:!!Americas:!!Latin America:!!Central America:!!Mexico",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_177E": {
+   "label": "Estimate!!Total:!!Americas:!!Northern America:!!Canada",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_034E": {
+   "label": "Estimate!!Total:!!Europe:!!Eastern Europe:!!Czechoslovakia (includes Czech Republic and Slovakia)",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_069E": {
+   "label": "Estimate!!Total:!!Asia:!!South Eastern Asia:!!Burma (Myanmar)",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_072E": {
+   "label": "Estimate!!Total:!!Asia:!!South Eastern Asia:!!Laos",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  },
+  "B05006_108E": {
+   "label": "Estimate!!Total:!!Africa:!!Middle Africa:!!Democratic Republic of Congo (Zaire)",
+   "concept": "Place of Birth for the Foreign-Born Population in the United States",
+   "group": "B05006"
+  }
+ }
+}

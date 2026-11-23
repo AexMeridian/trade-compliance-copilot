@@ -6,10 +6,32 @@ import type { Env } from '../../types/env.js';
 import type { SeriesByCountry } from '../power/compute.js';
 import { changeGate } from './changeGate.js';
 import { fetchCountryCodes } from './countryCodes.js';
-import { getJson, upsertIndicators } from './indicatorStore.js';
+import { upsertIndicators } from './indicatorStore.js';
+import { USER_AGENT } from './userAgent.js';
 import type { RefreshResult } from './types.js';
 
 const API = 'https://api.openalex.org/works';
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * One OpenAlex request, polite and patient. OpenAlex answers HTTP 429 to anonymous callers that send several requests at once (the cause of this job's
+ * "critical" status in /api/pulse/data-status), and prefers callers that identify themselves with a `mailto` (the "polite pool", much higher limits).
+ * So: the address is added when OPENALEX_MAILTO is set, and a 429 or 5xx is retried after the server's Retry-After (capped) or a growing pause.
+ */
+export async function openAlexJson(url: string, mailto?: string, attempts = 4, pause: (ms: number) => Promise<void> = sleep): Promise<unknown> {
+  const full = mailto ? `${url}${url.includes('?') ? '&' : '?'}mailto=${encodeURIComponent(mailto)}` : url;
+  let last = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const res = await fetch(full, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(30_000) });
+    if (res.ok) return res.json();
+    last = `HTTP ${res.status} from api.openalex.org`;
+    if (res.status !== 429 && res.status < 500) break;
+    const retryAfter = Number(res.headers.get('retry-after'));
+    await pause(Math.min(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1500 * attempt, 8000));
+  }
+  throw new Error(last);
+}
 /** Partner countries and the indicator each one produces. */
 export const PARTNERS: { cc: string; id: string }[] = [
   { cc: 'US', id: 'coauthor_us' },
@@ -47,11 +69,14 @@ export function shares(totals: Map<string, number>, withPartner: Map<string, num
 export async function refreshOpenAlex(env: Env): Promise<RefreshResult> {
   const last = new Date().getUTCFullYear() - 1; // the last full year
   const window = `publication_year:${last - 4}-${last}`;
-  const [codes, totalsBody, ...partnerBodies] = await Promise.all([
-    fetchCountryCodes(),
-    getJson(`${API}?filter=${window}&group_by=authorships.countries`, 30_000),
-    ...PARTNERS.map((p) => getJson(`${API}?filter=authorships.countries:${p.cc},${window}&group_by=authorships.countries`, 30_000)),
-  ]);
+  // One request at a time: five at once is what OpenAlex rate-limited.
+  const codes = await fetchCountryCodes();
+  const totalsBody = await openAlexJson(`${API}?filter=${window}&group_by=authorships.countries`, env.OPENALEX_MAILTO);
+  const partnerBodies: unknown[] = [];
+  for (const p of PARTNERS) {
+    await sleep(300);
+    partnerBodies.push(await openAlexJson(`${API}?filter=authorships.countries:${p.cc},${window}&group_by=authorships.countries`, env.OPENALEX_MAILTO));
+  }
   const totals = parseGroups(totalsBody);
   if (totals.size < 100) throw new Error(`OpenAlex returned ${totals.size} countries, expected at least 100`);
 

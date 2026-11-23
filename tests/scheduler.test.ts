@@ -3,7 +3,7 @@
 // Run: npm run test:unit
 
 import assert from 'node:assert/strict';
-import { pickDueBulkJobs, pickDueIndicatorJobs } from '../src/scheduled.js';
+import { pickDueBulkJobs, pickDueIndicatorJobs, plannedWrites, bulkWriteLimit } from '../src/scheduled.js';
 import type { Env } from '../src/types/env.js';
 
 let failures = 0;
@@ -19,8 +19,8 @@ async function test(name: string, fn: () => Promise<void>) {
 
 const NOW = Date.parse('2026-10-07T05:00:00Z');
 const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
-const envWith = (log: { source: string; biggest: number | null; last_ok: string | null; fails?: number }[]) =>
-  ({ DB: { prepare: () => ({ all: async () => ({ results: log }) }) } }) as unknown as Env;
+const envWith = (log: { source: string; biggest: number | null; last_ok: string | null; fails?: number; written?: number | null }[], spentToday = 0) =>
+  ({ DB: { prepare: () => ({ all: async () => ({ results: log }), first: async () => ({ spent: spentToday }) }) } }) as unknown as Env;
 
 await test('the sanctions lists are not run in the Worker (they are synced by the GitHub workflow)', async () => {
   const picked = await pickDueBulkJobs(envWith([]), NOW);
@@ -34,27 +34,33 @@ await test('nothing runs when every job succeeded within the week', async () => 
   assert.equal(picked.length, 0);
 });
 
-await test('a job last run 7 days ago is due; its size is capped by the daily budget', async () => {
+await test('HTS, Schedule B and the cross-reference are loaded by the GitHub workflow, never picked by the Worker (they cannot succeed on the free plan)', async () => {
+  const stale = ['hts', 'schedule_b', 'xref'].map((source) => ({ source, biggest: 32_000, last_ok: daysAgo(30), fails: 9 }));
+  const picked = await pickDueBulkJobs(envWith(stale), NOW);
+  assert.ok(!picked.some((j) => ['hts', 'schedule_b', 'xref'].includes(j.source)));
+});
+
+await test('a job last run 7 days ago is due; the day budget is counted in measured writes', async () => {
+  // gta wrote 25,000 rows last time (measured), wro_findings is small: both are due, 25k + 500 fits 30k.
   const log = [
-    { source: 'sdn', biggest: 44_000, last_ok: daysAgo(1) },
-    { source: 'csl', biggest: 7_000, last_ok: daysAgo(1) },
-    { source: 'un_sanctions', biggest: 3_000, last_ok: daysAgo(1) },
-    { source: 'uk_sanctions', biggest: 8_000, last_ok: daysAgo(1) },
-    { source: 'gta', biggest: 3_000, last_ok: daysAgo(1) },
-    { source: 'wro_findings', biggest: 100, last_ok: daysAgo(1) },
-    { source: 'world_bank', biggest: 400, last_ok: daysAgo(1) },
-    { source: 'power_indicators', biggest: 25, last_ok: daysAgo(1) },
-    { source: 'un_voting', biggest: 1, last_ok: daysAgo(1) },
-    { source: 'uis_students', biggest: 2, last_ok: daysAgo(1) },
-    { source: 'unhcr', biggest: 1, last_ok: daysAgo(1) },
-    { source: 'nobel', biggest: 2, last_ok: daysAgo(1) },
-    { source: 'fts', biggest: 1, last_ok: daysAgo(1) },
-    { source: 'hts', biggest: 32_000, last_ok: daysAgo(7) },
-    { source: 'schedule_b', biggest: 15_000, last_ok: daysAgo(7) },
-    { source: 'xref', biggest: 30_000, last_ok: daysAgo(7) },
+    { source: 'gta', biggest: 3_000, written: 25_000, last_ok: daysAgo(7) },
+    { source: 'wro_findings', biggest: 100, written: 400, last_ok: daysAgo(7) },
   ];
-  const picked = await pickDueBulkJobs(envWith(log), NOW);
-  assert.deepEqual(picked.map((j) => j.source), ['hts']); // 32k used the budget; schedule_b/xref wait a day
+  assert.deepEqual((await pickDueBulkJobs(envWith(log), NOW)).map((j) => j.source), ['gta', 'wro_findings']);
+  // The day already spent 60,000 writes: the cap and the 20,000 reserve leave 20,000, so after the first job the next one no longer fits.
+  assert.deepEqual((await pickDueBulkJobs(envWith(log, 60_000), NOW)).map((j) => j.source), ['gta']);
+});
+
+await test('nothing heavy runs when the day has no headroom left', async () => {
+  assert.equal(bulkWriteLimit(80_000), 0);
+  assert.equal(bulkWriteLimit(0), 30_000);
+  assert.equal((await pickDueBulkJobs(envWith([], 85_000), NOW)).length, 0);
+});
+
+await test('planned writes prefer the measured figure over declared rows', async () => {
+  assert.equal(plannedWrites({ source: 'x', biggest: 100, written: 9_000, last_ok: null }, 50), 9_000);
+  assert.equal(plannedWrites({ source: 'x', biggest: 100, written: null, last_ok: null }, 50), 500);
+  assert.equal(plannedWrites(undefined, 50), 50);
 });
 
 await test('a failed-only job (no success on record) is still due', async () => {
@@ -88,7 +94,7 @@ await test('a persistently failing first job does not starve the others', async 
 });
 
 await test('a failing job still runs when nothing else is due', async () => {
-  const others = ['wro_findings', 'hts', 'schedule_b', 'xref'].map((source) => ({ source, biggest: 1000, last_ok: daysAgo(1) }));
+  const others = ['wro_findings'].map((source) => ({ source, biggest: 1000, last_ok: daysAgo(1) }));
   const picked = await pickDueBulkJobs(envWith([{ source: 'gta', biggest: null, last_ok: null, fails: 5 }, ...others]), NOW);
   assert.deepEqual(picked.map((j) => j.source), ['gta']);
 });

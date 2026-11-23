@@ -17,13 +17,14 @@ function test(name: string, fn: () => void) {
 
 const files = readdirSync('migrations').filter((f) => f.endsWith('.sql')).sort();
 
-test('files are named NNNN_name.sql and numbered 1..N with no gaps or repeats', () => {
+// Gaps are allowed: parallel work reserves number ranges (hand-written files in 0090-0099) and the sync bots take the next number after the highest.
+test('files are named NNNN_name.sql and numbered in strictly increasing order with no repeats', () => {
   const numbers = files.map((f) => {
     const m = /^(\d{4})_[a-z0-9_]+\.sql$/.exec(f);
     assert.ok(m, `bad name: ${f}`);
     return Number(m[1]);
   });
-  numbers.forEach((n, i) => assert.equal(n, i + 1, `expected ${i + 1} at position ${i}, found ${n} (${files[i]})`));
+  numbers.forEach((n, i) => i > 0 && assert.ok(n > numbers[i - 1], `${files[i]} repeats or reorders a number`));
 });
 test('every file has statements', () => {
   for (const f of files) {

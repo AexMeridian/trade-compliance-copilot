@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { downloadCsv } from '../lib/downloadCsv';
+import { ChartExport } from './ChartExport';
 
 // The standard line under every chart or table, the way a research publication closes a figure: where the
 // numbers come from, the date they are as of, a CSV download and, where it makes sense, a citable link.
@@ -34,6 +35,7 @@ export function ChartFooter({
           Download CSV
         </button>
       )}
+      <ChartExport source={source} asOf={asOf} />
       {children}
     </div>
   );

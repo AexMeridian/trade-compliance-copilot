@@ -14,6 +14,7 @@ import { DutyStackTable } from '../components/DutyStackTable';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
 import { FreshnessNote, emptyIsUnknown } from '../components/FreshnessNote';
 import { TravelersBox } from '../components/TravelersBox';
+import { ForeignBornPanel } from '../components/CensusPanels';
 import { NewsThumb, timeAgo } from '../components/PulseNews';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 import { parseCountries, CURRENCY_FOR, STATUS_LABEL, COUNTRY_LABELS } from '../lib/pulseCountries';
@@ -168,6 +169,9 @@ export function CountryDetail() {
             <div className="sm:col-span-2 lg:col-span-3">
               <TravelersBox code={code} name={name} currency={currency} />
             </div>
+            <div className="sm:col-span-2 lg:col-span-3 empty:hidden">
+              <ForeignBornPanel code={code} name={name} />
+            </div>
             {data.snapshot && (
               <PulsePanel
                 title="Country snapshot"
@@ -224,6 +228,12 @@ export function CountryDetail() {
               )}
               {exportControl.status === 'not_curated' && (
                 <p className="mt-1 text-sm text-ink-faint">This destination's Country Chart row is not loaded on this site yet; see the Export controls tab.</p>
+              )}
+              {exportControl.countryGroups && exportControl.countryGroups.groups.length > 0 && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  Country Groups: <span className="font-mono text-ink">{exportControl.countryGroups.groups.map((g) => g.code).join(', ')}</span>{' '}
+                  <span className="text-xs text-ink-faint">(see the Export controls tab)</span>
+                </p>
               )}
             </PulsePanel>
             <PulsePanel title="Sanctioned entities (OFAC/BIS)">
@@ -326,8 +336,8 @@ export function CountryDetail() {
             >
               {code === 'CN' && (
                 <p className="mb-3 border border-review/40 bg-review-soft px-3 py-2 text-sm font-semibold text-review">
-                  Goods from China usually also owe the 2018-2019 Section 301 duties (USTR Lists 1 to 4A, 7.5% to 100% depending on the product). Those lists are not
-                  loaded on this site, so they are not in any China figure here, and China's numbers are not comparable with other countries' as shown.
+                  Goods from China usually also owe the 2018-2019 Section 301 duties (USTR Lists 1 to 4A, 7.5% to 100% depending on the product). Those lists are counted in the sample duty-stack rows below where a line is covered, but not in the
+                  country-level rate above, so China's country figure is not comparable with other countries' as shown.
                 </p>
               )}
               <ul className="flex flex-col gap-3 text-sm">
@@ -425,6 +435,29 @@ export function CountryDetail() {
                   <p className="mt-2">
                     <ProvenanceBadge source={{ source_url: exportControl.sourceUrl, source_tier: 1, last_updated: exportControl.lastUpdated ?? '' }} />
                   </p>
+                )}
+                {exportControl.countryGroups && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold text-ink">Country Groups (15 CFR 740 Supp. 1)</h3>
+                    {exportControl.countryGroups.groups.length > 0 ? (
+                      <ul className="mt-1 text-sm text-ink-muted">
+                        {exportControl.countryGroups.groups.map((g) => (
+                          <li key={g.code}>
+                            <span className="font-mono text-ink">{g.code}</span> {g.label}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-sm text-ink-muted">{name} is not listed in any of the Country Groups A, B, D or E.</p>
+                    )}
+                    <p className="mt-1 text-xs text-ink-faint">
+                      As of {exportControl.countryGroups.asOf}, read from the{' '}
+                      <a href={exportControl.countryGroups.sourceUrl ?? 'https://www.ecfr.gov/current/title-15/part-740/appendix-Supplement%20No.%201%20to%20Part%20740'} className="text-accent hover:underline" target="_blank" rel="noreferrer">
+                        eCFR
+                      </a>
+                      . Some license exceptions and some ECCN controls depend on these groups; the rule text is what counts.
+                    </p>
+                  </div>
                 )}
                 {exportControl.rows.length > 0 && (
                   <table className="mt-4 w-full border-collapse text-sm">

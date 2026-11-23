@@ -20,6 +20,9 @@ export interface Env {
   MODEL_CACHE?: string; // "off" disables reuse of earlier identical model answers (used by the accuracy runs, which must see fresh answers)
   NEWS_IMAGES?: string; // "off" hides publisher lead images
   MARKET_QUOTES?: string; // "off" disables the Yahoo Finance quote tiles
+  OPENALEX_MAILTO?: string; // optional contact address sent to OpenAlex (its "polite pool" has far higher rate limits than the anonymous one); unset works but may be rate limited (HTTP 429)
   BLS_API_KEY?: string; // optional free key (bls.gov/developers) for a higher BLS rate limit; unset works fine at the lower keyless tier
+  CENSUS_API_KEY?: string; // free key (api.census.gov/data/key_signup.html) for the trade-by-partner and foreign-born jobs; unset skips them with a clear status
+  GTA_API_KEY?: string; // alias for GLOBAL_TRADE_ALERT_API_KEY; either name works
   GLOBAL_TRADE_ALERT_API_KEY?: string; // free self-serve key (globaltradealert.org/api-access); unset simply skips the GTA refresh job, unlike BLS there is no keyless tier
 }

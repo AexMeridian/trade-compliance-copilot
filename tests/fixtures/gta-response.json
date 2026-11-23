@@ -1,0 +1,39 @@
+[
+  {
+    "intervention_id": 138295,
+    "state_act_title": "China: Additional import tariffs on selected U.S. products",
+    "intervention_url": "https://www.globaltradealert.org/intervention/138295",
+    "state_act_url": "https://www.globaltradealert.org/state-act/87754",
+    "gta_evaluation": "Red",
+    "implementing_jurisdictions": [{"id": 156, "name": "China", "iso": "CHN"}],
+    "implementing_jurisdiction_groups": null,
+    "intervention_type": "Import tariff",
+    "mast_chapter": "Tariff measures",
+    "date_announced": "2025-04-04",
+    "date_implemented": "2025-04-10",
+    "date_removed": null,
+    "is_in_force": 1
+  },
+  {
+    "intervention_id": 138296,
+    "state_act_title": "Korea, Republic of: Export licensing change",
+    "intervention_url": null,
+    "state_act_url": null,
+    "gta_evaluation": "Amber",
+    "implementing_jurisdictions": [{"id": 410, "name": "Korea, Republic of", "iso": "KOR"}],
+    "intervention_type": "Export licensing requirement",
+    "mast_chapter": "Export-related measures",
+    "date_announced": "2025-05-01",
+    "date_implemented": null,
+    "date_removed": null,
+    "is_in_force": 0
+  },
+  {
+    "intervention_id": 138295,
+    "state_act_title": "China: Additional import tariffs on selected U.S. products",
+    "gta_evaluation": "Red",
+    "implementing_jurisdictions": [{"id": 156, "name": "China", "iso": "CHN"}, {"id": 344, "name": "Hong Kong", "iso": "HKG"}],
+    "is_in_force": 1
+  },
+  { "state_act_title": "no id, dropped" }
+]

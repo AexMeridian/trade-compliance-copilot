@@ -6,7 +6,7 @@
 // that shows it says so explicitly (see CountryDetail.tsx's panel copy).
 //
 // Requires a free self-serve API key (globaltradealert.org/api-access) --
-// set as GLOBAL_TRADE_ALERT_API_KEY. Unlike BLS, there is no keyless tier:
+// set as GTA_API_KEY (GLOBAL_TRADE_ALERT_API_KEY also works). Unlike BLS, there is no keyless tier:
 // without a key this refresh simply no-ops, the same pattern markets.ts uses
 // for MARKET_QUOTES="off".
 //
@@ -95,9 +95,74 @@ interface GtaRecord {
   is_in_force: number;
 }
 
+export const GTA_NEEDS_KEY = 'Skipped: needs GTA_API_KEY (free at globaltradealert.org/api-access; set with: npx wrangler secret put GTA_API_KEY)';
+
+/** The key under either name: the owner-facing GTA_API_KEY or the original GLOBAL_TRADE_ALERT_API_KEY. */
+export const gtaKey = (env: Pick<Env, 'GTA_API_KEY' | 'GLOBAL_TRADE_ALERT_API_KEY'>): string | undefined => env.GTA_API_KEY?.trim() || env.GLOBAL_TRADE_ALERT_API_KEY?.trim() || undefined;
+
+// GTA's own three-letter code for each partner we ingest, keyed by the site's two-letter code. The country page matches on this, not on the
+// display name, because GTA writes "Korea, Republic of", "Viet Nam" or "Russian Federation" where the site writes "South Korea" or "Vietnam".
+export const GTA_ISO3: Record<string, string> = {
+  CN: 'CHN', MX: 'MEX', CA: 'CAN', DE: 'DEU', JP: 'JPN', KR: 'KOR', IN: 'IND', VN: 'VNM', GB: 'GBR', BR: 'BRA', CH: 'CHE', RU: 'RUS', TR: 'TUR', AU: 'AUS',
+};
+
+export interface GtaRow {
+  intervention_id: number;
+  state_act_title: string;
+  intervention_url: string;
+  state_act_url: string;
+  gta_evaluation: string;
+  implementing_jurisdictions: GtaJurisdiction[];
+  implementing_jurisdiction_groups: { name: string }[] | null;
+  intervention_type: string;
+  mast_chapter: string;
+  date_announced: string | null;
+  date_implemented: string | null;
+  date_removed: string | null;
+  is_in_force: number;
+}
+
+/**
+ * The API answers with a bare JSON array (a wrapped {results: [...]} is accepted too). Records without an id are dropped, a record that
+ * appears twice is kept once with its jurisdictions merged (the table's primary key would otherwise reject the whole load), and text
+ * fields the table requires are never null.
+ */
+export function parseGtaRecords(body: unknown): GtaRow[] {
+  const list = Array.isArray(body) ? body : Array.isArray((body as { results?: unknown })?.results) ? (body as { results: unknown[] }).results : null;
+  if (!list) throw new Error('Global Trade Alert answered with something other than a list of interventions; the API may have changed');
+  const byId = new Map<number, GtaRow>();
+  for (const r of list as Partial<GtaRecord>[]) {
+    const id = Number(r?.intervention_id);
+    if (!Number.isInteger(id) || id <= 0) continue;
+    const jur = Array.isArray(r.implementing_jurisdictions) ? r.implementing_jurisdictions : [];
+    const prev = byId.get(id);
+    if (prev) {
+      for (const j of jur) if (!prev.implementing_jurisdictions.some((p) => p.iso === j.iso && p.name === j.name)) prev.implementing_jurisdictions.push(j);
+      continue;
+    }
+    byId.set(id, {
+      intervention_id: id,
+      state_act_title: r.state_act_title ?? '',
+      intervention_url: r.intervention_url ?? `https://www.globaltradealert.org/intervention/${id}`,
+      state_act_url: r.state_act_url ?? '',
+      gta_evaluation: r.gta_evaluation ?? '',
+      implementing_jurisdictions: [...jur],
+      implementing_jurisdiction_groups: r.implementing_jurisdiction_groups ?? null,
+      intervention_type: r.intervention_type ?? '',
+      mast_chapter: r.mast_chapter ?? '',
+      date_announced: r.date_announced ?? null,
+      date_implemented: r.date_implemented ?? null,
+      date_removed: r.date_removed ?? null,
+      is_in_force: r.is_in_force ? 1 : 0,
+    });
+  }
+  return [...byId.values()];
+}
+
 export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> {
-  if (!env.GLOBAL_TRADE_ALERT_API_KEY) {
-    return { source: 'gta', rows: 0 };
+  const apiKey = gtaKey(env);
+  if (!apiKey) {
+    return { source: 'gta', rows: 0, skipped: GTA_NEEDS_KEY };
   }
 
   const since = new Date();
@@ -106,7 +171,7 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
   const request = (): Promise<Response> =>
     fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `APIKey ${env.GLOBAL_TRADE_ALERT_API_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `APIKey ${apiKey}` },
       body: JSON.stringify({
         limit: REQUEST_LIMIT,
         offset: 0,
@@ -135,7 +200,7 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
     res = await request();
   }
   if (!res.ok) throw new Error(`Global Trade Alert fetch failed: HTTP ${res.status}${res.status === 429 ? ' (rate limited; will retry next run)' : ''}`);
-  const records = (await res.json()) as GtaRecord[];
+  const records = parseGtaRecords(await res.json());
 
   if (records.length === 0) {
     // Could be a legitimate empty window, but a full-reload table can't tell
@@ -152,9 +217,9 @@ export async function refreshGlobalTradeAlert(env: Env): Promise<RefreshResult> 
   const rows = records.map(
     (r) =>
       `(${r.intervention_id}, ${sqlString(r.state_act_title)}, ${sqlString(r.intervention_url)}, ${sqlString(r.state_act_url)}, ` +
-      `${sqlString(r.gta_evaluation)}, ${sqlJson(r.implementing_jurisdictions)}, ${sqlJson(r.implementing_jurisdiction_groups ?? null)}, ` +
+      `${sqlString(r.gta_evaluation)}, ${sqlJson(r.implementing_jurisdictions)}, ${sqlJson(r.implementing_jurisdiction_groups)}, ` +
       `${sqlString(r.intervention_type)}, ${sqlString(r.mast_chapter)}, ${sqlString(r.date_announced)}, ${sqlString(r.date_implemented)}, ` +
-      `${sqlString(r.date_removed)}, ${r.is_in_force ? 1 : 0}, ${sqlString(now)})`
+      `${sqlString(r.date_removed)}, ${r.is_in_force}, ${sqlString(now)})`
   );
 
   const statements = buildInsertStatements(

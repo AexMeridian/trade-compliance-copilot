@@ -16,6 +16,7 @@ import { limitOrAllow, secondsUntilUtcMidnight, withinVisitorQuota } from './lib
 import { servePage } from './pages.js';
 import { edgeCache } from './lib/edgeCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
+import { changesRss } from './routes/pulse/watch.js';
 import { normalizeFilters } from './lib/feed.js';
 import { normalizeCountries } from './lib/power/compute.js';
 import { countryCacheKey, feedCacheable, pulseCacheKey } from './lib/pulse/cacheKeys.js';
@@ -64,7 +65,7 @@ for (const p of EDGE_CACHED) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCach
 app.use('/api/pulse/coverage', edgeCache(21600, pulseCacheKey('coverage')));
 app.use('/api/pulse/nato-defense', edgeCache(86400, pulseCacheKey('nato-defense')));
 // Everyday prices, customs receipts and travel advisories change at most daily; tariff lookups change only with the overlay table.
-for (const p of ['everyday', 'advisories', 'hts-search', 'duty']) app.use(`/api/pulse/${p}`, edgeCache(3600, pulseCacheKey(p)));
+for (const p of ['everyday', 'advisories', 'csms', 'hts-search', 'duty']) app.use(`/api/pulse/${p}`, edgeCache(3600, pulseCacheKey(p)));
 // The home page's policy feed is read on every visit. A keyword search (`q`) is a text scan with free input, so it is left uncached.
 const feedCache = edgeCache(60, pulseCacheKey('feed'));
 app.use('/api/pulse/feed', (c, next) => (feedCacheable(new URL(c.req.url)) ? feedCache(c, next) : next()));
@@ -102,6 +103,9 @@ for (const p of FEED_PATHS) {
 
 // Short, stable feed addresses for readers and for sharing. Forwarded in-process (not
 // redirected) so there is no extra hop; the forwarded request still passes the rate limiter.
+// The daily sanctions/screening list changes as a feed (the file is committed by the list sync, so this reads no database).
+app.get('/changes.xml', (c) => changesRss(new URL(c.req.url).origin));
+
 const FEED_ALIASES: Record<string, string> = { '/rss.xml': 'rss', '/atom.xml': 'atom', '/feed.json': 'feed.json' };
 for (const [alias, target] of Object.entries(FEED_ALIASES)) {
   app.get(alias, (c) => {

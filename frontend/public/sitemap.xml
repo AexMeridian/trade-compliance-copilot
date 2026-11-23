@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://aexterminal.com/</loc>
   </url>
@@ -14,6 +14,9 @@
   </url>
   <url>
     <loc>https://aexterminal.com/hard-power</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/changes</loc>
   </url>
   <url>
     <loc>https://aexterminal.com/soft-power</loc>
@@ -569,5 +572,41 @@
   </url>
   <url>
     <loc>https://aexterminal.com/country/zw</loc>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/basics</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/basics"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/basics"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/basics"/>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/es/basics</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/basics"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/basics"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/basics"/>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/de-minimis</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/de-minimis"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/de-minimis"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/de-minimis"/>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/es/de-minimis</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/de-minimis"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/de-minimis"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/de-minimis"/>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/glossary</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/glossary"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/glossary"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/glossary"/>
+  </url>
+  <url>
+    <loc>https://aexterminal.com/es/glossary</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aexterminal.com/glossary"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://aexterminal.com/es/glossary"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aexterminal.com/glossary"/>
   </url>
 </urlset>

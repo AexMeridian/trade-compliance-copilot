@@ -186,6 +186,7 @@ export interface PulseCountryDetail {
     sourceUrl: string | null;
     lastUpdated: string | null;
     rows: CountryChartRow[];
+    countryGroups?: { groups: { code: string; label: string }[]; asOf: string; sourceUrl: string | null } | null;
   };
   sanctions: { sdnCount: number | null; cslCount: number | null; unCount?: number | null; ukCount?: number | null; lists?: SourceFreshness[]; note: string };
   retaliatoryMeasures: { rows: GtaInterventionRow[]; total: number; note: string; source?: SourceFreshness | null };

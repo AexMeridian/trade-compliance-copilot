@@ -24,11 +24,25 @@ export function hasCaseToken(id: string): boolean {
   }
 }
 
+// The token is also kept in memory for this page load, so a browser that blocks local storage can still finish a case it just started.
+const memoryTokens = new Map<string, string>();
+/** The header that lets this browser add to a case it created: the server accepts module requests for a case only with the case's secret token. */
+function caseHeaders(id: string): Record<string, string> {
+  let token = memoryTokens.get(id) ?? '';
+  try {
+    token = localStorage.getItem(tokenKey(id)) ?? token;
+  } catch {
+    // storage blocked: use the in-memory copy
+  }
+  return token ? { 'X-Delete-Token': token } : {};
+}
+
 export async function createCase(direction: Direction) {
   const res = await request<{ id: string; case_file: CaseFile; delete_token?: string; retention_days?: number }>('/cases', {
     method: 'POST',
     body: JSON.stringify({ direction }),
   });
+  if (res.delete_token) memoryTokens.set(res.id, res.delete_token);
   try {
     if (res.delete_token) localStorage.setItem(tokenKey(res.id), res.delete_token);
   } catch {
@@ -68,6 +82,7 @@ export function listSamples() {
 export function submitClassification(id: string, productDescription: string) {
   return request<{ classification: CaseFile['classification'] }>(`/cases/${id}/classification`, {
     method: 'POST',
+    headers: caseHeaders(id),
     body: JSON.stringify({ product_description: productDescription }),
   });
 }
@@ -75,6 +90,7 @@ export function submitClassification(id: string, productDescription: string) {
 export function submitOrigin(id: string, components: OriginComponent[], finalAssemblyCountry: string) {
   return request<{ origin: CaseFile['origin'] }>(`/cases/${id}/origin`, {
     method: 'POST',
+    headers: caseHeaders(id),
     body: JSON.stringify({ components, final_assembly_country: finalAssemblyCountry }),
   });
 }
@@ -82,6 +98,7 @@ export function submitOrigin(id: string, components: OriginComponent[], finalAss
 export function submitScreening(id: string, parties: { role: PartyRole; name: string }[], deemedExportFlag?: boolean) {
   return request<{ screening: CaseFile['screening'] }>(`/cases/${id}/screening`, {
     method: 'POST',
+    headers: caseHeaders(id),
     body: JSON.stringify({ parties, deemed_export_flag: deemedExportFlag }),
   });
 }
@@ -89,6 +106,7 @@ export function submitScreening(id: string, parties: { role: PartyRole; name: st
 export function submitDetermination(id: string, opts: { destinationCountry?: string; declaredValueUsd?: number; entryDate?: string; transportMode?: string } = {}) {
   return request<{ determination: CaseFile['determination'] }>(`/cases/${id}/determination`, {
     method: 'POST',
+    headers: caseHeaders(id),
     body: JSON.stringify({ destination_country: opts.destinationCountry, declared_value_usd: opts.declaredValueUsd, entry_date: opts.entryDate, transport_mode: opts.transportMode }),
   });
 }
@@ -533,6 +551,70 @@ export interface EverydayResponse {
 export function getEveryday() {
   return request<EverydayResponse>('/pulse/everyday');
 }
+// Census trade by partner and foreign-born population (key-gated on the server: status 'needs_key' or 'not_loaded' means no data yet).
+export type CensusStatus = 'ok' | 'needs_key' | 'not_loaded';
+/** [month 'YYYY-MM', imports, calculated duties, exports], U.S. dollars. */
+export type CensusPoint = [string, number | null, number | null, number | null];
+export interface CensusTrailing {
+  asOf: string;
+  months: number;
+  imports: number;
+  duties: number;
+  exports: number;
+  balance: number;
+  shareOfUsImportsPct: number | null;
+  effectiveRatePct: number | null;
+}
+export interface CensusTariffRate {
+  status: CensusStatus;
+  updatedAt: string | null;
+  source: string;
+  sourceUrl: string;
+  asOf: string | null;
+  note?: string;
+  total: CensusPoint[];
+  trailing12?: CensusTrailing | null;
+  partners: { code: string; iso2: string | null; name: string; points: CensusPoint[] }[];
+  tariffDates: EverydayResponse['tariffDates'];
+}
+export function getCensusTariffRate() {
+  return request<CensusTariffRate>('/pulse/census/tariff-rate');
+}
+export interface CensusCompare {
+  status: CensusStatus;
+  source: string;
+  sourceUrl: string;
+  asOf: string | null;
+  updatedAt: string | null;
+  countries: Record<string, CensusTrailing | null>;
+}
+export function getCensusCompare(codes: string[]) {
+  return request<CensusCompare>(`/pulse/census/compare?countries=${encodeURIComponent(codes.join(','))}`);
+}
+export interface CensusCountry {
+  status: CensusStatus;
+  source: string;
+  sourceUrl: string;
+  asOf: string | null;
+  name: string | null;
+  points: CensusPoint[];
+  trailing12: CensusTrailing | null;
+}
+export function getCensusCountry(code: string) {
+  return request<CensusCountry>(`/pulse/census/country/${encodeURIComponent(code)}`);
+}
+export interface ForeignBorn {
+  status: CensusStatus;
+  year: number | null;
+  national: number | null;
+  states: { state: string; estimate: number }[];
+  source: string;
+  sourceUrl: string;
+  note: string;
+}
+export function getForeignBorn(code: string) {
+  return request<ForeignBorn>(`/pulse/census/foreign-born/${encodeURIComponent(code)}`);
+}
 export interface TravelAdvisory {
   country: string;
   level: number;
@@ -542,6 +624,63 @@ export interface TravelAdvisory {
 }
 export function getAdvisories() {
   return request<{ asOf: string | null; source: string; items: TravelAdvisory[] }>('/pulse/advisories');
+}
+export interface RemittanceInfo {
+  status: 'ok' | 'not_tracked' | 'unavailable';
+  cost: { pct: number; year: number } | null;
+  usOutbound: { pct: number; year: number } | null;
+  scope: string;
+  source: string;
+  sourceUrl: string;
+  checkedOn: string;
+}
+export function getRemittance(iso: string) {
+  return request<RemittanceInfo>(`/pulse/remittance/${encodeURIComponent(iso)}`);
+}
+export interface CsmsMessage {
+  id: string;
+  title: string;
+  published: string;
+  url: string;
+  programs: string[];
+}
+export interface CsmsResponse {
+  asOf: string | null;
+  latest: string | null;
+  source: string;
+  sourceUrl: string;
+  feedUrl: string;
+  programs: string[];
+  note: string;
+  items: CsmsMessage[];
+}
+export function getCsms() {
+  return request<CsmsResponse>('/pulse/csms');
+}
+export interface ChangeParty {
+  uid: string;
+  name: string | null;
+  detail?: string | null;
+  url?: string | null;
+}
+export interface ListChangeDay {
+  added: ChangeParty[];
+  removed: ChangeParty[];
+  addedCount: number;
+  removedCount: number;
+  updatedCount: number;
+}
+export interface ListChangeSummary {
+  date: string;
+  lists: { source: string; label: string; addedCount: number; removedCount: number; updatedCount: number }[];
+  addedTotal: number;
+  removedTotal: number;
+}
+export function getListChanges() {
+  return request<{ generatedAt: string | null; source: string; lists: Record<string, { label: string; sourceUrl: string }>; days: ListChangeSummary[] }>('/pulse/list-changes');
+}
+export function getListChangeDay(date: string) {
+  return request<{ date: string; generatedAt: string | null; lists: Record<string, { label: string; sourceUrl: string }>; day: Record<string, ListChangeDay> }>(`/pulse/list-changes/${encodeURIComponent(date)}`);
 }
 export function getFxHistory(code: string) {
   return request<{ code: string; source: string; unit: string; points: [string, number][] }>(`/pulse/fx-history?code=${encodeURIComponent(code)}`);
@@ -557,7 +696,42 @@ export interface DutyLookup {
   revision: string | null;
   totalPct: number | null;
   lines: import('../types/case').DutyStackLine[];
+  adcvd?: AdcvdResult;
   note: string;
+}
+// Antidumping and countervailing duty orders that may apply (status 'not_loaded' until an official export has been loaded; see src/lib/adcvd.ts).
+export interface AdcvdMatch {
+  case_number: string;
+  order_type: 'AD' | 'CVD';
+  country: string;
+  product: string;
+  order_date: string | null;
+  rate_min: number | null;
+  rate_max: number | null;
+  source_url: string;
+  basis: 'hts' | 'keyword';
+}
+export interface AdcvdResult {
+  status: 'ok' | 'not_loaded';
+  asOf: string | null;
+  source: string | null;
+  matches: AdcvdMatch[];
+  searchUrl: string;
+  note: string;
+}
+export function getAdcvd(hts: string, country: string) {
+  return request<AdcvdResult>(`/pulse/adcvd?hts=${encodeURIComponent(hts)}&country=${encodeURIComponent(country)}`);
+}
+// Freight and supply-chain indicators: NY Fed GSCPI (monthly) and IMF PortWatch chokepoint transits (weekly averages).
+export interface FreightResponse {
+  gscpi: { label: string; unit: string; source: string; sourceUrl: string; asOf: string | null; points: [string, number][] };
+  chokepoints: { id: string; name: string; points: [string, number][]; asOf: string | null }[];
+  chokepointSource: string;
+  chokepointSourceUrl: string;
+  note: string;
+}
+export function getFreight() {
+  return request<FreightResponse>('/pulse/freight');
 }
 export function lookupDuty(hts: string, country: string) {
   return request<DutyLookup | { choices: { htsno: string; description: string; general_rate: string | null }[] }>(`/pulse/duty?hts=${encodeURIComponent(hts)}&country=${encodeURIComponent(country)}`);

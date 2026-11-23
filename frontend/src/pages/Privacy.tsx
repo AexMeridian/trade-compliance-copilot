@@ -84,16 +84,20 @@ export function Privacy() {
           Compliance calculator
         </Link>
         , the details you enter (for example a product description and countries) are saved so you can return to your report, and are sent to an AI service
-        (Anthropic) to produce classification and determination suggestions. Each case lives at its own link, and anyone who has that link can open it, so don't
-        share it with people you don't want to see it. Please don't enter confidential or personal information; party names you screen are the one place
+        (Anthropic) to produce classification and determination suggestions. Each case lives at its own link, and anyone who has that link can open the case and
+        its report, which show the product description, the countries, the party names you screened and the results, so don't share the link with people you
+        don't want to see them. The link lets a person read the case; adding to it needs the secret that was made with the case, which only the browser that
+        created it holds. Please don't enter confidential or personal information; party names you screen are the one place
         personal data may appear, and screening them is optional. To show who owns a company you screen, our server also looks the party name up in the open
         GLEIF registry of legal entities (api.gleif.org) and reads its registered parents; only the name is sent, from our server and not your browser, and
         nothing else about you or the case.
       </p>
       <p className="mt-3">
         A case is deleted automatically 30 days after it is created. The browser that created it can delete it earlier with the "Delete this case now" button
-        on its report; the secret that allows this is kept only in that browser, and we store just a hash of it. If you lose it, the case still expires on
-        schedule, or email us with the case link and we will remove it.
+        on its report; the secret that allows this (the "delete token") is kept only in that browser, and we store just a hash of it. If you lose it, the
+        case still expires on schedule, or email us with the case link and we will remove it. Product descriptions and party names are stored in the case for
+        those 30 days; the behind-the-scenes record of the AI requests keeps the candidate lists and the AI's answers, numbering the parties instead of
+        repeating their names, and is deleted with the case.
       </p>
 
       <H>Why we process data, and for how long</H>
@@ -134,7 +138,7 @@ export function Privacy() {
 
       <H>Security and incidents</H>
       <p className="mt-3">
-        Traffic is encrypted in transit (HTTPS with HSTS), calculator cases are reachable only by their unguessable link, delete secrets are stored as
+        Traffic is encrypted in transit (HTTPS with HSTS), calculator cases are reachable only by their unguessable link (anyone who has it can read the case), changing a case needs its secret token, delete secrets are stored as
         one-way hashes, requests are rate limited, and we keep the amount of data we hold small. No system is perfectly secure. If a breach affecting
         personal data occurs, we will notify the people and authorities that the law requires, within the time it requires (for example within 72 hours to a
         supervisory authority under the GDPR where applicable, and within 30 days under Colorado law). Security researchers can report problems through our{' '}

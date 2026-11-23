@@ -464,7 +464,7 @@ export interface EccnCandidateRow {
  * the older, known-lossier query shape. No sibling/child expansion here:
  * unlike hts_lines, eccn_entries has no hierarchy to expand into.
  */
-export async function searchEccn(env: Env, query: string, limit = 15): Promise<EccnCandidateRow[]> {
+export async function searchEccn(env: Env, query: string, limit = 20): Promise<EccnCandidateRow[]> {
   const ids = await mergedFtsCandidateIds(env, 'eccn_search', 'JOIN eccn_entries e ON e.id = eccn_search.rowid', query, limit);
   if (ids.length === 0) return [];
   const { results } = await env.DB.prepare(
@@ -483,6 +483,26 @@ export async function searchEccn(env: Env, query: string, limit = 15): Promise<E
 export async function getAllEccn(env: Env, maxEntries = 40): Promise<EccnCandidateRow[] | null> {
   const { results } = await env.DB.prepare(`SELECT *, 0 as score FROM eccn_entries ORDER BY eccn LIMIT ?1`).bind(maxEntries + 1).all<EccnCandidateRow>();
   return results.length > maxEntries ? null : results;
+}
+
+/** How many ECCN rows are loaded (the full Commerce Control List is about 640 entries). Decides whether the list counts as complete. */
+export async function countEccn(env: Env): Promise<number> {
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM eccn_entries WHERE eccn != 'EAR99'`).first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export interface CountryGroupsInfo {
+  groups: string[];
+  asOf: string | null;
+  sourceUrl: string | null;
+}
+
+/** The Country Groups (15 CFR 740 Supp. 1) an ISO country belongs to, e.g. ["A:1", "B"]. Empty groups with a null asOf means none are loaded. */
+export async function getCountryGroups(env: Env, countryCode: string): Promise<CountryGroupsInfo> {
+  const { results } = await env.DB.prepare(`SELECT group_code, source_url, as_of FROM country_groups WHERE country_code = ?1 ORDER BY group_code`).bind(countryCode.toUpperCase()).all<{ group_code: string; source_url: string; as_of: string }>();
+  if (results.length > 0) return { groups: results.map((r) => r.group_code), asOf: results[0].as_of, sourceUrl: results[0].source_url };
+  const any = await env.DB.prepare(`SELECT source_url, as_of FROM country_groups LIMIT 1`).first<{ source_url: string; as_of: string }>();
+  return { groups: [], asOf: any?.as_of ?? null, sourceUrl: any?.source_url ?? null };
 }
 
 export async function getEccnByCode(env: Env, code: string): Promise<EccnCandidateRow | null> {
@@ -561,7 +581,8 @@ export const EU_MEMBER_CODES = new Set([
 let overlaysMemo: { at: number; rows: Promise<TariffOverlayRow[]> } | null = null;
 function loadOverlays(env: Env): Promise<TariffOverlayRow[]> {
   if (!overlaysMemo || Date.now() - overlaysMemo.at > 5 * 60_000) {
-    const rows = env.DB.prepare(`SELECT * FROM tariff_overlays`).all<TariffOverlayRow>().then((r) => r.results);
+    // The China Section 301 product lines (program sec301_china, about 10,000 rows) are read per code by getApplicableOverlays, not held here.
+    const rows = env.DB.prepare(`SELECT * FROM tariff_overlays WHERE program <> 'sec301_china'`).all<TariffOverlayRow>().then((r) => r.results);
     overlaysMemo = { at: Date.now(), rows };
     rows.catch(() => {
       if (overlaysMemo?.rows === rows) overlaysMemo = null;
@@ -577,7 +598,7 @@ export async function getApplicableOverlays(
 ): Promise<TariffOverlayRow[]> {
   const digits = htsno.replace(/\./g, '');
   const results = await loadOverlays(env);
-  return results.filter((r) => {
+  const matched = results.filter((r) => {
     const patternMatches = r.hts_pattern === '%' || digits.startsWith(r.hts_pattern);
     const countryMatches =
       r.country_scope === null ||
@@ -586,6 +607,17 @@ export async function getApplicableOverlays(
       (countryCode !== null && r.country_scope === 'EU' && EU_MEMBER_CODES.has(countryCode));
     return patternMatches && countryMatches;
   });
+  // China Section 301 lines are stored one row per 8-digit subheading. They are read only when the coverage record is loaded (so a
+  // partly applied load never reads as "not covered") and the origin is China. A code shorter than 8 digits returns every covered
+  // line under it, which dutyStack treats as "some lines under this heading are covered".
+  if (countryCode === 'CN' && digits.length >= 4 && matched.some((r) => r.program === 'sec301_china_coverage')) {
+    const china =
+      digits.length >= 8
+        ? await env.DB.prepare(`SELECT * FROM tariff_overlays WHERE program = 'sec301_china' AND hts_pattern = ?1`).bind(digits.slice(0, 8)).all<TariffOverlayRow>()
+        : await env.DB.prepare(`SELECT * FROM tariff_overlays WHERE program = 'sec301_china' AND hts_pattern LIKE ?1`).bind(`${digits}%`).all<TariffOverlayRow>();
+    matched.push(...china.results);
+  }
+  return matched;
 }
 
 export interface PartyCandidateRow {

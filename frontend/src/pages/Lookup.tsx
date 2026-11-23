@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { PulsePanel } from '../components/PulsePanel';
 import { DutyStackTable } from '../components/DutyStackTable';
+import { AdcvdNotice } from '../components/AdcvdNotice';
 import { lookupDuty, searchHtsCodes, type DutyLookup } from '../lib/api';
 import { TARIFF_COUNTRY_LABELS } from '../lib/pulseTariffCountries';
 
@@ -176,9 +177,14 @@ export function Lookup() {
           className="mt-6"
         >
           <DutyStackTable lines={duty.lines} totalPct={duty.totalPct} htsCode={duty.hts} />
+          <AdcvdNotice hts={duty.hts} country={duty.country} initial={duty.adcvd} />
           <p className="mt-3 text-sm text-ink-muted">{duty.note}</p>
           <p className="mt-2 text-sm text-ink-muted">
-            Also check: antidumping and countervailing duty orders on this product ({' '}
+            Heard of the &quot;reciprocal&quot; or IEEPA tariffs? They ended on 2026-02-24 and are not in this total;{' '}
+            <Link to="/us-china#ieepa" className="text-accent hover:underline">
+              see the status and refund guidance
+            </Link>
+            . Also check: antidumping and countervailing duty orders on this product ({' '}
             <a href="https://aceservices.cbp.dhs.gov/adcvdweb" target="_blank" rel="noreferrer" className="text-accent hover:underline">
               CBP AD/CVD search
             </a>

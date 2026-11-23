@@ -18,15 +18,22 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:8787';
 const D1_MODE = process.env.REMOTE === '1' ? '--remote' : '--local';
 
+// A case accepts module requests only with its secret token (returned once when it is created).
+const caseTokens = new Map<string, string>();
+
 async function api<T>(path: string, method: string, body?: unknown): Promise<T> {
+  const caseId = /^\/cases\/([0-9a-f-]{36})\//.exec(path)?.[1];
   const res = await fetch(`${BASE_URL}/api${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(caseId && caseTokens.get(caseId) ? { 'X-Delete-Token': caseTokens.get(caseId)! } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`${method} ${path} -> ${res.status}: ${text}`);
-  return JSON.parse(text) as T;
+  const parsed = JSON.parse(text) as T;
+  const created = parsed as { id?: string; delete_token?: string };
+  if (path === '/cases' && created.id && created.delete_token) caseTokens.set(created.id, created.delete_token);
+  return parsed;
 }
 
 interface Scenario {

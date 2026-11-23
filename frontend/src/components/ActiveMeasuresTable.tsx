@@ -8,6 +8,7 @@ const PROGRAM_LABEL: Record<string, string> = {
   sec232_autos: 'Section 232: Autos',
   sec232_metals_country_cap: 'Section 232: Metals (country cap)',
   sec301_china: 'Section 301: China',
+  sec301_china_coverage: 'Section 301: China (coverage record, not a duty)',
   sec301_forced_labor: 'Section 301: Forced labor',
   sec338_canada: 'Section 338: Canada',
 };

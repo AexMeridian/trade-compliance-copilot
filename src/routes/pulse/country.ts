@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseAction, TempoPoint } from '../../lib/pulse/types.js';
-import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows, type HtsCandidateRow } from '../../lib/db.js';
+import { getRateBearingHtsLine, getApplicableOverlays, getCountryCoverage, getCountryChartRows, getCountryGroups, type HtsCandidateRow } from '../../lib/db.js';
+import { GROUP_LABEL } from '../../lib/countryGroupsParse.js';
 import { buildDutyStack } from '../../lib/dutyStack.js';
 import type { PulseApp } from './util.js';
 import { slimAction } from './util.js';
 import { isNameOfCountry } from '../../lib/pulse/country.js';
 import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
 import { getSanctionTally } from './sanctionCounts.js';
+import { GTA_ISO3 } from '../../lib/pulse/globalTradeAlert.js';
 import { loadSourcesFreshness, type ListFreshness } from '../../lib/listFreshness.js';
 
 export const countryRoute: PulseApp = new Hono<{ Bindings: Env }>();
@@ -88,7 +90,7 @@ countryRoute.get('/country/:code', async (c) => {
   // already run their own internal steps concurrently) -- fetched together
   // with Promise.all instead of one D1 round trip at a time, since none of
   // these sections depends on another's result.
-  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows }, sanctions, retaliatoryMeasures, wroFindings, snapshot, sourceStates] = await Promise.all([
+  const [actions, tempo, forcedLabor, extra, capped, metalsBaseline, dutyStack, { coverage, chartRows, groupInfo }, sanctions, retaliatoryMeasures, wroFindings, snapshot, sourceStates] = await Promise.all([
     c.env.DB.prepare(
       `SELECT * FROM trade_policy_actions WHERE countries LIKE '%"' || ?1 || '"%'
        ORDER BY publication_date DESC, document_number DESC LIMIT 100`
@@ -165,7 +167,8 @@ countryRoute.get('/country/:code', async (c) => {
     (async () => {
       const coverage = await getCountryCoverage(c.env, code).catch(() => null);
       const chartRows = coverage ? await getCountryChartRows(c.env, code).catch(() => []) : [];
-      return { coverage, chartRows };
+      const groupInfo = await getCountryGroups(c.env, code).catch(() => null);
+      return { coverage, chartRows, groupInfo };
     })(),
 
     // The same tally the Hard Power chart reads (every list's address text, matched to a country code), so one country never shows two
@@ -199,17 +202,17 @@ countryRoute.get('/country/:code', async (c) => {
             c.env.DB.prepare(
               `SELECT intervention_id, state_act_title, intervention_url, gta_evaluation, intervention_type, date_announced
                FROM gta_interventions
-               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)
+               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.iso') = ?2 OR json_extract(je.value, '$.name') = ?1)
                ORDER BY date_announced DESC LIMIT 10`
             )
-              .bind(countryName)
+              .bind(countryName, GTA_ISO3[code] ?? '-')
               .all()
               .catch(() => ({ results: [] })),
             c.env.DB.prepare(
               `SELECT COUNT(*) AS n FROM gta_interventions
-               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.name') = ?1)`
+               WHERE EXISTS (SELECT 1 FROM json_each(implementing_jurisdictions) je WHERE json_extract(je.value, '$.iso') = ?2 OR json_extract(je.value, '$.name') = ?1)`
             )
-              .bind(countryName)
+              .bind(countryName, GTA_ISO3[code] ?? '-')
               .first<{ n: number }>()
               .catch(() => null),
           ]);
@@ -291,6 +294,8 @@ countryRoute.get('/country/:code', async (c) => {
       sourceUrl: coverage?.source_url ?? null,
       lastUpdated: coverage?.last_updated ?? null,
       rows: chartRows,
+      // Country Groups (15 CFR 740 Supp. 1): null when none are loaded yet.
+      countryGroups: groupInfo && groupInfo.asOf ? { groups: groupInfo.groups.map((g) => ({ code: g, label: GROUP_LABEL[g] ?? g })), asOf: groupInfo.asOf, sourceUrl: groupInfo.sourceUrl } : null,
     },
     sanctions,
     retaliatoryMeasures: {

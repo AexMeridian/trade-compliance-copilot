@@ -1,0 +1,68 @@
+name: Commerce Control List pull request
+
+# Weekly: re-reads the Commerce Control List (15 CFR Part 774 Supp. 1) and Country Groups (15 CFR 740 Supp. 1) from the eCFR. If either differs from
+# data/ccl.json or data/country-groups.json, opens a pull request with the new snapshot and the next numbered migration(s), plus the unit-test
+# result, for the owner to read and merge. Merging deploys and applies the migrations. Nothing here changes live data by itself, uses a model, or
+# holds any secret beyond the automatic GITHUB_TOKEN.
+#
+# One-time setting (shared with data-pr.yml): repository Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+on:
+  schedule:
+    - cron: '45 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ccl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Re-read the Commerce Control List and Country Groups
+        id: sync
+        run: |
+          npx tsx scripts/build-ccl.ts --write | tee /tmp/sync.log
+          echo >> /tmp/sync.log
+          npx tsx scripts/build-country-groups.ts --write | tee -a /tmp/sync.log
+          if [ -n "$(git status --porcelain)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Run the unit tests on the new data
+        if: steps.sync.outputs.changed == 'true'
+        id: tests
+        continue-on-error: true
+        run: npm run test:unit
+      - name: Open the pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="data/ccl-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
+          git config user.name "aex-terminal-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$branch"
+          # Only the files the scripts write: the snapshots and the new migrations.
+          git add data/ccl.json data/country-groups.json migrations/
+          git commit -m "Update the Commerce Control List and Country Groups from the eCFR"
+          git push origin "$branch"
+          result="passed"
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then result="FAILED, read the log before merging"; fi
+          {
+            echo "The official Commerce Control List (15 CFR Part 774 Supp. 1) or Country Groups (15 CFR 740 Supp. 1) now differs from the stored snapshots."
+            echo
+            echo '```'
+            cat /tmp/sync.log
+            echo '```'
+            echo
+            echo "Unit tests on the new data: $result."
+            echo
+            echo "Review the changed entries above against https://www.ecfr.gov/current/title-15/part-774/appendix-Supplement%20No.%201%20to%20Part%20774 and https://www.ecfr.gov/current/title-15/part-740/appendix-Supplement%20No.%201%20to%20Part%20740 . Merging deploys the new migrations; entries listed as VERIFY, and the hand-verified entries from migration 0032, are described in scripts/build-ccl.ts."
+          } > /tmp/body.md
+          gh pr create --title "Update the Commerce Control List and Country Groups" --body-file /tmp/body.md --base main --head "$branch"

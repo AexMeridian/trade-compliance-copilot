@@ -77,3 +77,25 @@ Nothing else needs a key today: Treasury, Federal Register, eCFR, World Bank, UN
 
 - 2026-11-11: self-monitoring system committed and pushed (0e49cd3). Hard Power overview page lengthened with trade, sanctions, money and military sections.
 - 2026-11-21: code fixes for the expert audit (scheduler starvation, health alerts, list-age gating, ECCN table, de minimis, "Clear" wording, Section 232 review, Hard Power and Soft Power labelling, mobile nav, focus ring, fonts and more). Written, tested (typecheck, unit tests and frontend build pass), not yet committed or deployed.
+
+## Update 2026-11-23 (verification and round two)
+
+Changes to the list above:
+- Item 2 (migrations): the live counts show 0031 to 0053 applied (10 ECCN rows, lists synced). This round adds migrations 0060 (Census tables), 0070 to 0072 (full control list and country groups), 0080 to 0085 (China Section 301), 0090 (write metering) and 0110 (AD/CVD table). They apply on deploy; confirm with `npx wrangler d1 migrations list trade-compliance-db --remote`.
+- Wrangler in this environment has no `CLOUDFLARE_API_TOKEN`, so remote checks (migration list, deployments, row counts, `wrangler tail` during a cold country page) must be run by you, or set the token in the terminal.
+
+New items:
+1. **Create the Census key** (https://api.census.gov/data/key_signup.html, click the activation link), then `npx wrangler secret put CENSUS_API_KEY`. After the 05:30 UTC run check `census_trade` and `census_acs` in `/api/pulse/data-status`; check that recent average rates look plausible (the request shape is untested without a key).
+2. **Request the Global Trade Alert key** (https://globaltradealert.org/api-access), then `npx wrangler secret put GTA_API_KEY`.
+3. **Run the "HTS and Schedule B sync" workflow once** (GitHub > Actions > Run workflow), and check that Actions has "Read and write" permissions and that branch protection lets the bot push. The first full load takes about a week of daily runs.
+4. **Run "Commerce Control List pull request" once** from the Actions tab (should report no change).
+5. **Optional:** `npx wrangler secret put OPENALEX_MAILTO` (contact address for OpenAlex); check `openalex` and `pulse_treasury` in data-status the day after deploy.
+6. **Decision:** with the full control list, an export case with no ECCN match can reach "NLR" with a Part 744 and embargo caveat (never a bare "clear"; the verdict stays "review required"). To be stricter, change `decideCore` in `src/lib/exportLicense.ts`.
+7. **Spot-check the China Section 301 data** (about 10,000 rows, migrations 0080 to 0085) against the Chapter 99 PDF (hts.usitc.gov, release 2026HTSRev23); lines with in-effect product exclusions (279) are sent to review on purpose. Decide whether to add the 10-digit statistical suffix to remove most of that review. Re-sync whenever USITC publishes a new HTS revision.
+8. **Spanish review:** have a native or professional reader check `frontend/src/i18n/content/*.es.ts`; re-submit the sitemap in Search Console.
+9. **CBP forced-labor list:** CBP blocks automated downloads; a CSV is published on its data portal. Either download it monthly and ask Claude to import it, or ask CBP whether a GitHub runner may fetch it. Claude will not route around the block.
+10. **Remittance corridors:** the U.S.-to-country file at remittanceprices.worldbank.org is behind a bot challenge. Download the Excel file in a browser and provide it, and confirm its licence terms. The page now shows the World Bank average for sending money to the country from all tracked senders.
+11. **Traveler allowances:** CBP's pages do not state which countries get the $200, $800 and $1,600 exemptions or exact alcohol and tobacco quantities; ask CBP if you want them on /de-minimis.
+12. **Sample cases (you approved the paid run):** run after this is merged and deployed, so it is paid once. The seed script flags samples with a remote wrangler write (needs a token), so Claude will flag them with a migration instead. Under the site's current model every non-USMCA import origin carries a 10 to 12.5% forced-labor Section 301 layer, so no import is verifiably clean until those annex exemptions are sourced; the clean-pass sample should be chosen after that.
+13. **Unfinished, needs a finish-and-verify pass (cheapest to do in a fresh session):** CBP CSMS feed on the Wire; "What changed" page with RSS from list snapshots; IEEPA/reciprocal-tariff timeline from primary sources; Chapter 99 heading numbers on duty layers; AD/CVD orders in the lookup (table exists, data load not done); NY Fed GSCPI and IMF PortWatch; chart PNG/SVG export; Section 232 metals and autos (the real structure is in HTS note 16 and note 33 of the Chapter 99 PDF; blocked lines stay forced to review).
+14. **Cron limit:** the account is at 5 cron triggers, the Workers Free maximum; none can be added without removing one.
