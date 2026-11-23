@@ -46,6 +46,7 @@ const PAGES: Record<string, { title: string; description: string }> = {
     description: 'What draws people to a country: published polls on views of the U.S. and China, students, tourism, science, governance, aid and UN voting, by country and year, with no combined score.',
   },
   '/basics': { title: 'Trade in plain English', description: 'Start here if you are not a trade professional: prices and tariffs, small packages from abroad, a free tariff lookup, the U.S. and China side by side, and a glossary.' },
+  '/today': { title: 'Today', description: 'What is going on right now in trade, prices, money and politics, in plain words, with the source and date for every number.' },
   '/prices': { title: 'Tariffs and your wallet', description: 'Official price changes for groceries, medicine, appliances, cars, clothes and toys, jobs in steel and cars with tariff dates marked, and the customs duties collected each month.' },
   '/lookup': { title: 'Tariff lookup', description: 'Free tariff lookup: search a product by words or HTS code, pick the country it is made in, and see every modeled U.S. tariff layer added up. No account, no AI.' },
   '/de-minimis': { title: 'Small packages from abroad now pay duty', description: 'What happened to the $800 de minimis exemption, when it changed, who collects the duty on packages, and what buyers abroad pay.' },

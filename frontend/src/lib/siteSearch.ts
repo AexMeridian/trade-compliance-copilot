@@ -34,6 +34,14 @@ const PAGES: SearchEntry[] = [
     url: '/basics',
   },
   {
+    id: 'today',
+    title: 'Today: what is going on right now',
+    description: 'One plain-English page: new trade notices, prices, the dollar, sanctions changes, headlines and travel warnings, with a source and date on every number.',
+    keywords: ['today', 'dashboard', 'news', 'what is happening', 'world', 'summary', 'briefing', 'overview', 'my countries'],
+    type: 'Page',
+    url: '/today',
+  },
+  {
     id: 'prices',
     title: 'Tariffs and your wallet',
     description: 'Prices of groceries, medicine, appliances, cars, clothes and toys compared with a year ago; jobs in steel and cars; customs duties collected.',

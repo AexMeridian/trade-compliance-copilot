@@ -736,3 +736,35 @@ export function getFreight() {
 export function lookupDuty(hts: string, country: string) {
   return request<DutyLookup | { choices: { htsno: string; description: string; general_rate: string | null }[] }>(`/pulse/duty?hts=${encodeURIComponent(hts)}&country=${encodeURIComponent(country)}`);
 }
+
+// --- The "Today" dashboard (src/lib/pulse/briefing.ts) ---
+export interface TodayCard<T> {
+  data: T;
+  asOf: string | null;
+  source: string;
+  sourceUrl: string;
+}
+export interface TodayData {
+  asOf: string;
+  sentences: { id: string; text: string; card: string }[];
+  trade: TodayCard<{ last7: number; last30: number; trendPct: number | null; openForComment: number | null; leadingTag: string | null; recent: { title: string; url: string; date: string; tag: string; countries: string[] }[] }> | null;
+  prices: TodayCard<{ id: string; label: string; latest: string; changePct: number | null; since: string | null; points: [string, number][] }[]> | null;
+  money: TodayCard<{
+    currencies: { quote: string; name: string; rate: number; change30dPct: number | null }[];
+    tenYearPct: number | null;
+    oil: { value: number; changePct: number | null; asOf: string } | null;
+    dollarReservesPct: number | null;
+  }> | null;
+  sanctions: TodayCard<{ date: string; added: number; removed: number } | null> | null;
+  politics: TodayCard<{ title: string; url: string; source: string; date: string; category: string; countries: string[] }[]> | null;
+  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level3Count: number }> | null;
+  events: TodayCard<{ kind: 'earthquake' | 'storm' | 'volcano' | 'wildfire' | 'flood'; title: string; date: string; url: string; magnitude?: number }[]> | null;
+  forCountries: {
+    notices: { title: string; url: string; date: string; countries: string[] }[];
+    news: { title: string; url: string; source: string; date: string; countries: string[] }[];
+    advisories: { country: string; level: number; url: string; updated: string }[];
+  };
+}
+export function getToday() {
+  return request<TodayData>('/pulse/today');
+}
