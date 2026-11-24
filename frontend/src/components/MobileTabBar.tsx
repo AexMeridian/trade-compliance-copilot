@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 // Phone-width navigation: the five main pages as a bottom tab bar, so Hard Power, Soft Power and About are one tap away instead of
 // behind a menu. Hidden from lg up, where the header shows the same links, and on printed case reports.
 const TABS = [
-  { to: '/today', label: 'Today', end: false },
+  { to: '/dashboard', label: 'Dashboard', end: false },
   { to: '/', label: 'Wire', end: true },
   { to: '/hard-power', label: 'Hard Power', end: false },
   { to: '/soft-power', label: 'Soft Power', end: false },

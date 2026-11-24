@@ -6,6 +6,7 @@ import { referenceRoute } from './pulse/reference.js';
 import { marketsNewsRoute } from './pulse/marketsNews.js';
 import { homeRoute } from './pulse/home.js';
 import { todayRoute } from './pulse/today.js';
+import { dashboardRoute } from './pulse/dashboard.js';
 import { feedsRoute } from './pulse/feeds.js';
 import { liveRoute } from './pulse/live.js';
 import { sanctionCountsRoute } from './pulse/sanctionCounts.js';
@@ -47,3 +48,4 @@ pulseRoute.route('/', watchRoute);
 // /home calls the other routes in-process, so it is given the composed router.
 pulseRoute.route('/', homeRoute(pulseRoute));
 pulseRoute.route('/', todayRoute(pulseRoute));
+pulseRoute.route('/', dashboardRoute(pulseRoute));

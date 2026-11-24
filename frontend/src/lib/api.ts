@@ -757,7 +757,7 @@ export interface TodayData {
   }> | null;
   sanctions: TodayCard<{ date: string; added: number; removed: number } | null> | null;
   politics: TodayCard<{ title: string; url: string; source: string; date: string; category: string; countries: string[] }[]> | null;
-  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level3Count: number }> | null;
+  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level4Count: number; level3Count: number }> | null;
   events: TodayCard<{ kind: 'earthquake' | 'storm' | 'volcano' | 'wildfire' | 'flood'; title: string; date: string; url: string; magnitude?: number }[]> | null;
   forCountries: {
     notices: { title: string; url: string; date: string; countries: string[] }[];
@@ -767,4 +767,79 @@ export interface TodayData {
 }
 export function getToday() {
   return request<TodayData>('/pulse/today');
+}
+
+// --- The Dashboard sections (src/lib/pulse/dashboardEconomy.ts) ---
+export type DashPt = [string, number];
+export interface DashSeriesRow {
+  id: string;
+  label: string;
+  latest: string;
+  changePct: number | null;
+  since: string | null;
+  points: DashPt[];
+}
+export interface DashKeyNumber {
+  id: string;
+  label: string;
+  value: string;
+  change: string | null;
+  direction: 'up' | 'down' | 'flat' | null;
+  asOf: string | null;
+  points: DashPt[];
+  href: string;
+  section: string;
+}
+export interface EconomyData {
+  asOf: string;
+  summary: string[];
+  keyNumbers: DashKeyNumber[];
+  rates: { curve: { label: string; pct: number }[]; asOf: string; inverted: boolean } | null;
+  inflation: { cpi: DashSeriesRow | null; prices: DashSeriesRow[] } | null;
+  jobs: {
+    unemployment: { pct: number; changePts: number | null; asOf: string; points: DashPt[] } | null;
+    payrolls: { thousands: number; monthlyChangeThousands: number | null; asOf: string; points: DashPt[] } | null;
+    industries: DashSeriesRow[];
+  } | null;
+  commodities: { id: string; label: string; unit: string; value: number; changePct: number | null; asOf: string; points: DashPt[] }[];
+  currencies: { quote: string; name: string; rate: number; change30dPct: number | null; spark: number[] }[];
+  dollarRole: { reservesPct: number | null; reservesAsOf: string | null; holdersTotalBillions: number | null; holdersYearAgoBillions: number | null; holdersAsOf: string | null; topHolders: { label: string; billions: number; yearAgoBillions: number | null }[] } | null;
+  tradePrices: { id: string; label: string; value: number; changePct: number | null; asOf: string; points: DashPt[] }[];
+  majorEconomies?: { cc: string; growth: { value: number; year: number | null } | null; inflation: { value: number; year: number | null } | null; unemployment: { value: number; year: number | null } | null }[];
+}
+export function getDashboardEconomy() {
+  return request<EconomyData>('/pulse/dashboard/economy');
+}
+
+
+// --- Dashboard: trade, tariffs, power and security (src/lib/pulse/dashboardPower.ts) ---
+export interface PowerDashData {
+  asOf: string;
+  notices: { months: { month: string; count: number }[]; last30: number; trendPct: number | null; leadingTag: string | null; leadingTagShare: number | null } | null;
+  tariffs: { groups: { ratePct: number; countries: string[] }[]; total: number; cappedCount: number } | null;
+  csms: { items: { title: string; published: string; url: string; programs: string[] }[]; asOf: string | null } | null;
+  measures: { program: string; label: string; minPct: number; maxPct: number; lines: number; countries: number; since: string }[];
+  military: { year: number; top: { cc: string; usd: number }[]; worldUsd: number; usPctGdp: number | null; cnPctGdp: number | null } | null;
+  nato: { rows: { cc: string; pct: number; year: string }[]; metTarget: number; asOf: string | null } | null;
+  sanctions: { total: number; totals: { sdn: number; csl: number; un: number; uk: number }; top: { cc: string; count: number }[]; lists: { label: string; stale: boolean; ageDays: number | null }[] } | null;
+  forcedLabor: { total: number; recent: { date: string; country: string; merchandise: string; entity: string }[] } | null;
+  opinion: { year: number; us: number; cn: number; countries: number; africa: { us: number; cn: number } | null } | null;
+  usChina: { id: string; label: string; unit: string; year: number | null; us: number | null; cn: number | null; usRank: number | null; cnRank: number | null; of: number | null }[];
+}
+export function getDashboardPower() {
+  return request<PowerDashData>('/pulse/dashboard/power');
+}
+
+
+// --- Dashboard: people, politics and the world (src/lib/pulse/dashboardWorld.ts) ---
+export interface WorldDashData {
+  asOf: string;
+  upcoming: { date: string; kind: 'Comments close' | 'Takes effect'; title: string; url: string }[];
+  headlines: { topic: string; items: { title: string; url: string; source: string; date: string; countries: string[] }[] }[];
+  travel: { counts: { level: number; countries: number }[]; level4: { country: string; url: string; updated: string }[]; asOf: string } | null;
+  displacement: { year: number; total: number; top: { cc: string; count: number }[] } | null;
+  humanitarian: { year: number; total: number; top: { cc: string; usd: number }[] } | null;
+}
+export function getDashboardWorld() {
+  return request<WorldDashData>('/pulse/dashboard/world');
 }

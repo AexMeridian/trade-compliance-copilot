@@ -288,6 +288,24 @@ export const INDICATORS: IndicatorDef[] = [
     higherIs: 'a larger economy', minCountries: 180,
   },
   {
+    id: 'gdp_growth', provider: 'worldbank', code: 'NY.GDP.MKTP.KD.ZG', label: 'Economic growth', unit: 'pct', dimension: 'hard_power',
+    definition: 'Yearly growth in gross domestic product, adjusted for price changes (constant local currency).',
+    caveat: 'A single year can swing with one-off events; small and recovering economies often show large percentages. It measures the change in output, not how large or how well off the economy is.',
+    higherIs: 'faster growth', minCountries: 120,
+  },
+  {
+    id: 'inflation_cpi', provider: 'worldbank', code: 'FP.CPI.TOTL.ZG', label: 'Inflation', unit: 'pct', dimension: 'hard_power',
+    definition: 'Yearly change in consumer prices, the cost of a typical household basket.',
+    caveat: 'Countries build the basket differently, and some report with long delays or revise heavily. Very high figures usually mean a currency crisis rather than a normal year.',
+    higherIs: 'faster-rising prices', minCountries: 120,
+  },
+  {
+    id: 'unemployment', provider: 'worldbank', code: 'SL.UEM.TOTL.ZS', label: 'Unemployment', unit: 'pct', dimension: 'hard_power',
+    definition: 'Share of the labor force without work but available for and looking for it (modeled estimate from the International Labour Organization).',
+    caveat: 'Definitions and survey methods differ by country, and informal work is not counted the same way everywhere, so comparisons across countries are rough.',
+    higherIs: 'more people without work', minCountries: 120,
+  },
+  {
     id: 'population', provider: 'worldbank', code: 'SP.POP.TOTL', label: 'Population', unit: 'count', dimension: 'hard_power',
     definition: 'Total residents, mid-year estimate.',
     caveat: 'Size of a country, not its reach.',
