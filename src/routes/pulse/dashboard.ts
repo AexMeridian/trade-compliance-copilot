@@ -4,6 +4,7 @@ import type { PulseApp } from './util.js';
 import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
 import { buildEconomy, type EconomyInputs } from '../../lib/pulse/dashboardEconomy.js';
 import { buildPower, type PowerInputs } from '../../lib/pulse/dashboardPower.js';
+import { buildWorld, type WorldInputs } from '../../lib/pulse/dashboardWorld.js';
 
 // The Dashboard is served in sections, each its own request and its own cached answer, so no single invocation has to read everything
 // (the Workers Free plan allows 50 database queries per invocation). A section that fails is simply missing; the page shows the rest.
@@ -56,6 +57,26 @@ export function dashboardRoute(root: PulseApp): PulseApp {
     };
     try {
       const payload = await cachedAggregate(c.env, 'dash-power', 30 * 60_000, build);
+      c.header('Cache-Control', 'public, max-age=300');
+      return c.json(payload);
+    } catch {
+      return c.json({ error: 'Data is temporarily unavailable.' }, 503);
+    }
+  });
+
+  route.get('/dashboard/world', async (c) => {
+    const build = async () => {
+      const [feed, news, advisories, power] = await Promise.all([
+        settle<WorldInputs['feed']>(c, '/feed?limit=100'),
+        settle<WorldInputs['news']>(c, '/news?limit=60'),
+        settle<WorldInputs['advisories']>(c, '/advisories'),
+        settle<WorldInputs['power']>(c, '/power?countries=US,CN'),
+      ]);
+      if (!feed && !news && !advisories && !power) throw new Error('no data');
+      return buildWorld({ now: new Date(), feed, news, advisories, power });
+    };
+    try {
+      const payload = await cachedAggregate(c.env, 'dash-world', 30 * 60_000, build);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(payload);
     } catch {

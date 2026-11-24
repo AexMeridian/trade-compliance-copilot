@@ -828,3 +828,17 @@ export interface PowerDashData {
 export function getDashboardPower() {
   return request<PowerDashData>('/pulse/dashboard/power');
 }
+
+
+// --- Dashboard: people, politics and the world (src/lib/pulse/dashboardWorld.ts) ---
+export interface WorldDashData {
+  asOf: string;
+  upcoming: { date: string; kind: 'Comments close' | 'Takes effect'; title: string; url: string }[];
+  headlines: { topic: string; items: { title: string; url: string; source: string; date: string; countries: string[] }[] }[];
+  travel: { counts: { level: number; countries: number }[]; level4: { country: string; url: string; updated: string }[]; asOf: string } | null;
+  displacement: { year: number; total: number; top: { cc: string; count: number }[] } | null;
+  humanitarian: { year: number; total: number; top: { cc: string; usd: number }[] } | null;
+}
+export function getDashboardWorld() {
+  return request<WorldDashData>('/pulse/dashboard/world');
+}

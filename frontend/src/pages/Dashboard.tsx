@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '../components/Skeleton';
 import { ECONOMY_PANELS, EconomySection } from '../components/dashboard/EconomyPanels';
+import { Directory } from '../components/dashboard/Directory';
 import { POWER_PANELS, PowerSection, TRADE_PANELS, TradeSection } from '../components/dashboard/PowerPanels';
+import { WORLD_PANELS, WorldSection } from '../components/dashboard/WorldPanels';
 import { KeyNumbers } from '../components/dashboard/KeyNumbers';
-import { getDashboardEconomy, getDashboardPower, getToday, type DashKeyNumber, type EconomyData, type PowerDashData, type TodayData } from '../lib/api';
-import { CountryPicker, TodayBody, ago, useChosenCountries } from './Today';
+import { getDashboardEconomy, getDashboardPower, getDashboardWorld, getToday, type DashKeyNumber, type EconomyData, type PowerDashData, type TodayData, type WorldDashData } from '../lib/api';
+import { CountryPicker, ago, useChosenCountries } from './Today';
 
 // The Dashboard: one screen for "what is going on right now". A strip of key numbers, then sections you can switch between. Each section
 // is loaded on its own, so a slow or missing source never blanks the page. Everything names its source and date; nothing here is advice.
@@ -14,7 +16,7 @@ const TABS = [
   { id: 'economy', label: 'Markets and economy' },
   { id: 'trade', label: 'Trade and tariffs' },
   { id: 'power', label: 'Power and security' },
-  { id: 'world', label: 'Notices, politics and the world' },
+  { id: 'world', label: 'People, politics and the world' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -46,7 +48,7 @@ function powerKeyNumbers(p: PowerDashData | null): DashKeyNumber[] {
   return out;
 }
 
-const PANELS_FOR: Record<string, { id: string; label: string }[]> = { economy: ECONOMY_PANELS, trade: TRADE_PANELS, power: POWER_PANELS };
+const PANELS_FOR: Record<string, { id: string; label: string }[]> = { economy: ECONOMY_PANELS, trade: TRADE_PANELS, power: POWER_PANELS, world: WORLD_PANELS };
 
 export function Dashboard() {
   const [params, setParams] = useSearchParams();
@@ -55,6 +57,8 @@ export function Dashboard() {
   const [economyFailed, setEconomyFailed] = useState(false);
   const [power, setPower] = useState<PowerDashData | null>(null);
   const [powerFailed, setPowerFailed] = useState(false);
+  const [world, setWorld] = useState<WorldDashData | null>(null);
+  const [worldFailed, setWorldFailed] = useState(false);
   const [today, setToday] = useState<TodayData | null>(null);
   const [todayFailed, setTodayFailed] = useState(false);
   const [chosen, changeChosen] = useChosenCountries();
@@ -64,6 +68,7 @@ export function Dashboard() {
     let off = false;
     getDashboardEconomy().then((d) => !off && setEconomy(d)).catch(() => !off && setEconomyFailed(true));
     getDashboardPower().then((d) => !off && setPower(d)).catch(() => !off && setPowerFailed(true));
+    getDashboardWorld().then((d) => !off && setWorld(d)).catch(() => !off && setWorldFailed(true));
     getToday().then((d) => !off && setToday(d)).catch(() => !off && setTodayFailed(true));
     return () => {
       off = true;
@@ -161,8 +166,10 @@ export function Dashboard() {
         )}
         {tab === 'trade' && (power ? <TradeSection data={power} show={show} /> : powerFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
         {tab === 'power' && (power ? <PowerSection data={power} show={show} /> : powerFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
-        {tab === 'world' && (today ? <TodayBody data={today} chosen={chosen} /> : todayFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
+        {tab === 'world' && (world || today ? <WorldSection world={world} today={today} chosen={chosen} show={show} /> : worldFailed && todayFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
       </div>
+
+      <Directory />
 
       <p className="mt-8 text-[13px] leading-snug text-ink-faint">
         The Dashboard summarizes public data and is refreshed through the day. See{' '}

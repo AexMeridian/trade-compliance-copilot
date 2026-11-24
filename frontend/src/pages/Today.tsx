@@ -104,7 +104,7 @@ export function CountryPicker({ chosen, onChange }: { chosen: string[]; onChange
   );
 }
 
-function MyCountries({ codes, data }: { codes: string[]; data: TodayData }) {
+export function MyCountries({ codes, data }: { codes: string[]; data: TodayData }) {
   return (
     <section id="mine" aria-labelledby="mine-h" className="scroll-mt-24">
       <h2 id="mine-h" className="font-display text-xl font-bold text-ink">
