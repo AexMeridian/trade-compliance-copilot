@@ -45,7 +45,7 @@ export function Directory() {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let off = false;
-    getDataStatus().then((d) => !off && setData(d)).catch(() => !off && setFailed(true));
+    getDataStatus().then((d) => !off && (Array.isArray(d?.sources) ? setData(d) : setFailed(true))).catch(() => !off && setFailed(true));
     return () => {
       off = true;
     };

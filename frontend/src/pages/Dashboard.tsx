@@ -66,10 +66,10 @@ export function Dashboard() {
 
   useEffect(() => {
     let off = false;
-    getDashboardEconomy().then((d) => !off && setEconomy(d)).catch(() => !off && setEconomyFailed(true));
-    getDashboardPower().then((d) => !off && setPower(d)).catch(() => !off && setPowerFailed(true));
-    getDashboardWorld().then((d) => !off && setWorld(d)).catch(() => !off && setWorldFailed(true));
-    getToday().then((d) => !off && setToday(d)).catch(() => !off && setTodayFailed(true));
+    getDashboardEconomy().then((d) => !off && (Array.isArray(d?.keyNumbers) ? setEconomy(d) : setEconomyFailed(true))).catch(() => !off && setEconomyFailed(true));
+    getDashboardPower().then((d) => !off && (Array.isArray(d?.usChina) ? setPower(d) : setPowerFailed(true))).catch(() => !off && setPowerFailed(true));
+    getDashboardWorld().then((d) => !off && (Array.isArray(d?.upcoming) ? setWorld(d) : setWorldFailed(true))).catch(() => !off && setWorldFailed(true));
+    getToday().then((d) => !off && (Array.isArray(d?.sentences) ? setToday(d) : setTodayFailed(true))).catch(() => !off && setTodayFailed(true));
     return () => {
       off = true;
     };
