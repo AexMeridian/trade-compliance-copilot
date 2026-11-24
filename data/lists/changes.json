@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-23T22:07:04.793Z",
+ "generatedAt": "2026-11-24T20:43:23.093Z",
  "days": {
   "2026-11-22": {
    "csl": {
@@ -205,6 +205,58 @@
     "addedCount": 0,
     "removedCount": 0,
     "updatedCount": 1
+   }
+  },
+  "2026-11-24": {
+   "csl": {
+    "added": [
+     {
+      "uid": "d02b8b1b6c44a506d66c3f311b5baebf5e90f77a2c4eeee49a4cee99",
+      "name": "MSFusion Sdn. Bhd.",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "ca503b02739d0bd6d033c3209e21ad252569a805bcbc7976a113f9c4",
+      "name": "Pt Megaspeed International",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "e3bb180c90a07b1fb835ff2d62cfe3b48025f4f0582013688af42544",
+      "name": "Speedmatrix Sdn Bhd.",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "bbd2e9b253e503a266315636753d45619f615ab4e29ae7c0840469b6",
+      "name": "Apex Enterprise Solutions (Singapore) Private Limited",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "815c588a6bc1e467bd71c20da9fd7b4f80c7f3aaa839a5782c2f2343",
+      "name": "Megaspeed International Pte. Ltd.",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "d22d9bb498b648bd88087f228e85182ae1ffd7233bceed3a5be2818c",
+      "name": "Swiftdata Pte. Ltd.",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     },
+     {
+      "uid": "0b0aa2e3730dad172f9b53b0ab2a6f8be1f85313eed79567c43570d2",
+      "name": "Megaspeed (Thailand) Co., Ltd.",
+      "detail": "Entity List (EL) - Bureau of Industry and Security",
+      "url": "https://www.bis.gov/licensing/guidance-on-end-user-and-end-use-controls-and-us-person-controls"
+     }
+    ],
+    "removed": [],
+    "addedCount": 7,
+    "removedCount": 0,
+    "updatedCount": 0
    }
   }
  }
