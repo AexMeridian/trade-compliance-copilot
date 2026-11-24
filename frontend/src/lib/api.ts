@@ -805,6 +805,7 @@ export interface EconomyData {
   currencies: { quote: string; name: string; rate: number; change30dPct: number | null; spark: number[] }[];
   dollarRole: { reservesPct: number | null; reservesAsOf: string | null; holdersTotalBillions: number | null; holdersYearAgoBillions: number | null; holdersAsOf: string | null; topHolders: { label: string; billions: number; yearAgoBillions: number | null }[] } | null;
   tradePrices: { id: string; label: string; value: number; changePct: number | null; asOf: string; points: DashPt[] }[];
+  majorEconomies?: { cc: string; growth: { value: number; year: number | null } | null; inflation: { value: number; year: number | null } | null; unemployment: { value: number; year: number | null } | null }[];
 }
 export function getDashboardEconomy() {
   return request<EconomyData>('/pulse/dashboard/economy');

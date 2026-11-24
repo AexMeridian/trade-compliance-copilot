@@ -61,6 +61,16 @@ test('commodities come from the commodity group only', () => {
   assert.equal(e.keyNumbers.find((x) => x.id === 'oil')?.change, 'up 6.2% from last month');
 });
 
+test('major economies appear only once at least six have a reading, with the year of each', () => {
+  const ind = (id: string, vals: Record<string, number>) => ({ id, latestYear: 2025, standings: Object.fromEntries(Object.entries(vals).map(([cc, value]) => [cc, { value, year: cc === 'IN' ? 2024 : undefined }])) });
+  const few = buildEconomy({ ...base, majors: { indicators: [ind('gdp_growth', { US: 2, CN: 5 })] } });
+  assert.deepEqual(few.majorEconomies, []);
+  const many = buildEconomy({ ...base, majors: { indicators: [ind('gdp_growth', { US: 2, CN: 5, JP: 1, DE: 0.4, IN: 6.5, GB: 1.1 }), ind('unemployment', { US: 4.1 })] } });
+  assert.equal(many.majorEconomies.length, 12);
+  assert.deepEqual(many.majorEconomies[0], { cc: 'US', growth: { value: 2, year: 2025 }, inflation: null, unemployment: { value: 4.1, year: 2025 } });
+  assert.equal(many.majorEconomies.find((r) => r.cc === 'IN')?.growth?.year, 2024);
+});
+
 if (failures) {
   console.error(`${failures} test(s) failed`);
   process.exit(1);

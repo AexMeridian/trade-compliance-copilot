@@ -1,4 +1,5 @@
 import type { EconomyData } from '../../lib/api';
+import { COUNTRY_LABELS } from '../../lib/pulseCountries';
 import { Bars, Direction, Panel, Spark, monthYear, pct, shortDate } from './Panel';
 
 // "Markets and economy": what it costs to borrow, how prices and jobs are doing, commodities, the dollar and the dollar's role in the world.
@@ -10,6 +11,7 @@ export const ECONOMY_PANELS = [
   { id: 'commodities', label: 'Oil, metals and food' },
   { id: 'currencies', label: 'The dollar against other currencies' },
   { id: 'dollar', label: "The dollar's role in the world" },
+  { id: 'majors', label: 'Major economies at a glance' },
   { id: 'tradeprices', label: 'Import and export prices' },
 ];
 
@@ -22,6 +24,9 @@ function Change({ value, suffix = '' }: { value: number | null; suffix?: string 
 
 export function EconomySection({ data, show }: { data: EconomyData; show: (id: string) => boolean }) {
   const { rates, inflation, jobs, commodities, currencies, dollarRole, tradePrices } = data;
+  const majors = data.majorEconomies ?? [];
+  const label = (cc: string) => ({ US: 'United States', HK: 'Hong Kong' } as Record<string, string>)[cc] ?? COUNTRY_LABELS[cc] ?? cc;
+  const cell = (m: { value: number; year: number | null } | null) => (m ? `${m.value.toFixed(1)}%${m.year ? ` (${m.year})` : ''}` : '—');
   const maxRate = rates ? Math.max(...rates.curve.map((c) => c.pct), 1) : 1;
   const movers = currencies.slice(0, 8);
   const maxMove = Math.max(...movers.map((c) => Math.abs(c.change30dPct ?? 0)), 0.1);
@@ -134,6 +139,31 @@ export function EconomySection({ data, show }: { data: EconomyData; show: (id: s
               <Bars rows={topHolders.map((h) => ({ label: h.label, size: h.billions / maxHolder, text: h.billions.toFixed(0) }))} />
             </>
           )}
+        </Panel>
+      )}
+
+      {majors.length > 0 && show('majors') && (
+        <Panel id="majors" title="Major economies at a glance" what="How the world's largest economies are doing: how fast they are growing, how fast prices are rising, and how many people are out of work." source="World Bank" sourceUrl="https://data.worldbank.org/" asOf={null} more={{ to: '/hard-power', label: 'Hard Power: economy' }} limit="Yearly figures, so the newest year can differ by country (the table view lists each year). Countries measure unemployment and prices in different ways." table={{ head: ['Economy', 'Growth', 'Inflation', 'Unemployment'], rows: majors.map((m) => [label(m.cc), cell(m.growth), cell(m.inflation), cell(m.unemployment)]) }}>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-left text-xs text-ink-faint">
+                <th scope="col" className="pb-1 font-semibold">Economy</th>
+                <th scope="col" className="pb-1 text-right font-semibold">Growth</th>
+                <th scope="col" className="pb-1 text-right font-semibold">Inflation</th>
+                <th scope="col" className="pb-1 text-right font-semibold">Jobless</th>
+              </tr>
+            </thead>
+            <tbody>
+              {majors.map((m) => (
+                <tr key={m.cc} className="border-t border-hairline">
+                  <th scope="row" className="py-1.5 pr-2 text-left font-normal text-ink">{label(m.cc)}</th>
+                  <td className="py-1.5 text-right tabular-nums text-ink">{m.growth ? `${m.growth.value.toFixed(1)}%` : '—'}</td>
+                  <td className="py-1.5 text-right tabular-nums text-ink">{m.inflation ? `${m.inflation.value.toFixed(1)}%` : '—'}</td>
+                  <td className="py-1.5 text-right tabular-nums text-ink">{m.unemployment ? `${m.unemployment.value.toFixed(1)}%` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Panel>
       )}
 

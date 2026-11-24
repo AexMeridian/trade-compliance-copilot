@@ -15,6 +15,7 @@ export interface EconomyInputs {
     jobs?: { id: string; label: string; latest: [string, number] | null; points: Pt[] }[];
   } | null;
   tic: { total?: { billions: number; yearAgoBillions: number | null; asOf: string }; countries?: { label: string; billions: number; yearAgoBillions: number | null }[] } | null;
+  majors?: { indicators: { id: string; latestYear: number | null; standings: Record<string, { value: number; year?: number } | undefined> }[] } | null;
 }
 
 export interface SeriesRow {
@@ -40,7 +41,11 @@ export interface EconomyPayload {
   currencies: { quote: string; name: string; rate: number; change30dPct: number | null; spark: number[] }[];
   dollarRole: { reservesPct: number | null; reservesAsOf: string | null; holdersTotalBillions: number | null; holdersYearAgoBillions: number | null; holdersAsOf: string | null; topHolders: { label: string; billions: number; yearAgoBillions: number | null }[] } | null;
   tradePrices: { id: string; label: string; value: number; changePct: number | null; asOf: string; points: Pt[] }[];
+  majorEconomies: { cc: string; growth: { value: number; year: number | null } | null; inflation: { value: number; year: number | null } | null; unemployment: { value: number; year: number | null } | null }[];
 }
+
+/** The economies shown in "major economies at a glance", largest first. */
+export const MAJOR_ECONOMIES = ['US', 'CN', 'JP', 'DE', 'IN', 'GB', 'FR', 'IT', 'BR', 'CA', 'RU', 'KR'];
 
 /** One number for the top strip. */
 export interface KeyNumber {
@@ -163,9 +168,18 @@ export function buildEconomy(i: EconomyInputs): EconomyPayload {
     .filter((t): t is NonNullable<ReturnType<typeof tile>> => !!t)
     .map((t) => ({ id: t.id, label: t.label, value: t.value, changePct: t.changePct, asOf: t.asOf, points: (t.points ?? []).slice(-36) }));
 
+  // Major economies at a glance (World Bank yearly data; shown only once at least six economies have a reading)
+  const pick = (id: string, cc: string) => {
+    const ind = i.majors?.indicators.find((x) => x.id === id);
+    const s = ind?.standings[cc];
+    return s && typeof s.value === 'number' ? { value: s.value, year: s.year ?? ind?.latestYear ?? null } : null;
+  };
+  const majorRows = MAJOR_ECONOMIES.map((cc) => ({ cc, growth: pick('gdp_growth', cc), inflation: pick('inflation_cpi', cc), unemployment: pick('unemployment', cc) }));
+  const majorEconomies = majorRows.filter((r) => r.growth || r.inflation || r.unemployment).length >= 6 ? majorRows : [];
+
   // Put the key numbers in a stable, sensible order.
   const order = ['inflation', 'unemployment', 'ten-year', 'dollar', 'oil', 'gold', 'reserves'];
   keyNumbers.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
-  return { asOf: i.now.toISOString(), summary, keyNumbers, rates, inflation, jobs, commodities, currencies, dollarRole, tradePrices };
+  return { asOf: i.now.toISOString(), summary, keyNumbers, rates, inflation, jobs, commodities, currencies, dollarRole, tradePrices, majorEconomies };
 }

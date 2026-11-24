@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
-import { buildEconomy, type EconomyInputs } from '../../lib/pulse/dashboardEconomy.js';
+import { buildEconomy, MAJOR_ECONOMIES, type EconomyInputs } from '../../lib/pulse/dashboardEconomy.js';
 import { buildPower, type PowerInputs } from '../../lib/pulse/dashboardPower.js';
 import { buildWorld, type WorldInputs } from '../../lib/pulse/dashboardWorld.js';
 
@@ -22,13 +22,14 @@ export function dashboardRoute(root: PulseApp): PulseApp {
 
   route.get('/dashboard/economy', async (c) => {
     const build = async () => {
-      const [markets, everyday, tic] = await Promise.all([
+      const [markets, everyday, tic, majors] = await Promise.all([
         settle<EconomyInputs['markets']>(c, '/markets'),
         settle<EconomyInputs['everyday']>(c, '/everyday'),
         settle<EconomyInputs['tic']>(c, '/tic'),
+        settle<EconomyInputs['majors']>(c, `/power?countries=${MAJOR_ECONOMIES.join(',')}`),
       ]);
       if (!markets && !everyday) throw new Error('no data');
-      return buildEconomy({ now: new Date(), markets, everyday, tic });
+      return buildEconomy({ now: new Date(), markets, everyday, tic, majors });
     };
     try {
       const payload = await cachedAggregate(c.env, 'dash-economy', 30 * 60_000, build);
