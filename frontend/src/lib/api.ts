@@ -757,7 +757,7 @@ export interface TodayData {
   }> | null;
   sanctions: TodayCard<{ date: string; added: number; removed: number } | null> | null;
   politics: TodayCard<{ title: string; url: string; source: string; date: string; category: string; countries: string[] }[]> | null;
-  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level3Count: number }> | null;
+  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level4Count: number; level3Count: number }> | null;
   events: TodayCard<{ kind: 'earthquake' | 'storm' | 'volcano' | 'wildfire' | 'flood'; title: string; date: string; url: string; magnitude?: number }[]> | null;
   forCountries: {
     notices: { title: string; url: string; date: string; countries: string[] }[];
@@ -767,4 +767,45 @@ export interface TodayData {
 }
 export function getToday() {
   return request<TodayData>('/pulse/today');
+}
+
+// --- The Dashboard sections (src/lib/pulse/dashboardEconomy.ts) ---
+export type DashPt = [string, number];
+export interface DashSeriesRow {
+  id: string;
+  label: string;
+  latest: string;
+  changePct: number | null;
+  since: string | null;
+  points: DashPt[];
+}
+export interface DashKeyNumber {
+  id: string;
+  label: string;
+  value: string;
+  change: string | null;
+  direction: 'up' | 'down' | 'flat' | null;
+  asOf: string | null;
+  points: DashPt[];
+  href: string;
+  section: string;
+}
+export interface EconomyData {
+  asOf: string;
+  summary: string[];
+  keyNumbers: DashKeyNumber[];
+  rates: { curve: { label: string; pct: number }[]; asOf: string; inverted: boolean } | null;
+  inflation: { cpi: DashSeriesRow | null; prices: DashSeriesRow[] } | null;
+  jobs: {
+    unemployment: { pct: number; changePts: number | null; asOf: string; points: DashPt[] } | null;
+    payrolls: { thousands: number; monthlyChangeThousands: number | null; asOf: string; points: DashPt[] } | null;
+    industries: DashSeriesRow[];
+  } | null;
+  commodities: { id: string; label: string; unit: string; value: number; changePct: number | null; asOf: string; points: DashPt[] }[];
+  currencies: { quote: string; name: string; rate: number; change30dPct: number | null; spark: number[] }[];
+  dollarRole: { reservesPct: number | null; reservesAsOf: string | null; holdersTotalBillions: number | null; holdersYearAgoBillions: number | null; holdersAsOf: string | null; topHolders: { label: string; billions: number; yearAgoBillions: number | null }[] } | null;
+  tradePrices: { id: string; label: string; value: number; changePct: number | null; asOf: string; points: DashPt[] }[];
+}
+export function getDashboardEconomy() {
+  return request<EconomyData>('/pulse/dashboard/economy');
 }

@@ -34,12 +34,12 @@ const PAGES: SearchEntry[] = [
     url: '/basics',
   },
   {
-    id: 'today',
-    title: 'Today: what is going on right now',
+    id: 'dashboard',
+    title: 'Dashboard: what is going on right now',
     description: 'One plain-English page: new trade notices, prices, the dollar, sanctions changes, headlines and travel warnings, with a source and date on every number.',
     keywords: ['today', 'dashboard', 'news', 'what is happening', 'world', 'summary', 'briefing', 'overview', 'my countries'],
     type: 'Page',
-    url: '/today',
+    url: '/dashboard',
   },
   {
     id: 'prices',

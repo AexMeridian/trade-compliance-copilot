@@ -41,7 +41,7 @@ export interface TodayPayload {
   }> | null;
   sanctions: TodayCard<{ date: string; added: number; removed: number } | null> | null;
   politics: TodayCard<{ title: string; url: string; source: string; date: string; category: string; countries: string[] }[]> | null;
-  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level3Count: number }> | null;
+  travel: TodayCard<{ level4: { country: string; title: string; url: string; updated: string }[]; level4Count: number; level3Count: number }> | null;
   events: TodayCard<WorldEvent[]> | null;
   /** Compact lists the page filters locally for "my countries". */
   forCountries: {
@@ -214,7 +214,7 @@ export function buildToday(i: TodayInputs): TodayPayload {
   if (i.advisories) {
     const l4 = i.advisories.items.filter((a) => a.level === 4).sort((a, b) => b.updated.localeCompare(a.updated));
     travel = {
-      data: { level4: l4.slice(0, 8).map(({ country, title, url, updated }) => ({ country, title, url, updated })), level3Count: i.advisories.items.filter((a) => a.level === 3).length },
+      data: { level4: l4.slice(0, 8).map(({ country, title, url, updated }) => ({ country, title, url, updated })), level4Count: l4.length, level3Count: i.advisories.items.filter((a) => a.level === 3).length },
       asOf: i.advisories.asOf.slice(0, 10),
       source: 'U.S. Department of State',
       sourceUrl: 'https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html',

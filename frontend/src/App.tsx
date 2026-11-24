@@ -36,7 +36,7 @@ const Disclaimer = lazyPage(() => import('./pages/Disclaimer'), 'Disclaimer');
 const Copyright = lazyPage(() => import('./pages/Copyright'), 'Copyright');
 const Security = lazyPage(() => import('./pages/Security'), 'Security');
 const Snapshot = lazyPage(() => import('./pages/Snapshot'), 'Snapshot');
-const Today = lazyPage(() => import('./pages/Today'), 'Today');
+const Dashboard = lazyPage(() => import('./pages/Dashboard'), 'Dashboard');
 const Basics = lazyPage(() => import('./pages/Basics'), 'Basics');
 const Prices = lazyPage(() => import('./pages/Prices'), 'Prices');
 const Lookup = lazyPage(() => import('./pages/Lookup'), 'Lookup');
@@ -169,8 +169,8 @@ export default function App() {
           </Link>
           <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             {/* Below lg the five main pages live in the bottom tab bar (MobileTabBar); this row shows them from lg up. */}
-            <NavLink to="/today" className={(s) => `${navClass(s)} hidden lg:block`}>
-              Today
+            <NavLink to="/dashboard" className={(s) => `${navClass(s)} hidden lg:block`}>
+              Dashboard
             </NavLink>
             <NavLink to="/" end className={(s) => `${navClass(s)} hidden lg:block`}>
               Wire
@@ -207,7 +207,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/calculator" element={<Landing />} />
-          <Route path="/today" element={<Today />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/today" element={<Navigate to="/dashboard" replace />} />
           <Route path="/basics" element={<Basics />} />
           <Route path="/prices" element={<Prices />} />
           <Route path="/lookup" element={<Lookup />} />
