@@ -809,3 +809,22 @@ export interface EconomyData {
 export function getDashboardEconomy() {
   return request<EconomyData>('/pulse/dashboard/economy');
 }
+
+
+// --- Dashboard: trade, tariffs, power and security (src/lib/pulse/dashboardPower.ts) ---
+export interface PowerDashData {
+  asOf: string;
+  notices: { months: { month: string; count: number }[]; last30: number; trendPct: number | null; leadingTag: string | null; leadingTagShare: number | null } | null;
+  tariffs: { groups: { ratePct: number; countries: string[] }[]; total: number; cappedCount: number } | null;
+  csms: { items: { title: string; published: string; url: string; programs: string[] }[]; asOf: string | null } | null;
+  measures: { program: string; label: string; minPct: number; maxPct: number; lines: number; countries: number; since: string }[];
+  military: { year: number; top: { cc: string; usd: number }[]; worldUsd: number; usPctGdp: number | null; cnPctGdp: number | null } | null;
+  nato: { rows: { cc: string; pct: number; year: string }[]; metTarget: number; asOf: string | null } | null;
+  sanctions: { total: number; totals: { sdn: number; csl: number; un: number; uk: number }; top: { cc: string; count: number }[]; lists: { label: string; stale: boolean; ageDays: number | null }[] } | null;
+  forcedLabor: { total: number; recent: { date: string; country: string; merchandise: string; entity: string }[] } | null;
+  opinion: { year: number; us: number; cn: number; countries: number; africa: { us: number; cn: number } | null } | null;
+  usChina: { id: string; label: string; unit: string; year: number | null; us: number | null; cn: number | null; usRank: number | null; cnRank: number | null; of: number | null }[];
+}
+export function getDashboardPower() {
+  return request<PowerDashData>('/pulse/dashboard/power');
+}

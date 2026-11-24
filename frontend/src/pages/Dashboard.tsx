@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '../components/Skeleton';
 import { ECONOMY_PANELS, EconomySection } from '../components/dashboard/EconomyPanels';
+import { POWER_PANELS, PowerSection, TRADE_PANELS, TradeSection } from '../components/dashboard/PowerPanels';
 import { KeyNumbers } from '../components/dashboard/KeyNumbers';
-import { getDashboardEconomy, getToday, type DashKeyNumber, type EconomyData, type TodayData } from '../lib/api';
+import { getDashboardEconomy, getDashboardPower, getToday, type DashKeyNumber, type EconomyData, type PowerDashData, type TodayData } from '../lib/api';
 import { CountryPicker, TodayBody, ago, useChosenCountries } from './Today';
 
 // The Dashboard: one screen for "what is going on right now". A strip of key numbers, then sections you can switch between. Each section
@@ -11,7 +12,9 @@ import { CountryPicker, TodayBody, ago, useChosenCountries } from './Today';
 
 const TABS = [
   { id: 'economy', label: 'Markets and economy' },
-  { id: 'world', label: 'Trade, politics and the world' },
+  { id: 'trade', label: 'Trade and tariffs' },
+  { id: 'power', label: 'Power and security' },
+  { id: 'world', label: 'Notices, politics and the world' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -35,11 +38,23 @@ function todayKeyNumbers(t: TodayData | null): DashKeyNumber[] {
   return out;
 }
 
+function powerKeyNumbers(p: PowerDashData | null): DashKeyNumber[] {
+  if (!p) return [];
+  const out: DashKeyNumber[] = [];
+  if (p.nato) out.push({ id: 'nato', label: 'NATO allies at 2% of economy or more', value: `${p.nato.metTarget} of ${p.nato.rows.length}`, change: 'allies shown', direction: null, asOf: p.nato.asOf, points: [], href: '#nato', section: 'power' });
+  if (p.sanctions) out.push({ id: 'sanctioned', label: 'Names on sanctions lists', value: p.sanctions.total.toLocaleString('en-US'), change: 'U.S., UN and UK lists', direction: null, asOf: null, points: [], href: '#sanctions', section: 'power' });
+  return out;
+}
+
+const PANELS_FOR: Record<string, { id: string; label: string }[]> = { economy: ECONOMY_PANELS, trade: TRADE_PANELS, power: POWER_PANELS };
+
 export function Dashboard() {
   const [params, setParams] = useSearchParams();
   const tab: TabId = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'economy') as TabId;
   const [economy, setEconomy] = useState<EconomyData | null>(null);
   const [economyFailed, setEconomyFailed] = useState(false);
+  const [power, setPower] = useState<PowerDashData | null>(null);
+  const [powerFailed, setPowerFailed] = useState(false);
   const [today, setToday] = useState<TodayData | null>(null);
   const [todayFailed, setTodayFailed] = useState(false);
   const [chosen, changeChosen] = useChosenCountries();
@@ -48,13 +63,14 @@ export function Dashboard() {
   useEffect(() => {
     let off = false;
     getDashboardEconomy().then((d) => !off && setEconomy(d)).catch(() => !off && setEconomyFailed(true));
+    getDashboardPower().then((d) => !off && setPower(d)).catch(() => !off && setPowerFailed(true));
     getToday().then((d) => !off && setToday(d)).catch(() => !off && setTodayFailed(true));
     return () => {
       off = true;
     };
   }, []);
 
-  const keyNumbers = useMemo(() => [...(economy?.keyNumbers ?? []), ...todayKeyNumbers(today)], [economy, today]);
+  const keyNumbers = useMemo(() => [...(economy?.keyNumbers ?? []), ...todayKeyNumbers(today), ...powerKeyNumbers(power)], [economy, today, power]);
   const show = (id: string) => !hidden.includes(id);
   const stamp = economy?.asOf ?? today?.asOf ?? null;
 
@@ -120,12 +136,12 @@ export function Dashboard() {
             </button>
           ))}
         </div>
-        {tab === 'economy' && (
+        {PANELS_FOR[tab] && (
           <details className="relative pb-1 text-sm">
             <summary className="cursor-pointer font-semibold text-ink-muted">Choose panels</summary>
             <fieldset className="absolute right-0 z-10 mt-1 w-64 border border-hairline-strong bg-paper-raised p-3 shadow-lg">
               <legend className="sr-only">Panels to show</legend>
-              {ECONOMY_PANELS.map((p) => (
+              {PANELS_FOR[tab].map((p) => (
                 <label key={p.id} className="flex items-center gap-2 py-1 text-ink">
                   <input type="checkbox" checked={show(p.id)} onChange={() => toggle(p.id)} />
                   {p.label}
@@ -143,6 +159,8 @@ export function Dashboard() {
             {economy && economy.summary.length > 0 && <p className="mt-4 text-[13px] text-ink-faint">{economy.summary.join(' ')}</p>}
           </>
         )}
+        {tab === 'trade' && (power ? <TradeSection data={power} show={show} /> : powerFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
+        {tab === 'power' && (power ? <PowerSection data={power} show={show} /> : powerFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
         {tab === 'world' && (today ? <TodayBody data={today} chosen={chosen} /> : todayFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />)}
       </div>
 
