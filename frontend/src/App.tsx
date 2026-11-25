@@ -174,9 +174,6 @@ export default function App() {
             <NavLink to="/" end className={(s) => `${navClass(s)} hidden lg:block`}>
               Wire
             </NavLink>
-            <NavLink to="/basics" className={(s) => `${navClass(s)} hidden lg:block`}>
-              Basics and About
-            </NavLink>
             <NavLink to="/calculator" className={(s) => `${navClass(s)} hidden lg:block`}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
             </NavLink>
@@ -185,6 +182,9 @@ export default function App() {
             </NavLink>
             <NavLink to="/soft-power" className={(s) => `${navClass(s)} hidden lg:block`}>
               Soft Power
+            </NavLink>
+            <NavLink to="/basics" className={(s) => `${navClass(s)} hidden lg:block`}>
+              About
             </NavLink>
             <SiteSearch />
             <TextSizeToggle />

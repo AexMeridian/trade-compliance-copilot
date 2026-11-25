@@ -32,7 +32,7 @@ export function dashboardRoute(root: PulseApp): PulseApp {
       return buildEconomy({ now: new Date(), markets, everyday, tic, majors });
     };
     try {
-      const payload = await cachedAggregate(c.env, 'dash-economy', 30 * 60_000, build);
+      const payload = await cachedAggregate(c.env, 'dash-economy', 2 * 3600_000, build);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(payload);
     } catch {
@@ -57,7 +57,7 @@ export function dashboardRoute(root: PulseApp): PulseApp {
       return buildPower({ now: new Date(), summary, tempo, csms, measures, nato, sanctionCounts, wro, opinion, power });
     };
     try {
-      const payload = await cachedAggregate(c.env, 'dash-power', 30 * 60_000, build);
+      const payload = await cachedAggregate(c.env, 'dash-power', 6 * 3600_000, build);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(payload);
     } catch {
@@ -77,7 +77,7 @@ export function dashboardRoute(root: PulseApp): PulseApp {
       return buildWorld({ now: new Date(), feed, news, advisories, power });
     };
     try {
-      const payload = await cachedAggregate(c.env, 'dash-world', 30 * 60_000, build);
+      const payload = await cachedAggregate(c.env, 'dash-world', 60 * 60_000, build);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(payload);
     } catch {

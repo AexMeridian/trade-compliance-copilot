@@ -79,8 +79,8 @@ app.use('/api/pulse/country/*', async (c, next) => {
 app.use('/api/pulse/country/*', edgeCache(3600, countryCacheKey));
 // Startup calls made by every page view (and the header ticker): short windows keep a burst of visitors to one read per window.
 app.use('/api/pulse/home', edgeCache(300, pulseCacheKey('home')));
-app.use('/api/pulse/today', edgeCache(600, pulseCacheKey('today')));
-app.use('/api/pulse/dashboard/*', edgeCache(600, pulseCacheKey('dashboard')));
+app.use('/api/pulse/today', edgeCache(1800, pulseCacheKey('today')));
+app.use('/api/pulse/dashboard/*', edgeCache(1800, pulseCacheKey('dashboard')));
 for (const p of ['markets', 'news', 'summary', 'tempo']) app.use(`/api/pulse/${p}`, edgeCache(300, pulseCacheKey(p)));
 // Sanctions lists reload weekly and this scans all four tables, so it is held at the edge for six hours.
 app.use('/api/pulse/sanction-counts', edgeCache(21600, pulseCacheKey('sanction-counts')));

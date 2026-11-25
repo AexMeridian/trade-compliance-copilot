@@ -35,7 +35,7 @@ export function todayRoute(root: PulseApp): PulseApp {
       return buildToday({ now: new Date(), feed, news, summary, markets, everyday, advisories, listChanges, events });
     };
     try {
-      const payload = await cachedAggregate(c.env, 'today', 20 * 60_000, build);
+      const payload = await cachedAggregate(c.env, 'today', 60 * 60_000, build);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(payload);
     } catch {
