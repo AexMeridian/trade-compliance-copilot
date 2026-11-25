@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-24T20:43:23.093Z",
+ "generatedAt": "2026-11-25T19:59:47.774Z",
  "days": {
   "2026-11-22": {
    "csl": {
@@ -255,6 +255,22 @@
     ],
     "removed": [],
     "addedCount": 7,
+    "removedCount": 0,
+    "updatedCount": 0
+   }
+  },
+  "2026-11-25": {
+   "un_sanctions": {
+    "added": [
+     {
+      "uid": "6909750",
+      "name": "Aegean",
+      "detail": "Libya",
+      "url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list"
+     }
+    ],
+    "removed": [],
+    "addedCount": 1,
     "removedCount": 0,
     "updatedCount": 0
    }
