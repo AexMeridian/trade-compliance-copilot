@@ -32,7 +32,7 @@ const REV1: HtsApiRow[] = [
 function freshDb(): DatabaseSync {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys = ON;');
-  for (const f of readdirSync('migrations').filter((x) => x.endsWith('.sql')).sort()) db.exec(readFileSync(`migrations/${f}`, 'utf8'));
+  for (const f of readdirSync('migrations').filter((x) => x.endsWith('.sql') && !x.includes('_bulk_sync_')).sort()) db.exec(readFileSync(`migrations/${f}`, 'utf8'));
   return db;
 }
 const apply = (db: DatabaseSync, unit: Unit | null) => {
