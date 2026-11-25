@@ -55,7 +55,7 @@ export function SiteFooter() {
 
           <nav aria-label="About and legal" className={col}>
             <h2 className={head}>About</h2>
-            <Link to="/about" className={link}>About {SITE.name}</Link>
+            <Link to="/basics#about" className={link}>About {SITE.name}</Link>
             <Link to="/terms" className={link}>Terms of use</Link>
             <Link to="/privacy" className={link}>Privacy</Link>
             <Link to="/disclaimer" className={link}>Disclaimer</Link>

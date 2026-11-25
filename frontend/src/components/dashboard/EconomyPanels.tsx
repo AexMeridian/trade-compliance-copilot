@@ -66,7 +66,7 @@ export function EconomySection({ data, show }: { data: EconomyData; show: (id: s
       )}
 
       {jobs && show('jobs') && (
-        <Panel id="jobs" title="Jobs" what="Whether people who want work can find it, and whether employers are adding jobs." source="U.S. Bureau of Labor Statistics" sourceUrl={BLS + 'cps/'} asOf={jobs.unemployment?.asOf ?? jobs.payrolls?.asOf ?? null} more={{ to: '/prices', label: 'Jobs in tariff industries' }} table={{ head: ['Industry', 'Jobs vs a year ago'], rows: jobs.industries.map((j) => [j.label, j.changePct == null ? '—' : pct(j.changePct)]) }}>
+        <Panel id="jobs" title="Jobs" what="Whether people who want work can find it, and whether employers are adding jobs." source="U.S. Bureau of Labor Statistics" sourceUrl={BLS + 'cps/'} asOf={jobs.unemployment?.asOf ?? jobs.payrolls?.asOf ?? null} more={{ to: '/prices', label: 'Jobs in tariff industries' }}>
           {jobs.unemployment && (
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -80,19 +80,6 @@ export function EconomySection({ data, show }: { data: EconomyData; show: (id: s
             <p className="mt-2 text-[13px] text-ink-muted">
               Employers {jobs.payrolls.monthlyChangeThousands >= 0 ? 'added' : 'cut'} about <span className="font-semibold text-ink">{Math.abs(Math.round(jobs.payrolls.monthlyChangeThousands * 1000)).toLocaleString('en-US')}</span> jobs in the latest month.
             </p>
-          )}
-          {jobs.industries.length > 0 && (
-            <ul className="mt-2 flex flex-col divide-y divide-hairline border-t border-hairline">
-              {jobs.industries.map((j) => (
-                <li key={j.id} className="flex items-center justify-between gap-2 py-1.5 text-[13px]">
-                  <span className="min-w-0 flex-1 truncate text-ink">{j.label}</span>
-                  <Spark points={j.points} width={48} height={18} />
-                  <span className="w-16 text-right font-semibold text-ink">
-                    <Change value={j.changePct} />
-                  </span>
-                </li>
-              ))}
-            </ul>
           )}
         </Panel>
       )}

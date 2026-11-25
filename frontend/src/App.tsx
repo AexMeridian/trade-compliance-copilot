@@ -26,7 +26,6 @@ const Report = lazyPage(() => import('./pages/Report'), 'Report');
 const HardPower = lazyPage(() => import('./pages/HardPower'), 'HardPower');
 const SoftPower = lazyPage(() => import('./pages/SoftPower'), 'SoftPower');
 const CountryDetail = lazyPage(() => import('./pages/CountryDetail'), 'CountryDetail');
-const About = lazyPage(() => import('./pages/About'), 'About');
 const Methodology = lazyPage(() => import('./pages/Methodology'), 'Methodology');
 const Terms = lazyPage(() => import('./pages/Terms'), 'Terms');
 const Privacy = lazyPage(() => import('./pages/Privacy'), 'Privacy');
@@ -176,7 +175,7 @@ export default function App() {
               Wire
             </NavLink>
             <NavLink to="/basics" className={(s) => `${navClass(s)} hidden lg:block`}>
-              Basics
+              Basics and About
             </NavLink>
             <NavLink to="/calculator" className={(s) => `${navClass(s)} hidden lg:block`}>
               Calculator <span className="ml-0.5 hidden align-middle text-[10px] font-bold uppercase tracking-wide lg:inline">Beta</span>
@@ -186,9 +185,6 @@ export default function App() {
             </NavLink>
             <NavLink to="/soft-power" className={(s) => `${navClass(s)} hidden lg:block`}>
               Soft Power
-            </NavLink>
-            <NavLink to="/about" className={(s) => `${navClass(s)} hidden lg:block`}>
-              About
             </NavLink>
             <SiteSearch />
             <TextSizeToggle />
@@ -230,7 +226,7 @@ export default function App() {
           <Route path="/country/:code" element={<CountryDetail />} />
           <Route path="/case/:id" element={<CaseWizard />} />
           <Route path="/case/:id/report" element={<Report />} />
-          <Route path="/about" element={<About />} />
+          <Route path="/about" element={<Navigate to="/basics#about" replace />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/methodology" element={<Methodology />} />
           <Route path="/terms" element={<Terms />} />

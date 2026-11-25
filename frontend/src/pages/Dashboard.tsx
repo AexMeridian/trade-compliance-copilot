@@ -1,3 +1,4 @@
+import { hueStyle } from '../components/dashboard/Panel';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '../components/Skeleton';
@@ -34,7 +35,7 @@ const readHidden = (): string[] => {
 function todayKeyNumbers(t: TodayData | null): DashKeyNumber[] {
   if (!t) return [];
   const out: DashKeyNumber[] = [];
-  if (t.trade) out.push({ id: 'notices', label: 'New U.S. trade notices (7 days)', value: String(t.trade.data.last7), change: t.trade.data.last30 ? `${t.trade.data.last30} in 30 days` : null, direction: null, asOf: t.trade.asOf, points: [], href: '#trade', section: 'world' });
+  if (t.trade) out.push({ id: 'notices', label: 'New U.S. trade notices (7 days)', value: String(t.trade.data.last7), change: t.trade.data.last30 ? `${t.trade.data.last30} in 30 days` : null, direction: null, asOf: t.trade.asOf, points: [], href: '#trade', section: 'trade' });
   if (t.sanctions?.data) out.push({ id: 'sanctions', label: 'Sanctions list changes', value: `+${t.sanctions.data.added} / −${t.sanctions.data.removed}`, change: `added / removed on ${t.sanctions.data.date}`, direction: null, asOf: t.sanctions.asOf, points: [], href: '#sanctions', section: 'world' });
   if (t.travel) out.push({ id: 'travel', label: '"Do not travel" countries', value: String(t.travel.data.level4Count), change: 'State Department Level 4', direction: null, asOf: t.travel.asOf, points: [], href: '#travel', section: 'world' });
   return out;
@@ -135,7 +136,8 @@ export function Dashboard() {
               type="button"
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${tab === t.id ? 'border-accent text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}
+              className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${tab === t.id ? 'border-[color:var(--dash-hue)] text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}
+              style={hueStyle(t.id)}
             >
               {t.label}
             </button>
@@ -157,7 +159,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <div role="tabpanel" className="mt-5 min-h-[480px]">
+      <div role="tabpanel" className="mt-5 min-h-[480px]" style={hueStyle(tab)}>
         {tab === 'economy' && (
           <>
             {economy ? <EconomySection data={economy} show={show} /> : economyFailed ? <Unavailable /> : <Skeleton rows={10} className="text-ink" />}

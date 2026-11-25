@@ -4,6 +4,7 @@ import { LanguageSwitch } from '../components/LanguageSwitch';
 import { langFromPath, localePath } from '../i18n/lang';
 import { BASICS_EN } from '../i18n/content/basics.en';
 import { BASICS_ES } from '../i18n/content/basics.es';
+import { AboutBody } from './About';
 import type { BasicsContent } from '../i18n/content/types';
 
 const CONTENT: Record<'en' | 'es', BasicsContent> = { en: BASICS_EN, es: BASICS_ES };
@@ -25,6 +26,13 @@ export function Basics() {
           </Link>
         ))}
       </div>
+      {lang === 'en' ? (
+        <AboutBody />
+      ) : (
+        <p className="mt-10 text-sm text-ink-muted">
+          <Link to="/basics#about" className="text-accent">About the site, its sources and limits (English)</Link>
+        </p>
+      )}
     </div>
   );
 }

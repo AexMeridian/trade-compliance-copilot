@@ -55,7 +55,7 @@ const SOURCES: { name: string; used: string; terms: string; coverageKey?: keyof 
   },
 ];
 
-export function About() {
+export function AboutBody() {
   // Loaded, not hardcoded: each "tracked here since" date below is a live
   // MIN() over that source's own table (src/routes/pulse.ts's /coverage
   // route), so it can never drift from what's actually stored. A failed
@@ -68,8 +68,8 @@ export function About() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 text-sm leading-relaxed text-ink-muted">
-      <h1 className="display text-4xl text-ink sm:text-5xl">About {SITE.name}</h1>
+    <div id="about" className="mt-14 max-w-3xl scroll-mt-20 text-sm leading-relaxed text-ink-muted">
+      <h2 className="display border-t-2 border-ink pt-4 text-3xl text-ink">About {SITE.name}</h2>
       <p className="mt-3 text-base text-ink">
         {SITE.name} tracks what governments have published about trade: new U.S. tariff, sanctions and export-control notices, how they reach other
         countries, and the markets and news around them, in plain English and with a source on every item. It is free and needs no sign-up.

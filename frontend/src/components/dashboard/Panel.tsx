@@ -5,6 +5,15 @@ import { Sparkline } from '../Sparkline';
 // The shell every Dashboard panel uses: a plain title, one line on what it means, the picture, the source with its date, and a way to see
 // the same numbers as a table (for screen readers and for anyone who wants the figures).
 
+/** One color per Dashboard section, set as --dash-hue so panels, bars and trend lines pick it up. */
+export const SECTION_HUE: Record<string, string> = {
+  economy: 'var(--color-hue-blue)',
+  trade: 'var(--color-hue-orange)',
+  power: 'var(--color-hue-violet)',
+  world: 'var(--color-hue-green)',
+};
+export const hueStyle = (section: string) => ({ '--dash-hue': SECTION_HUE[section] ?? 'var(--color-accent)' }) as React.CSSProperties;
+
 export const pct = (n: number, digits = 1) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(digits)}%`;
 export const upDown = (n: number | null, span: string) => (n == null ? '' : Math.abs(n) < 0.05 ? `unchanged ${span}` : `${n > 0 ? 'up' : 'down'} ${Math.abs(n).toFixed(1)}% ${span}`);
 export const shortDate = (iso: string) => {
@@ -19,7 +28,7 @@ export function Spark({ points, values, width = 80, height = 24, fill = false }:
   if (pts.length < 2 || pts.some((p) => Number.isNaN(p[0]))) return null;
   return (
     <span role="img" aria-label="Trend line" className="inline-flex">
-      <Sparkline points={pts} color="var(--color-accent)" width={width} height={height} fill={fill} />
+      <Sparkline points={pts} color="var(--dash-hue, var(--color-accent))" width={width} height={height} fill={fill} />
     </span>
   );
 }
@@ -62,7 +71,7 @@ export function Panel({
 }) {
   const external = /^https?:/.test(sourceUrl);
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className={`card mb-4 flex min-w-0 break-inside-avoid scroll-mt-28 flex-col gap-3 p-4 ${className}`}>
+    <section id={id} aria-labelledby={`${id}-h`} className={`card mb-4 flex min-w-0 break-inside-avoid scroll-mt-28 flex-col gap-3 border-t-[3px] border-t-[color:var(--dash-hue,var(--color-hairline))] p-4 ${className}`}>
       <div>
         <h2 id={`${id}-h`} className="font-display text-lg font-bold leading-tight text-ink">
           {title}
@@ -138,7 +147,7 @@ export function Bars({ rows }: { rows: { label: string; text: ReactNode; size: n
             {r.label}
           </span>
           <span className="h-2 bg-hairline" aria-hidden="true">
-            <span className="block h-2 bg-accent" style={{ width: `${Math.max(2, Math.min(100, r.size * 100))}%` }} />
+            <span className="block h-2 bg-[color:var(--dash-hue,var(--color-accent))]" style={{ width: `${Math.max(2, Math.min(100, r.size * 100))}%` }} />
           </span>
           <span className="w-24 text-right font-semibold tabular-nums text-ink">{r.text}</span>
         </li>

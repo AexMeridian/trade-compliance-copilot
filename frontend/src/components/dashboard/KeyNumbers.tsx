@@ -1,5 +1,5 @@
 import type { DashKeyNumber } from '../../lib/api';
-import { Spark, shortDate } from './Panel';
+import { Spark, hueStyle, shortDate } from './Panel';
 
 // The strip across the top: the dozen numbers that say how things are right now. Tapping one jumps to the panel behind it.
 export function KeyNumbers({ items, onOpen }: { items: DashKeyNumber[]; onOpen: (k: DashKeyNumber) => void }) {
@@ -8,8 +8,8 @@ export function KeyNumbers({ items, onOpen }: { items: DashKeyNumber[]; onOpen: 
     <section aria-label="Key numbers">
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {items.map((k) => (
-          <li key={k.id}>
-            <button type="button" onClick={() => onOpen(k)} className="card flex h-full w-full min-w-0 flex-col gap-1 p-3 text-left hover:border-accent">
+          <li key={k.id} style={hueStyle(k.section)}>
+            <button type="button" onClick={() => onOpen(k)} className="card flex h-full w-full min-w-0 flex-col gap-1 border-l-4 border-l-[color:var(--dash-hue)] p-3 text-left hover:border-accent">
               <span className="text-xs leading-tight text-ink-muted">{k.label}</span>
               <span className="display text-2xl leading-none tabular-nums text-ink">{k.value}</span>
               <span className="flex min-h-[28px] items-end justify-between gap-2">
