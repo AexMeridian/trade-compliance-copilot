@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/env.js';
 import type { PulseApp } from './util.js';
 import { tallyBySource } from '../../lib/pulse/sanctionCounts.js';
+import { cachedAggregate } from '../../lib/pulse/aggregateCache.js';
 import { loadListFreshness, type ListFreshness } from '../../lib/listFreshness.js';
 
 // Feeds the Hard Power page's "Sanctioned parties" measure. Reads every row of the four
@@ -41,7 +42,8 @@ async function compute(env: Env): Promise<SanctionTally> {
 /** The one sanctions tally every page reads (Hard Power, country pages, Compare), so the same country never shows two numbers. */
 export function getSanctionTally(env: Env): Promise<SanctionTally> {
   if (!cache || Date.now() - cache.at > TTL_MS) {
-    const value = compute(env);
+    // Kept in a database row as well: Cloudflare recycles instances constantly, and each cold one re-read all ~30,000 rows.
+    const value = cachedAggregate(env, 'sanction-tally', TTL_MS, () => compute(env));
     cache = { at: Date.now(), value };
     value.catch(() => {
       if (cache?.value === value) cache = null;

@@ -91,6 +91,8 @@ policyRoute.get('/tempo', async (c) => {
 // analyst would actually look for first (is activity accelerating, what
 // kind of action is dominating right now, what's new).
 policyRoute.get('/summary', async (c) => {
+  // Scans the notices and tariff tables (about 20,000 rows). The answer moves by the day, so it is kept in the database for 3 hours.
+  return c.json(await cachedAggregate(c.env, 'summary', 3 * 3600_000, async () => {
   // Every query below reads a different slice of already-populated tables and
   // none depends on another's result -- run them all concurrently rather than
   // paying for the sum of ~12 D1 round trips on this endpoint (which /home
@@ -250,7 +252,7 @@ policyRoute.get('/summary', async (c) => {
   const prior90 = trend90?.prior_90d ?? 0;
   const trendPct90 = prior90 > 0 ? Math.round(((last90 - prior90) / prior90) * 100) : null;
 
-  return c.json({
+  return ({
     last30,
     prior30,
     trendPct,
@@ -284,6 +286,7 @@ policyRoute.get('/summary', async (c) => {
       })),
     },
   });
+  }));
 });
 
 // tariff_overlays is curated at HTS-line/country granularity for the duty-
@@ -296,6 +299,8 @@ policyRoute.get('/summary', async (c) => {
 // MIN()/MAX() wrapping every other column here is safe rather than
 // arbitrary-row-picking.
 policyRoute.get('/active-measures', async (c) => {
+  // Curated tariff measures change rarely: kept in the database for 6 hours instead of grouping ~20,000 rows on every request.
+  return c.json(await cachedAggregate(c.env, 'active-measures', 6 * 3600_000, async () => {
   const { results } = await c.env.DB.prepare(
     `SELECT
        program,
@@ -316,5 +321,6 @@ policyRoute.get('/active-measures', async (c) => {
      GROUP BY program, legal_basis, rate_type
      ORDER BY program, legal_basis`
   ).all();
-  return c.json({ overlays: results });
+  return { overlays: results };
+  }));
 });

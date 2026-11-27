@@ -15,6 +15,7 @@ import { UNAVAILABLE_MESSAGE } from './lib/modelSpend.js';
 import { limitOrAllow, secondsUntilUtcMidnight, withinVisitorQuota } from './lib/abuse.js';
 import { servePage } from './pages.js';
 import { edgeCache } from './lib/edgeCache.js';
+import { dbCache } from './lib/dbCache.js';
 import { conditionalGet, FEED_PATHS } from './routes/pulse/feeds.js';
 import { changesRss } from './routes/pulse/watch.js';
 import { normalizeFilters } from './lib/feed.js';
@@ -67,8 +68,9 @@ app.use('/api/pulse/nato-defense', edgeCache(86400, pulseCacheKey('nato-defense'
 // Everyday prices, customs receipts and travel advisories change at most daily; tariff lookups change only with the overlay table.
 for (const p of ['everyday', 'advisories', 'csms', 'hts-search', 'duty']) app.use(`/api/pulse/${p}`, edgeCache(3600, pulseCacheKey(p)));
 // The home page's policy feed is read on every visit. A keyword search (`q`) is a text scan with free input, so it is left uncached.
-const feedCache = edgeCache(60, pulseCacheKey('feed'));
-app.use('/api/pulse/feed', (c, next) => (feedCacheable(new URL(c.req.url)) ? feedCache(c, next) : next()));
+const feedCache = edgeCache(300, pulseCacheKey('feed'));
+const feedDbCache = dbCache(600, pulseCacheKey('feed'));
+app.use('/api/pulse/feed', (c, next) => (feedCacheable(new URL(c.req.url)) ? feedCache(c, (() => feedDbCache(c, next)) as typeof next) : next()));
 // A country page costs ~15,000 rows read uncached and there are ~170 of them (a crawler can visit them all), so it is held for an hour.
 // A code that is not a country is turned away before it reaches the database or the cache.
 app.use('/api/pulse/country/*', async (c, next) => {
@@ -77,6 +79,7 @@ app.use('/api/pulse/country/*', async (c, next) => {
   return next();
 });
 app.use('/api/pulse/country/*', edgeCache(3600, countryCacheKey));
+app.use('/api/pulse/country/*', dbCache(21600, countryCacheKey));
 // Startup calls made by every page view (and the header ticker): short windows keep a burst of visitors to one read per window.
 app.use('/api/pulse/home', edgeCache(300, pulseCacheKey('home')));
 app.use('/api/pulse/today', edgeCache(1800, pulseCacheKey('today')));
@@ -89,6 +92,14 @@ app.use('/api/pulse/stats', edgeCache(21600, pulseCacheKey('stats')));
 // Weekly country indicators: the key is the validated, sorted country list, so odd query strings cannot mint cache entries.
 app.use('/api/pulse/un-alignment', edgeCache(3600, pulseCacheKey('un-alignment')));
 app.use('/api/pulse/power', edgeCache(3600, (url) => `${url.origin}${url.pathname}?countries=${normalizeCountries(url.searchParams.get('countries')).join(',')}`));
+// Shared, database-backed layer behind the edge cache (see lib/dbCache.ts): the edge copy is per data center and lost when an instance
+// recycles, so these were rebuilt many times a day. One row read replaces thousands. Windows match how often each source changes.
+const DB_CACHED: [string, number][] = [
+  ['connections', 3600], ['convergence', 3600], ['related', 3600], ['tariffs', 3600], ['recent-listings', 1800], ['live-arcs', 1800],
+  ['sanctions', 21600], ['gta', 21600], ['wro', 21600], ['cofer', 21600], ['tic', 21600], ['export-control-chart', 21600],
+  ['everyday', 3600], ['un-alignment', 21600], ['home', 600],
+];
+for (const [p, ttl] of DB_CACHED) app.use(`/api/pulse/${p}`, dbCache(ttl, pulseCacheKey(p)));
 
 // Feeds are polled by readers around the clock, so they get a longer edge window, a cache
 // key built from the validated query (junk or reordered parameters share one entry), and
